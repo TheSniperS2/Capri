@@ -38,9 +38,13 @@ class Enlace(PruebasTk):
             self.assertIn('CONECTANDO',textos)
             c.inicio_intro=time.monotonic()-2.2;c.animar()
             self.assertTrue(c.intro_en_viaje)
-            self.assertTrue(all(c.canvas.type(i)=='line' for i in c.canvas.find_all()))
+            self.assertTrue(c.canvas.find_withtag('descarga'))
+            self.assertTrue(c.canvas.find_withtag('fragmento_capri'))
+            self.assertTrue(all(c.canvas.type(i) in ('line','polygon','image') for i in c.canvas.find_all()))
             c.parar();self.assertEqual(c.escala_avatar,c.cfg['escala_avatar'])
             self.assertEqual(c.entrada_compacta.winfo_manager(),'pack')
+            self.assertIsNone(c.fragmentos_intro)
+            c.animar();self.assertEqual(float(c.root.attributes('-alpha')),1.0)
 
     @contextmanager
     def capri(self):

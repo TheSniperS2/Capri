@@ -196,10 +196,12 @@ class Capri:
 
     def iniciar_intro(self):
         self.pasar_clics_intro(False)
+        self.ocultar_reubicacion_intro()
         self.intro_activa=True;self.inicio_intro=time.monotonic();self.dialogo.ocultar()
         self.entrada_compacta.pack_forget();self.intro_en_viaje=False
         self.escala_avatar=min(1.65,max(1.25,limitar_escala(self.cfg.get('escala_avatar',1))*1.35))
         self.avatar.redimensionar(self.escala_avatar)
+        self.preparar_fragmentos_intro()
         w=round(360*self.escala_avatar);h=round(292*self.escala_avatar)
         self.intro_centro=((self.root.winfo_screenwidth()-w)//2,(self.root.winfo_screenheight()-h)//2)
         self.canvas.configure(width=w,height=h)
@@ -207,9 +209,21 @@ class Capri:
 
     def finalizar_intro(self):
         if not self.intro_activa:return
+        self.ocultar_reubicacion_intro()
         self.intro_activa=False
         self.pasar_clics_intro(False)
         self.entrada_compacta.pack(fill='x');self.aplicar_escala(inicial=True)
+        self.fragmentos_intro=None
+
+    def ocultar_reubicacion_intro(self):
+        # Evitar que Windows traslade durante un instante el último panel pintado.
+        if not hasattr(self,'intro_alpha'):self.intro_alpha=float(self.root.attributes('-alpha'))
+        self.root.attributes('-alpha',0)
+        self.canvas.delete('all');self.root.update_idletasks()
+
+    def preparar_fragmentos_intro(self):
+        from intro import Fragmentos
+        self.fragmentos_intro=Fragmentos(self.avatar.vistas[0],self.escala_avatar) if self.avatar.vistas else None
 
     def pasar_clics_intro(self,activar):
         # La estela usa una superficie más amplia, pero deja pasar el ratón.
@@ -233,14 +247,16 @@ class Capri:
         from intro import VIAJE
         if progreso<VIAJE:return
         if not self.intro_en_viaje:
+            self.ocultar_reubicacion_intro()
             self.intro_en_viaje=True
             inicio=(self.intro_centro[0]+180*self.escala_avatar,self.intro_centro[1]+153*self.escala_avatar)
             self.escala_avatar=limitar_escala(self.cfg.get('escala_avatar',1));self.avatar.redimensionar(self.escala_avatar)
+            self.preparar_fragmentos_intro()
             s=self.escala_avatar;sw=self.root.winfo_screenwidth();sh=self.root.winfo_screenheight()
             fin=(sw-180*s-24,sh-132*s-116)
-            x=max(0,math.floor(min(inicio[0],fin[0])-180*s));y=max(0,math.floor(min(inicio[1],fin[1])-140*s))
-            w=min(sw-x,math.ceil(max(inicio[0],fin[0])+180*s-x))
-            h=min(sh-y,math.ceil(max(inicio[1],fin[1])+140*s-y))
+            x=max(0,math.floor(min(inicio[0],fin[0])-310*s));y=max(0,math.floor(min(inicio[1],fin[1])-170*s))
+            w=min(sw-x,math.ceil(max(inicio[0],fin[0])+300*s-x))
+            h=min(sh-y,math.ceil(max(inicio[1],fin[1])+170*s-y))
             self.intro_ruta=(((inicio[0]-x)/s,(inicio[1]-y)/s),((fin[0]-x)/s,(fin[1]-y)/s))
             self.canvas.configure(width=w,height=h);self.root.geometry(f'{w}x{h}+{x}+{y}')
             self.pasar_clics_intro(True)
@@ -273,8 +289,11 @@ class Capri:
             from intro import dibujar
             imagen_intro=self.imagen_ref
             if self.avatar.glitches and .36<progreso<.76:imagen_intro=self.avatar.glitches[0][int(progreso*24)%2]
-            dibujar(c,progreso,imagen_intro,self.escala_avatar,getattr(self,'intro_ruta',None))
+            dibujar(c,progreso,imagen_intro,self.escala_avatar,getattr(self,'intro_ruta',None),self.fragmentos_intro)
         if self.escala_avatar!=1:c.scale('all',0,0,self.escala_avatar,self.escala_avatar)
+        if hasattr(self,'intro_alpha'):
+            self.root.update_idletasks()
+            self.root.attributes('-alpha',self.intro_alpha);del self.intro_alpha
         self.root.after(25 if self.intro_activa else 66, self.animar)
 
     def abrir_chat(self):
