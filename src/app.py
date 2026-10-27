@@ -77,13 +77,21 @@ class Capri:
         try:
             self.cfg.update(json.loads((BASE/'ajustes.json').read_text(encoding='utf8')))
         except (OSError, ValueError): pass
+        self.cfg.setdefault('modo_visual','pantalla');self.cfg.setdefault('pasear_personaje',True);self.cfg.setdefault('control_ampliado',False)
+        from control_pc import ControlPC
+        self.control_pc=ControlPC(lambda:bool(self.cfg.get('control_ampliado')))
+        self.entrada_personaje=False;self.ventana_entrada=None;self.entrada_lateral=None;self.transito=None
+        self.cfg.setdefault('travesuras',False);self.cfg.setdefault('travesuras_apps',False)
+        from travesuras import Travesuras
+        self.juego=Travesuras();self.asomo=None
         self.escala_avatar=limitar_escala(self.cfg.get('escala_avatar',1))
         self.intro_activa=bool(hotkeys and self.cfg.get('intro_inicio',True));self.inicio_intro=time.monotonic()
         self.micro.modelo_whisper=self.cfg.get('modelo_whisper','base')
         self.micro.umbral_microfono_db=self.cfg.get('umbral_microfono_db')
         from dialogos import Dialogo
         self.dialogo=Dialogo(self.root,lambda:self.cfg.get('dialogos_escritorio',True),enviar=self.enviar,
-                             historial=self.abrir_chat,detener=self.parar,glitch=lambda:self.cfg.get('efecto_glitch',True))
+                             historial=self.abrir_chat,detener=self.interrumpir,glitch=lambda:self.cfg.get('efecto_glitch',True))
+        self.dialogo.retener=lambda:bool(self.control_pc.pendiente and time.monotonic()<self.control_pc.pendiente.vence)
         self.historial=[];self.respuesta_borrador=''
         self.subtitulo=tk.StringVar(value='F8 para hablar · Esc para detener')
         self.estado='Preparando activación…' if hotkeys and self.cfg.get('activacion_voz') else 'F8 para hablar'
@@ -101,6 +109,8 @@ class Capri:
         ruta_base=BASE/'assets/capri-base-v2.png'
         if not ruta_base.exists() and BASE.name=='src':ruta_base=BASE.parent/'assets/capri-base-v2.png'
         self.avatar=Avatar(ruta_base)
+        from companera import Companera
+        self.companera=Companera(ruta_base.with_name('capri-personaje-v1.png'))
         self.canvas = tk.Canvas(self.root, bg=TRANS, width=360, height=292, highlightthickness=0)
         self.canvas.pack(fill='both', expand=True)
         self.canvas.bind('<ButtonPress-1>', self._inicio_arrastre)
@@ -111,13 +121,14 @@ class Capri:
         self.canvas.bind('<Control-MouseWheel>',self.rueda_tamano)
         from entrada import Entrada
         self.entrada_compacta=Entrada(self.root,self.enviar,self.menu)
+        self.entrada_compacta.antes_foco=self.mostrar_entrada_personaje
         self.entrada_compacta.pack(fill='x')
         self.entrada_compacta.foco_cambio=lambda foco:setattr(self.dialogo,'editando',foco)
         self.dialogo.entrada=self.entrada_compacta.entrada;self.dialogo.control_entrada=self.entrada_compacta;self.dialogo.menu=self.menu
         self.aplicar_escala(inicial=True)
         if self.intro_activa:self.iniciar_intro()
         self.atajo = Atajo(lambda: self.eventos.put(('micro', None)), lambda t: self.eventos.put(('aviso', t))) if hotkeys else None
-        self.root.bind('<Escape>', lambda e: self.parar())
+        self.root.bind('<Escape>', lambda e:self.interrumpir())
         self.root.protocol('WM_DELETE_WINDOW', self.cerrar)
         self.root.after(60, self.poll)
         self.root.after(30, self.animar)
@@ -148,6 +159,7 @@ class Capri:
             except (OSError, ValueError): pass
 
     def _inicio_arrastre(self, e):
+        if self.es_personaje() and not self.intro_activa:self.companera.salto=None;self.companera.soporte=None
         self.drag = (e.x_root, e.y_root, self.root.winfo_x(), self.root.winfo_y(), time.monotonic())
 
     def _arrastrar(self, e):
@@ -156,17 +168,32 @@ class Capri:
         nx = min(max(0, wx + e.x_root - x), max(0,self.root.winfo_screenwidth()-self.root.winfo_width()))
         ny = min(max(0, wy + e.y_root - y), max(0,self.root.winfo_screenheight()-self.root.winfo_height()))
         self.root.geometry(f'+{nx}+{ny}')
+        if self.es_personaje():self.companera.x=nx;self.companera.y=ny
 
     def _fin_arrastre(self, e):
         if self.drag and abs(e.x_root-self.drag[0])+abs(e.y_root-self.drag[1])<6:
-            if e.y<42*self.escala_avatar and e.x>self.canvas.winfo_width()-36*self.escala_avatar:self.menu(e)
+            if self.es_personaje() and self.juego.atrapame:
+                self.drag=None;self.tocar_juego();return
+            if not self.es_personaje() and e.y<42*self.escala_avatar and e.x>self.canvas.winfo_width()-36*self.escala_avatar:self.menu(e)
             else:self.entrada_compacta.dar_foco()
+        elif self.drag and self.es_personaje():
+            self.companera.posar(self.root.winfo_x(),self.root.winfo_y())
         self.drag = None
 
     def menu(self, evento):
         menu = tk.Menu(self.root, tearoff=False, bg=CARD, fg=FG,font=('Chakra Petch',11))
         menu.add_command(label='Hablar · F8', command=self.hablar)
-        menu.add_command(label='Interrumpir · Esc', command=self.parar)
+        menu.add_command(label='Interrumpir · Esc', command=self.interrumpir)
+        menu.add_command(label='Transformar en pantalla' if self.es_personaje() else 'Transformar en personaje',
+                         command=lambda:self.guardar('modo_visual','pantalla' if self.es_personaje() else 'personaje'))
+        if self.es_personaje():
+            menu.add_command(label='Pausar paseo' if self.cfg.get('pasear_personaje',True) else 'Reanudar paseo',
+                             command=lambda:self.guardar('pasear_personaje',not self.cfg.get('pasear_personaje',True)))
+            jugar=tk.Menu(menu,tearoff=False,font=('Chakra Petch',11))
+            jugar.add_command(label='Jugar a atrápame',command=self.comenzar_juego)
+            jugar.add_command(label='Asomarse por una esquina',command=lambda:self.hacer_travesura('asomar'))
+            jugar.add_command(label='Travesura ahora',command=lambda:self.hacer_travesura())
+            menu.add_cascade(label='Jugar con Capri',menu=jugar)
         menu.add_command(label='Escribir junto a Capri', command=self.dialogo.abrir)
         menu.add_command(label='Historial de conversación', command=self.abrir_chat)
         menu.add_command(label='Ajustes', command=self.configurar)
@@ -186,15 +213,183 @@ class Capri:
     def aplicar_escala(self,inicial=False):
         self.escala_avatar=limitar_escala(self.cfg.get('escala_avatar',1))
         if self.avatar.escala!=self.escala_avatar:self.avatar.redimensionar(self.escala_avatar)
+        if self.es_personaje():
+            self.companera.redimensionar(self.escala_avatar)
+            if inicial:self.companera.iniciar()
+            self.geometria_personaje=None
+            self.dibujar_personaje(mover=False)
+            return
         ancho=round(360*self.escala_avatar);alto=round(292*self.escala_avatar)+46
         self.canvas.configure(width=ancho,height=alto-46)
         self.entrada_compacta.configure(width=ancho)
+        self.dialogo.control_entrada=self.entrada_compacta;self.dialogo.entrada=self.entrada_compacta.entrada
         x=self.root.winfo_screenwidth()-ancho-24 if inicial else self.root.winfo_x()
         y=self.root.winfo_screenheight()-alto-70 if inicial else self.root.winfo_y()
         x=max(0,min(x,self.root.winfo_screenwidth()-ancho));y=max(0,min(y,self.root.winfo_screenheight()-alto))
         self.root.geometry(f'{ancho}x{alto}+{x}+{y}')
 
+    def es_personaje(self):return self.cfg.get('modo_visual')=='personaje'
+
+    def mostrar_entrada_personaje(self):
+        if self.es_personaje() and not self.intro_activa:
+            if self.ventana_entrada is None or not self.ventana_entrada.winfo_exists():
+                from entrada import Entrada
+                v=self.ventana_entrada=tk.Toplevel(self.root);v.overrideredirect(True);v.attributes('-topmost',True);v.configure(bg=TRANS)
+                if os.name=='nt':v.wm_attributes('-transparentcolor',TRANS)
+                self.entrada_lateral=Entrada(v,self.enviar,self.menu);self.entrada_lateral.configure(width=310);self.entrada_lateral.pack()
+                self.entrada_lateral.foco_cambio=self.foco_entrada_lateral
+                self.entrada_lateral.antes_foco=self.mostrar_entrada_personaje
+                v.bind('<Escape>',lambda e:self.interrumpir())
+            self.entrada_personaje=True
+            x=self.root.winfo_x()-320;y=self.root.winfo_y()+20
+            if x<8:x=self.root.winfo_x()+self.companera.ancho+8
+            x=max(8,min(x,self.root.winfo_screenwidth()-318));y=max(8,min(y,self.root.winfo_screenheight()-54))
+            self.ventana_entrada.geometry(f'310x46+{x}+{y}');self.ventana_entrada.deiconify()
+            self.entrada_compacta.pack_forget()
+            self.dialogo.control_entrada=self.entrada_lateral;self.dialogo.entrada=self.entrada_lateral.entrada
+            return self.entrada_lateral
+
+    def ocultar_entrada_personaje(self):
+        self.entrada_personaje=False;self.dialogo.editando=False
+        if self.ventana_entrada and self.ventana_entrada.winfo_exists():self.ventana_entrada.withdraw()
+
+    def foco_entrada_lateral(self,foco):
+        self.foco_lateral=foco;self.dialogo.editando=foco
+        if not foco:self.root.after(150,lambda:self.ocultar_entrada_personaje() if not getattr(self,'foco_lateral',False) else None)
+
+    def dibujar_personaje(self,mover=True):
+        p=self.companera
+        if self.asomo and time.monotonic()>=self.asomo['hasta'] and not self.transito and not self.escuchando and not self.ocupada:
+            destino=self.asomo['volver'];self.asomo=None;self.salto_juego(destino);return
+        if mover:p.tick(pausa=bool(self.asomo or self.drag or self.escuchando or self.hablando or self.ocupada or self.dialogo.editando or self.control_pc.pendiente),
+                        pasear=self.cfg.get('pasear_personaje',True))
+        if mover and p.salto:
+            salto=p.salto;p.salto=None;self.iniciar_transito('salto',salto=salto);self.dibujar_transito();return
+        ancho=p.ancho;extra=0
+        self.entrada_compacta.pack_forget()
+        self.canvas.configure(width=ancho,height=p.alto);self.entrada_compacta.configure(width=ancho)
+        geometria=f'{ancho}x{p.alto+extra}+{max(0,round(p.x))}+{max(0,round(p.y))}'
+        if geometria!=getattr(self,'geometria_personaje',None):
+            self.root.geometry(geometria);self.geometria_personaje=geometria
+        p.dibujar(self.canvas,self.hablando,self.boca_activa)
+
+    def interrumpir(self):
+        if self.transito:self.finalizar_transito()
+        self.control_pc.cancelar();self.parar()
+        self.juego.atrapame=False;self.juego.proxima=time.monotonic()+100
+        if self.asomo:
+            self.asomo=None;self.companera.iniciar()
+        if self.es_personaje():
+            self.ocultar_entrada_personaje();self.entrada_compacta.pack_forget()
+
+    def juego_ocupada(self):
+        return bool(self.transito or self.intro_activa or self.asomo or self.ocupada or self.escuchando or self.hablando or self.voz_ticket is not None or self.drag or self.dialogo.editando or self.control_pc.pendiente or (self.ajustes and self.ajustes.winfo_exists()))
+
+    def decir_juego(self,texto):
+        self.dialogo.usuario='';self.poner_chat('Capri',texto,mostrar=not self.puede_narrar())
+        if self.puede_narrar():self.narrar_respuesta(self.peticion,texto,final=True)
+
+    def salto_juego(self,destino=None):
+        from ventanas import area_trabajo
+        p=self.companera;l,t,r,b=area_trabajo()
+        if destino is None:destino=(l+10 if p.x>(l+r)/2 else r-p.ancho-10,b-p.alto)
+        salto={'inicio':time.monotonic(),'x':p.x,'y':p.y,'destino':destino,'id':0,'izquierda':destino[0],'lado':None}
+        p.soporte=None;self.iniciar_transito('salto',salto=salto)
+
+    def comenzar_juego(self):
+        if not self.es_personaje() or self.juego_ocupada():return
+        self.juego.comenzar();self.decir_juego('Atrápame tres veces, choom. Haz clic sobre mí cuando aterrice.')
+
+    def tocar_juego(self):
+        if self.ocupada or self.escuchando or self.control_pc.pendiente:return
+        resultado=self.juego.tocar()
+        if resultado=='ganaste':self.decir_juego('Me pillaste, choom. Esta ronda es tuya.')
+        elif resultado=='escapar':self.salto_juego()
+
+    def hacer_travesura(self,tipo=None):
+        if not self.es_personaje() or self.juego_ocupada():return
+        tipo=tipo or self.juego.elegir(self.cfg.get('travesuras_apps',False))
+        if tipo in ('pestana','carpeta'):
+            if not self.cfg.get('travesuras_apps'):return
+            def abrir():
+                try:
+                    if not self.cfg.get('travesuras_apps'):return
+                    from core import Orden
+                    respuesta=ejecutar(Orden('pestana') if tipo=='pestana' else Orden('carpeta','Documents'))
+                    self.eventos.put(('travesura_resultado',respuesta+' Un pequeño atajo, choom.'))
+                except Exception:self.eventos.put(('travesura_resultado','Hoy esa puerta no quiso abrirse. Me quedo aquí contigo.'))
+            threading.Thread(target=abrir,daemon=True).start();return
+        if tipo=='asomar':
+            from ventanas import area_trabajo
+            p=self.companera;l,t,r,b=area_trabajo();volver=(l+8 if random.choice((True,False)) else r-p.ancho-8,b-p.alto)
+            self.asomo={'hasta':time.monotonic()+4.8,'volver':volver}
+            self.salto_juego((volver[0],b-p.alto*.48))
+        else:self.salto_juego()
+
+    def iniciar_transito(self,tipo,anterior=None,salto=None):
+        if self.transito:self.finalizar_transito()
+        self.finalizar_intro();self.ocultar_entrada_personaje();self.dialogo.ocultar()
+        s=limitar_escala(self.cfg.get('escala_avatar',1));p=self.companera
+        if p.escala!=s or not p.fotos:p.redimensionar(s)
+        origen_personaje=(anterior=='personaje') or tipo=='salto'
+        if origen_personaje:
+            inicio=((salto['x'] if salto else p.x)+p.ancho/2,(salto['y'] if salto else p.y)+p.alto/2)
+            vista=Image.new('RGBA',(320,210));copia=p.originales[0].copy();copia.thumbnail((145,210),Image.Resampling.LANCZOS)
+            vista.alpha_composite(copia,((320-copia.width)//2,(210-copia.height)//2))
+        else:
+            inicio=(self.root.winfo_x()+180*s,self.root.winfo_y()+160*s);vista=self.avatar.vistas[0]
+        sw=self.root.winfo_screenwidth();sh=self.root.winfo_screenheight()
+        if tipo=='salto':
+            fin=(salto['destino'][0]+p.ancho/2,salto['destino'][1]+p.alto/2)
+            izquierda=salto.get('lado')=='izquierda' or (not salto.get('lado') and salto['destino'][0]<salto['x'])
+            destino_fotos=p.espejos if izquierda else p.fotos
+            imagen=destino_fotos[3 if salto.get('id') else 0]
+        elif self.es_personaje():
+            from ventanas import area_trabajo
+            l,t,r,b=area_trabajo();fin=(r-p.ancho/2-25,b-p.alto/2);imagen=(p.espejos if p.direccion<0 else p.fotos)[0]
+        else:
+            fin=(sw-180*s-24,sh-132*s-116);imagen=self.avatar.fotos[0]
+        x=max(0,math.floor(min(inicio[0],fin[0])-310*s));y=max(0,math.floor(min(inicio[1],fin[1])-170*s))
+        w=min(sw-x,math.ceil(max(inicio[0],fin[0])+300*s-x));h=min(sh-y,math.ceil(max(inicio[1],fin[1])+170*s-y))
+        from intro import Fragmentos
+        self.transito={'inicio':time.monotonic(),'duracion':.85 if tipo=='salto' else 1.1,'tipo':tipo,'salto':salto,'escala':s,
+                      'ruta':(((inicio[0]-x)/s,(inicio[1]-y)/s),((fin[0]-x)/s,(fin[1]-y)/s)),
+                      'fragmentos':Fragmentos(vista,s),'imagen':imagen,'fin':fin}
+        self.ocultar_reubicacion_intro();self.entrada_compacta.pack_forget()
+        self.canvas.configure(width=w,height=h);self.root.geometry(f'{w}x{h}+{x}+{y}');self.pasar_clics_intro(True)
+
+    def finalizar_transito(self):
+        t=self.transito
+        if not t:return
+        self.transito=None;self.ocultar_reubicacion_intro();self.pasar_clics_intro(False)
+        if t['tipo']=='salto':
+            salto=t['salto'];p=self.companera;p.x,p.y=salto['destino'];p.soporte=salto['id'] or None
+            p.soporte_dx=p.x-salto.get('izquierda',p.x);p.soporte_lado=salto.get('lado')
+            p.direccion=-1 if p.soporte_lado=='izquierda' or (not p.soporte_lado and p.x<salto['x']) else 1;p.quieta_hasta=time.monotonic()+random.uniform(5,9)
+            p.estado='sentada' if p.soporte else 'quieta';p.ultimo=time.monotonic()
+            self.aplicar_escala(inicial=False)
+        else:
+            self.entrada_compacta.pack(fill='x');self.aplicar_escala(inicial=True)
+        if self.dialogo.objetivo and (self.control_pc.pendiente or self.dialogo.sincronizada or self.dialogo.vence>time.monotonic()) and self.dialogo.ventana:
+            self.dialogo.ventana.deiconify();self.dialogo.posicionar()
+            if self.dialogo.pendiente is None:self.dialogo.tick()
+
+    def restaurar_reubicacion(self):
+        if hasattr(self,'intro_alpha'):
+            self.root.update_idletasks();self.root.attributes('-alpha',self.intro_alpha);del self.intro_alpha
+
+    def dibujar_transito(self):
+        t=self.transito
+        if not t:return False
+        progreso=(time.monotonic()-t['inicio'])/t['duracion']
+        if progreso>=1:self.finalizar_transito();return False
+        from intro import dibujar_viaje,VIAJE
+        c=self.canvas;c.delete('all')
+        dibujar_viaje(c,VIAJE+(1-VIAJE)*progreso,*t['ruta'],imagen=t['imagen'],fragmentos=t['fragmentos'])
+        c.scale('all',0,0,t['escala'],t['escala']);self.restaurar_reubicacion();return True
+
     def iniciar_intro(self):
+        if self.transito:self.finalizar_transito()
         self.pasar_clics_intro(False)
         self.ocultar_reubicacion_intro()
         self.intro_activa=True;self.inicio_intro=time.monotonic();self.dialogo.ocultar()
@@ -254,6 +449,9 @@ class Capri:
             self.preparar_fragmentos_intro()
             s=self.escala_avatar;sw=self.root.winfo_screenwidth();sh=self.root.winfo_screenheight()
             fin=(sw-180*s-24,sh-132*s-116)
+            if self.es_personaje():
+                from ventanas import area_trabajo
+                l,top,r,b=area_trabajo();fin=(r-self.companera.ancho/2-25,b-self.companera.alto/2)
             x=max(0,math.floor(min(inicio[0],fin[0])-310*s));y=max(0,math.floor(min(inicio[1],fin[1])-170*s))
             w=min(sw-x,math.ceil(max(inicio[0],fin[0])+300*s-x))
             h=min(sh-y,math.ceil(max(inicio[1],fin[1])+170*s-y))
@@ -263,6 +461,7 @@ class Capri:
 
     def animar(self):
         if self.cerrado: return
+        if self.transito and self.dibujar_transito():self.root.after(16,self.animar);return
         from intro import DURACION
         progreso=(time.monotonic()-self.inicio_intro)/DURACION
         if self.intro_activa:
@@ -271,6 +470,17 @@ class Capri:
         self.fase += .065
         c = self.canvas
         c.delete('all')
+        if self.es_personaje() and not self.intro_activa:
+            globo_visible=bool(self.dialogo.ventana and self.dialogo.ventana.winfo_exists() and self.dialogo.ventana.state()!='withdrawn')
+            evento=self.juego.tick(self.cfg.get('travesuras',False),self.juego_ocupada() or globo_visible,self.cfg.get('travesuras_apps',False))
+            if evento:self.hacer_travesura(evento)
+            if self.transito:
+                self.dibujar_transito();self.root.after(16,self.animar);return
+            self.dibujar_personaje()
+            self.entrada_compacta.señal(self.nivel,self.escuchando,self.hablando and self.boca_activa)
+            if hasattr(self,'intro_alpha'):
+                self.root.update_idletasks();self.root.attributes('-alpha',self.intro_alpha);del self.intro_alpha
+            self.root.after(16,self.animar);return
         animaciones=self.cfg.get('animaciones',True)
         color=GREEN if self.escuchando else ('#f2d959' if self.hablando or self.ocupada or self.voz_ticket is not None or (self.activacion_permitida and self.cfg.get('activacion_voz') and not self.activacion_lista) else '#7abfc5')
         from avatar import dibujar_marco
@@ -289,6 +499,8 @@ class Capri:
             from intro import dibujar
             imagen_intro=self.imagen_ref
             if self.avatar.glitches and .36<progreso<.76:imagen_intro=self.avatar.glitches[0][int(progreso*24)%2]
+            if self.es_personaje() and progreso>.58 and self.companera.fotos:
+                imagen_intro=(self.companera.espejos if self.companera.direccion<0 else self.companera.fotos)[0]
             dibujar(c,progreso,imagen_intro,self.escala_avatar,getattr(self,'intro_ruta',None),self.fragmentos_intro)
         if self.escala_avatar!=1:c.scale('all',0,0,self.escala_avatar,self.escala_avatar)
         if hasattr(self,'intro_alpha'):
@@ -325,7 +537,7 @@ class Capri:
         self.boton(pie,'● Hablar · F8',self.hablar,RED).pack(side='left')
         self.boton(pie,'Detener',self.parar).pack(side='left',padx=7)
         self.boton(pie,'Salir',self.cerrar).pack(side='right')
-        p.bind('<Escape>',lambda e:self.parar())
+        p.bind('<Escape>',lambda e:self.interrumpir())
         p.protocol('WM_DELETE_WINDOW',p.withdraw)
         self.entrada.focus_set()
 
@@ -366,14 +578,30 @@ class Capri:
     def enviar(self, texto,origen='texto'):
         if self.ocupada:
             self.estado='Un momento, estoy respondiendo…'; return False
+        self.juego.atrapame=False
         self.finalizar_intro()
+        if self.es_personaje():
+            self.ocultar_entrada_personaje();self.entrada_compacta.pack_forget()
         self.detener_activacion()
         self.narracion_activa=False;self.voz.parar();self.voz_ticket=None;self.voz_cursor=0
         self.dialogo.recibir_usuario(texto)
         self.poner_chat('Tú',texto)
         orden = interpretar(texto)
+        from core import normalizar
+        juego=normalizar(texto).strip(' .!¡¿?')
+        if self.es_personaje():
+            if juego in ('juguemos','juega conmigo','vamos a jugar','juguemos a atrapame'):
+                self.control_pc.cancelar();self.root.after(80,self.comenzar_juego);return
+            if juego in ('asomate','asomate por una esquina','haz una travesura'):
+                self.control_pc.cancelar();self.root.after(80,lambda:self.hacer_travesura('asomar' if juego.startswith('asomate') else None));return
+            if juego in ('para de jugar','deja de jugar','basta de travesuras'):
+                self.guardar('travesuras',False);self.interrumpir();self.decir_juego('Listo, choom. Me porto bien. Por ahora.');return
+        if self.cfg.get('control_ampliado'):
+            from core import normalizar,Orden
+            if normalizar(texto).strip(' .!¡¿?') in ('cancela el apagado','cancelar el apagado','cancela apagado'):
+                orden=Orden('equipo_cancelar_apagado')
         if orden and orden.tipo=='silencio':
-            self.parar(); return
+            self.interrumpir(); return
         if orden and orden.tipo=='velocidad_voz':
             actual=normalizar_velocidad(self.cfg.get('velocidad_voz',1.0))
             nuevo=1.0 if orden.valor=='normal' else normalizar_velocidad(actual+(.15 if orden.valor=='subir' else -.15))
@@ -392,8 +620,19 @@ class Capri:
             try:
                 resuelta=orden
                 pregunta=''
+                pendiente_previo=self.control_pc.pendiente
+                confirmada=self.control_pc.confirmar(texto)
+                if confirmada is not None:
+                    if not cancelar.is_set():
+                        from core import Orden
+                        previo=Orden(pendiente_previo.accion,str(pendiente_previo.ruta or '')) if pendiente_previo else None
+                        self.eventos.put(('contexto',(ticket,texto,previo,confirmada,False)))
+                        self.eventos.put(('respuesta',(ticket,confirmada)))
+                    return
                 if self.cfg.get('ia') and requiere_contexto(resuelta):
-                    decision=self.interprete.resolver(texto,self.cfg.get('modelo'),cancelar)
+                    if self.cfg.get('control_ampliado'):
+                        decision=self.interprete.resolver(texto,self.cfg.get('modelo'),cancelar,control_ampliado=True)
+                    else:decision=self.interprete.resolver(texto,self.cfg.get('modelo'),cancelar)
                     resuelta=decision.orden
                     pregunta=decision.pregunta
                 if cancelar.is_set():return
@@ -401,10 +640,15 @@ class Capri:
                     respuesta=pregunta
                     resuelta=None
                 elif resuelta:
-                    respuesta = ejecutar(resuelta)
+                    from control_pc import ACCIONES as PC
+                    if resuelta.tipo in PC:
+                        respuesta=self.control_pc.ejecutar(resuelta.tipo,resuelta.valor)
+                        if cancelar.is_set():self.control_pc.cancelar();return
+                    else:respuesta = ejecutar(resuelta)
                 else:
                     try:
                         self.ia.contexto_acciones=self.interprete.contexto()['turnos']
+                        self.ia.control_ampliado=bool(self.cfg.get('control_ampliado'))
                         respuesta = self.ia.conversar(texto,self.cfg.get('modelo') or None,
                                     al_texto=lambda t:self.eventos.put(('respuesta_parcial',(ticket,t))),cancelar=cancelar,
                                     origen=origen)
@@ -483,6 +727,7 @@ class Capri:
         self.activacion_hilo.start()
 
     def parar(self,preservar_activacion=False):
+        if self.transito:self.finalizar_transito()
         self.finalizar_intro()
         self.dialogo.ocultar()
         self.narracion_activa=False;self.boca_activa=False
@@ -541,6 +786,8 @@ class Capri:
                 self.estado=estado
                 if self.panel and self.panel.winfo_exists():self.subtitulo.set(estado)
             elif tipo=='micro':self.hablar()
+            elif tipo=='travesura_resultado':
+                if not self.ocupada and not self.escuchando and not self.hablando:self.decir_juego(valor)
             elif tipo=='voz':
                 if isinstance(valor,tuple):
                     generacion,valor=valor
@@ -641,6 +888,7 @@ class Capri:
         self.detener_activacion()
         if self.ajustes and self.ajustes.winfo_exists():self.ajustes.lift();return
         p=self.ajustes=tk.Toplevel(self.root);p.title('Capri · Ajustes');p.configure(bg=BG)
+        p.bind('<Escape>',lambda e:self.interrumpir())
         p.geometry('540x'+str(min(700,max(480,self.root.winfo_screenheight()-100))))
         contenido=tk.Canvas(p,bg=BG,highlightthickness=0)
         barra=ttk.Scrollbar(p,orient='vertical',command=contenido.yview)
@@ -648,6 +896,21 @@ class Capri:
         barra.pack(side='right',fill='y');contenido.pack(side='left',fill='both',expand=True)
         f=tk.Frame(contenido,bg=BG,padx=24,pady=22)
         ventana=contenido.create_window(0,0,window=f,anchor='nw')
+        tk.Label(f,text='Forma de Capri',bg=BG,fg=GREEN,font=('Chakra Petch',12,'bold')).pack(anchor='w')
+        forma=ttk.Combobox(f,state='readonly',values=['Pantalla personal','Personaje en el escritorio'],font=('Chakra Petch',10))
+        forma.current(1 if self.es_personaje() else 0);forma.pack(fill='x',pady=(6,8))
+        forma.bind('<<ComboboxSelected>>',lambda e:self.guardar('modo_visual','personaje' if forma.current() else 'pantalla'))
+        paseo=tk.BooleanVar(value=self.cfg.get('pasear_personaje',True))
+        tk.Checkbutton(f,text='Caminar y sentarse en ventanas',variable=paseo,command=lambda:self.guardar('pasear_personaje',paseo.get()),
+                       bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,font=('Chakra Petch',10)).pack(anchor='w')
+        for clave,etiqueta in (('travesuras','Travesuras suaves y apariciones ocasionales'),('travesuras_apps','Permitir que el juego abra una pestaña o Documentos')):
+            var=tk.BooleanVar(value=self.cfg.get(clave,False))
+            tk.Checkbutton(f,text=etiqueta,variable=var,command=lambda k=clave,v=var:self.guardar(k,v.get()),bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,font=('Chakra Petch',10)).pack(anchor='w',pady=2)
+        control=tk.BooleanVar(value=self.cfg.get('control_ampliado',False))
+        tk.Checkbutton(f,text='Activar control ampliado del computador',variable=control,command=lambda:self.guardar('control_ampliado',control.get()),
+                       bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,font=('Chakra Petch',10)).pack(anchor='w',pady=(8,3))
+        tk.Label(f,text='Archivos y ventanas con tus permisos de Windows. Borrar, mover, renombrar, cerrar ventanas y apagar requieren confirmar el objetivo. Los borrados van a la Papelera. Esc cancela la confirmación.',
+                 wraplength=450,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',9)).pack(anchor='w',pady=(0,16))
         f.bind('<Configure>',lambda e:contenido.configure(scrollregion=contenido.bbox('all')))
         contenido.bind('<Configure>',lambda e:contenido.itemconfigure(ventana,width=e.width))
         p.bind('<MouseWheel>',lambda e:contenido.yview_scroll(-int(e.delta/120),'units'))
@@ -801,7 +1064,14 @@ class Capri:
 
     def guardar(self,k,v):
         if k=='escala_avatar':v=limitar_escala(v)
+        anterior=self.cfg.get(k)
         self.cfg[k]=v
+        if k=='control_ampliado' and not v:self.control_pc.cancelar()
+        if k=='modo_visual':
+            if v=='personaje' and not self.companera.originales:
+                self.cfg[k]='pantalla';self.poner_chat('Capri','Falta el arte del personaje. Actualiza la instalación.');return
+            if anterior!=v:
+                self.asomo=None;self.juego.atrapame=False;self.iniciar_transito('modo',anterior=anterior)
         (BASE/'ajustes.json').write_text(json.dumps(self.cfg,ensure_ascii=False,indent=2),encoding='utf8')
         if k=='voz' and not v:
             self.voz.parar();self.voz_ticket=None;self.narracion_activa=False
@@ -809,7 +1079,9 @@ class Capri:
         if k=='dialogos_escritorio' and not v:self.dialogo.ocultar()
         if k=='modelo_whisper':self.micro.modelo_whisper=v
         if k=='umbral_microfono_db':self.micro.umbral_microfono_db=v
-        if k=='escala_avatar':self.finalizar_intro();self.aplicar_escala()
+        if k=='escala_avatar':
+            if self.transito:self.finalizar_transito()
+            self.finalizar_intro();self.aplicar_escala()
         if k in ('activacion_voz','microfono','reconocimiento','modelo_whisper'):
             self.detener_activacion();self.activacion_reintento=0
 

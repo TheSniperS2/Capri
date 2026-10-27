@@ -1,5 +1,7 @@
 # Capri
 
+Para cambiar entre pantalla y personaje, usa clic derecho → **Transformar en personaje/pantalla**. El control ampliado de archivos, aplicaciones y ventanas se activa por separado en Ajustes y está apagado por defecto. Consulta la [guía de personaje, permisos y confirmaciones](PERSONAJE_Y_CONTROL.md).
+
 Abre **Abrir Capri.pyw**. La primera apertura instala sus dependencias en una carpeta propia, descarga Whisper base multilingüe (148 MB), el reconocimiento rápido de respaldo y las referencias de Capri. Verás el avance; necesita internet para esa preparación. Al actualizar conserva tu micrófono y los modelos de conversación ya descargados.
 
 Después aparece una ventana flotante con la imagen del personaje. Arrástrala para moverla. Haz clic para abrir el chat. Pulsa **F8** o **Hablar** para dictar una frase; haz una pausa para que responda. Pulsa **Esc** para detener la voz. El menú del botón derecho permite salir. Se crea un acceso directo **Capri** en el escritorio; también puedes abrir otra vez el lanzador original.

@@ -327,6 +327,7 @@ class IA:
                 raise RuntimeError('Ollama está instalado, pero falta descargar un modelo. Pulsa Activar IA local en Ajustes.')
             modelo = next((m for m in modelos if 'llama3.2' in m), modelos[0])
         sistema=PERSONALIDAD
+        sistema+='\nControl ampliado '+('activado: el ejecutor también administra archivos y ventanas; cualquier acción necesita un resultado real del ejecutor.' if getattr(self,'control_ampliado',False) else 'desactivado: no puedes leer, modificar ni borrar archivos o cerrar ventanas. Puedes explicar cómo activar esa opción en Ajustes.')
         if origen=='voz':
             sistema+='\nLa frase actual YA fue transcrita desde el micrófono: en este turno sí llegó audio. Eso no demuestra que todos los turnos anteriores funcionaran.'
         mensajes = [{'role': 'system', 'content': sistema}]

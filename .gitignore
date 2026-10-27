@@ -35,6 +35,8 @@ assets/*
 !assets/capri.ico
 !assets/capri-base-v2.png
 !assets/capri-bocas-v2.png
+!assets/capri-personaje-v1.png
+!assets/capri-caminar-v1.png
 !assets/fonts/
 assets/fonts/*
 !assets/fonts/ChakraPetch-Regular.ttf

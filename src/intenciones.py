@@ -85,12 +85,21 @@ class Interprete:
         tema='spotify' if ultimo_tema(recientes).get('accion','').startswith('spotify') else ''
         return {'tema_activo':tema,'turnos':recientes}
 
-    def validar(self,datos,texto,contexto):
+    def validar(self,datos,texto,contexto,control_ampliado=False):
         aclarar=Decision(pregunta='¿A qué te refieres? Dime qué quieres controlar o cambiar.')
         if not isinstance(datos,dict) or set(datos)!={'accion','valor'}:return aclarar
         accion=datos['accion'];valor=datos['valor']
         if not all(isinstance(v,str) for v in (accion,valor)):return aclarar
         if accion=='charla':return Decision()
+        if control_ampliado:
+            from control_pc import ACCIONES as PC,validar
+            if accion=='abrir' and normalizar(valor) not in APPS and valor and normalizar(valor) in normalizar(texto):
+                accion='archivo_abrir' if re.search(r'\b(?:archivo|imagen|foto|documento)\b',normalizar(texto)) or re.search(r'[\\/]|\.(?:png|jpg|jpeg|pdf|txt|docx|xlsx)$',valor,re.I) else 'programa_abrir'
+            if accion in ('ventana_minimizar','ventana_maximizar','ventana_cerrar') and not valor:
+                objetivo=re.search(r'\bventana\s+[«"\']?(.+?)[»"\']?[.?!]*$',texto,re.I)
+                if objetivo:valor=objetivo[1].strip()
+            if accion in PC:
+                return Decision(Orden(accion,valor)) if not protegida(texto) and validar(accion,valor,texto) else aclarar
         if accion not in ACCIONES:return aclarar
         if protegida(texto):return Decision()
         if re.search(r'\b(?:y luego|despues de eso|primero.+luego)\b',normalizar(texto)):return aclarar
@@ -122,12 +131,17 @@ class Interprete:
         elif not valor or (normalizar(valor) not in n and not reutiliza):return aclarar
         return Decision(Orden(accion,valor))
 
-    def resolver(self,texto,modelo,cancelar=None):
+    def resolver(self,texto,modelo,cancelar=None,control_ampliado=False):
         if cancelar and cancelar.is_set():raise InterruptedError('Interpretación cancelada.')
         if protegida(texto):return Decision()
         contexto=self.contexto()
         if not modelo:return Decision(pregunta='Necesito la IA local activada para entender esa petición con contexto.')
-        mensajes=[{'role':'system','content':SISTEMA+'\nTema activo actual: '+(contexto['tema_activo'] or 'ninguno')+'.'}]
+        sistema=SISTEMA;esquema=ESQUEMA
+        if control_ampliado:
+            from control_pc import ACCIONES as PC,SISTEMA as INSTRUCCIONES
+            sistema+='\n'+INSTRUCCIONES
+            esquema={'oneOf':ESQUEMA['oneOf']+[esquema_accion(PC,{'type':'string','maxLength':500})]}
+        mensajes=[{'role':'system','content':sistema+'\nTema activo actual: '+(contexto['tema_activo'] or 'ninguno')+'.'}]
         for turno in contexto['turnos']:
             mensajes.append({'role':'user','content':turno['peticion']})
             if turno.get('aclaracion'):
@@ -136,7 +150,7 @@ class Interprete:
                 contenido=json.dumps({'accion_anterior':turno['accion'],'valor':turno['valor'],'resultado_real':turno['resultado']},ensure_ascii=False)
             mensajes.append({'role':'assistant','content':contenido})
         mensajes.append({'role':'user','content':texto})
-        cuerpo={'model':modelo,'stream':False,'format':ESQUEMA,'keep_alive':'15m',
+        cuerpo={'model':modelo,'stream':False,'format':esquema,'keep_alive':'15m',
                 'messages':mensajes,
                 'options':{'temperature':0,'num_ctx':2048,'num_predict':100}}
         if modelo.lower().startswith('qwen3'):cuerpo['think']=False
@@ -148,4 +162,4 @@ class Interprete:
         except (ValueError,AttributeError):
             return Decision(pregunta='No entendí con seguridad qué quieres hacer. ¿Me lo dices de otra manera?')
         if cancelar and cancelar.is_set():raise InterruptedError('Interpretación cancelada.')
-        return self.validar(datos,texto,contexto)
+        return self.validar(datos,texto,contexto,control_ampliado)

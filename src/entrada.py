@@ -9,7 +9,7 @@ class Entrada(tk.Canvas):
     def __init__(self,padre,enviar,menu):
         super().__init__(padre,width=360,height=46,bg=TRANS,highlightthickness=0)
         self.enviar=enviar;self.menu=menu;self.placeholder=True;self.activa=False;self.hablando=False;self.nivel=0
-        self.texto_placeholder='Escribe a Capri…';self.foco_cambio=None
+        self.texto_placeholder='Escribe a Capri…';self.foco_cambio=None;self.antes_foco=None
         self.entrada=tk.Entry(self,bg='#0d141e',fg='#768b96',insertbackground='#8ce5df',relief='flat',
                               highlightthickness=0,font=(FAMILIA,12))
         self.entrada.insert(0,self.texto_placeholder)
@@ -29,10 +29,17 @@ class Entrada(tk.Canvas):
         if self.foco_cambio:self.foco_cambio(False)
 
     def poner(self,texto):
+        if self.antes_foco:
+            otra=self.antes_foco()
+            if otra is not None and otra is not self:return otra.poner(texto)
         self.placeholder=False;self.entrada.configure(fg='#edf5f4')
         self.entrada.delete(0,'end');self.entrada.insert(0,texto);self.entrada.focus_set()
 
-    def dar_foco(self):self.entrada.focus_set();self.foco()
+    def dar_foco(self):
+        if self.antes_foco:
+            otra=self.antes_foco()
+            if otra is not None and otra is not self:return otra.dar_foco()
+        self.entrada.focus_set();self.foco()
 
     def enviar_actual(self):
         if self.placeholder:return

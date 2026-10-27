@@ -14,7 +14,7 @@ class Dialogo:
         self.glitch=glitch or (lambda:True);self.ventana=None;self.pendiente=None
         self.objetivo='';self.visible='';self.usuario='';self.vence=0;self.fase=0;self.editando=False
         self.estado='ENLACE ABIERTO';self.entrada=None;self.control_entrada=None;self.manual=False;self.alto_canvas=108;self.sincronizada=False
-        self.menu=None
+        self.menu=None;self.fin_escritura=False;self.retener=lambda:False
 
     def crear(self):
         if self.ventana is not None and self.ventana.winfo_exists():return
@@ -42,6 +42,7 @@ class Dialogo:
     def recibir_usuario(self,texto):
         if not self.habilitado() and not self.manual:return
         self.usuario=texto;self.objetivo='';self.visible='';self.estado='PROCESANDO';self.sincronizada=False
+        self.fin_escritura=False
         self.crear();self.vence=time.monotonic()+60;self.ventana.deiconify();self.posicionar()
         if self.pendiente is None:self.tick()
 
@@ -53,6 +54,7 @@ class Dialogo:
         self.crear()
         if sincronizada or not texto.startswith(self.objetivo):self.visible=''
         self.sincronizada=sincronizada
+        self.fin_escritura=False
         self.objetivo=texto;self.estado='TRANSMISIÓN';self.vence=time.monotonic()+25
         self.ventana.deiconify();self.posicionar()
         if self.pendiente is None:self.tick()
@@ -63,11 +65,12 @@ class Dialogo:
     def revelar(self,texto,caracteres):
         if not self.habilitado() and not self.manual:return
         self.objetivo=texto;self.visible=self.objetivo[:max(0,caracteres)]
-        self.sincronizada=True;self.estado='HABLANDO';self.vence=time.monotonic()+25
+        self.sincronizada=True;self.estado='HABLANDO';self.vence=time.monotonic()+60
         if self.ventana and self.ventana.winfo_exists():self.dibujar();self.posicionar()
 
     def terminar_voz(self):
         self.visible=self.objetivo;self.sincronizada=False;self.estado='ENLACE ABIERTO'
+        self.fin_escritura=True;self.vence=time.monotonic()+3
 
     def posicionar(self):
         if not self.ventana or not self.ventana.winfo_exists():return
@@ -120,8 +123,10 @@ class Dialogo:
 
     def tick(self):
         self.pendiente=None
-        if (not self.habilitado() and not self.manual) or (time.monotonic()>self.vence and not self.editando):self.ocultar();return
+        if (not self.habilitado() and not self.manual) or (time.monotonic()>self.vence and not self.sincronizada and not self.retener()):self.ocultar();return
         if not self.sincronizada:self.visible=self.objetivo[:min(len(self.objetivo),len(self.visible)+2)]
+        if self.objetivo and self.visible==self.objetivo and not self.sincronizada and not self.fin_escritura:
+            self.fin_escritura=True;self.vence=time.monotonic()+3
         self.fase+=1;self.dibujar();self.posicionar()
         self.pendiente=self.raiz.after(25 if len(self.visible)<len(self.objetivo) else 180,self.tick)
 

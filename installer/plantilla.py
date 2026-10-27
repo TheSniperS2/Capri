@@ -80,7 +80,7 @@ class Preparar:
                 self.q.put(('estado','2/5 · Instalando micrófono, voz e imágenes…'))
                 self.q.put(('detalle','Este paso puede tardar varios minutos. No tienes que escribir comandos.'))
                 self.comando([str(python),'-m','pip','install','--disable-pip-version-check','-r',str(DESTINO/'requirements.txt')],720)
-                self.comando([str(python),'-c','import PIL,sounddevice,vosk,edge_tts,faster_whisper'],45)
+                self.comando([str(python),'-c','import PIL,sounddevice,vosk,edge_tts,faster_whisper,send2trash.win.modern'],45)
                 marca.write_text(version)
             for numero,(nombre,url) in enumerate(ARTE):
                 archivo=DESTINO/'assets'/nombre
