@@ -29,8 +29,9 @@ class ControlArchivos(unittest.TestCase):
 
     def test_borrado_pregunta_ruta_exacta_y_solo_confirma_una_vez(self):
         texto=self.pc.ejecutar('archivo_borrar','foto.png')
-        self.assertIn(str(self.archivo),texto);self.assertFalse(self.reciclados)
-        self.pc.confirmar('sí, confirmo');self.assertEqual(self.reciclados,[self.archivo])
+        # Windows puede expandir el alias temporal 8.3 (RUNNER~1) al resolver.
+        self.assertIn(str(self.archivo.resolve()),texto);self.assertFalse(self.reciclados)
+        self.pc.confirmar('sí, confirmo');self.assertEqual(self.reciclados,[self.archivo.resolve()])
         self.assertIsNone(self.pc.confirmar('sí'));self.assertEqual(len(self.reciclados),1)
 
     def test_negativa_cancela_y_otra_peticion_invalida_confirmacion_anterior(self):
@@ -119,4 +120,4 @@ class ModoPersonaje(PruebasTk):
                 c.enviar('borra '+str(archivo));esperar()
                 self.assertTrue(archivo.exists());self.assertFalse(reciclados);self.assertIsNotNone(c.control_pc.pendiente)
                 c.enviar('sí, confirmo');esperar()
-                self.assertEqual(reciclados,[archivo]);self.assertEqual(modelo.call_count,1)
+                self.assertEqual(reciclados,[archivo.resolve()]);self.assertEqual(modelo.call_count,1)
