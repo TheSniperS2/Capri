@@ -15,6 +15,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 from PIL import Image, ImageTk, ImageOps
 from core import IA, interpretar, ejecutar, HIDDEN
+from intenciones import Interprete,requiere_contexto
 from voz import Microfono, Voz, Atajo, listar_microfonos,normalizar_velocidad,normalizar_volumen
 
 BASE = Path(__file__).resolve().parent
@@ -23,7 +24,7 @@ CARD = '#151720'
 FG = '#f6eff1'
 MUTED = '#9d98ab'
 RED = '#ff4267'
-GREEN = '#b5ff7c'
+GREEN = '#84dfdc'
 TRANS = '#010203'
 
 class Capri:
@@ -36,7 +37,7 @@ class Capri:
         self.root.overrideredirect(True)
         self.root.attributes('-topmost', True)
         if os.name == 'nt': self.root.wm_attributes('-transparentcolor', TRANS)
-        self.root.geometry(f'282x334+{max(0,self.root.winfo_screenwidth()-305)}+{max(0,self.root.winfo_screenheight()-410)}')
+        self.root.geometry(f'360x350+{max(0,self.root.winfo_screenwidth()-384)}+{max(0,self.root.winfo_screenheight()-415)}')
         self.eventos = queue.Queue()
         self.cerrado = False
         self.estado = 'Lista para ti'
@@ -49,6 +50,8 @@ class Capri:
         self.stream_ticket = None
         self.voz_ticket = None
         self.voz_cursor = 0
+        self.narracion_activa=False
+        self.boca_activa=False
         self.descartar_micro = False
         self.micro_stop = threading.Event()
         self.activacion_stop=threading.Event()
@@ -57,14 +60,24 @@ class Capri:
         self.activacion_ticket=0
         self.activacion_hilo=None
         self.activacion_reintento=0
+        self.activacion_lista=False;self.precalentamiento_lanzado=False
         self.activacion_permitida=hotkeys
         self.micro = Microfono(BASE/'modelos')
         self.ia = IA()
+        self.interprete = Interprete()
         self.cfg = {'voz': True, 'voz_natural': True, 'modelo': '', 'ia': False, 'microfono': None,
-                    'reconocimiento':'mixto','voz_perfil':'capri','velocidad_voz':1.0,'volumen_voz':100,'activacion_voz':True}
+                    'reconocimiento':'mixto','modelo_whisper':'base','voz_perfil':'capri','velocidad_voz':1.0,'volumen_voz':100,'activacion_voz':True,'dialogos_escritorio':True,'animaciones':True,'efecto_glitch':True}
         try:
             self.cfg.update(json.loads((BASE/'ajustes.json').read_text(encoding='utf8')))
         except (OSError, ValueError): pass
+        self.micro.modelo_whisper=self.cfg.get('modelo_whisper','base')
+        self.micro.umbral_microfono_db=self.cfg.get('umbral_microfono_db')
+        from dialogos import Dialogo
+        self.dialogo=Dialogo(self.root,lambda:self.cfg.get('dialogos_escritorio',True),enviar=self.enviar,
+                             historial=self.abrir_chat,detener=self.parar,glitch=lambda:self.cfg.get('efecto_glitch',True))
+        self.historial=[];self.respuesta_borrador=''
+        self.subtitulo=tk.StringVar(value='F8 para hablar · Esc para detener')
+        self.estado='Preparando activación…' if hotkeys and self.cfg.get('activacion_voz') else 'F8 para hablar'
         self.voz = Voz(lambda v: self.eventos.put(('voz', (self.voz.generacion,v))))
         self.fase = 0
         self.drag = None
@@ -74,26 +87,34 @@ class Capri:
         self.ajustes = None
         self.micro_lista_ticket = 0
         self._cargar_arte()
-        self.canvas = tk.Canvas(self.root, bg=TRANS, width=282, height=290, highlightthickness=0)
+        self.fotos_tk=[ImageTk.PhotoImage(im) for im in self.fotos]
+        from avatar import Avatar
+        ruta_base=BASE/'assets/capri-base-v2.png'
+        if not ruta_base.exists() and BASE.name=='src':ruta_base=BASE.parent/'assets/capri-base-v2.png'
+        self.avatar=Avatar(ruta_base)
+        self.canvas = tk.Canvas(self.root, bg=TRANS, width=360, height=300, highlightthickness=0)
         self.canvas.pack(fill='both', expand=True)
         self.canvas.bind('<ButtonPress-1>', self._inicio_arrastre)
         self.canvas.bind('<B1-Motion>', self._arrastrar)
         self.canvas.bind('<ButtonRelease-1>', self._fin_arrastre)
-        self.canvas.bind('<Double-Button-1>', lambda e: self.abrir_chat())
+        self.canvas.bind('<Double-Button-1>', lambda e: self.dialogo.abrir())
         self.canvas.bind('<Button-3>', self.menu)
         controles = tk.Frame(self.root, bg=BG)
         controles.pack(fill='x', padx=16, pady=(0,12))
         self.b_mic = self.boton(controles, '● Hablar · F8', self.hablar, RED)
         self.b_mic.pack(side='left', fill='x', expand=True)
-        self.boton(controles, 'Chat', self.abrir_chat).pack(side='left', padx=(5,0))
+        self.boton(controles, 'Escribir', self.dialogo.abrir).pack(side='left', padx=(5,0))
         self.boton(controles, '⚙', self.configurar).pack(side='left', padx=(5,0))
         self.atajo = Atajo(lambda: self.eventos.put(('micro', None)), lambda t: self.eventos.put(('aviso', t))) if hotkeys else None
         self.root.bind('<Escape>', lambda e: self.parar())
         self.root.protocol('WM_DELETE_WINDOW', self.cerrar)
         self.root.after(60, self.poll)
         self.root.after(30, self.animar)
-        self.root.after(900, lambda: self.mensaje_burbuja('Di «Capri» o pulsa F8 para hablar.' if self.cfg.get('activacion_voz') else 'Estoy aquí. Pulsa F8 para hablar.'))
-        if self.cfg.get('ia') and self.cfg.get('modelo'):
+        if not hotkeys or not self.cfg.get('activacion_voz'):self.precalentar_ia()
+
+    def precalentar_ia(self):
+        if not self.precalentamiento_lanzado and self.cfg.get('ia') and self.cfg.get('modelo'):
+            self.precalentamiento_lanzado=True
             threading.Thread(target=self.preparar_ia,daemon=True).start()
 
     def preparar_ia(self):
@@ -121,19 +142,20 @@ class Capri:
     def _arrastrar(self, e):
         if not self.drag: return
         x,y,wx,wy,_ = self.drag
-        nx = min(max(0, wx + e.x_root - x), max(0,self.root.winfo_screenwidth()-282))
-        ny = min(max(0, wy + e.y_root - y), max(0,self.root.winfo_screenheight()-334))
+        nx = min(max(0, wx + e.x_root - x), max(0,self.root.winfo_screenwidth()-self.root.winfo_width()))
+        ny = min(max(0, wy + e.y_root - y), max(0,self.root.winfo_screenheight()-self.root.winfo_height()))
         self.root.geometry(f'+{nx}+{ny}')
 
     def _fin_arrastre(self, e):
         if self.drag and abs(e.x_root-self.drag[0])+abs(e.y_root-self.drag[1])<6:
-            self.abrir_chat()
+            self.dialogo.abrir()
         self.drag = None
 
     def menu(self, evento):
         menu = tk.Menu(self.root, tearoff=False, bg=CARD, fg=FG)
         menu.add_command(label='Hablar · F8', command=self.hablar)
-        menu.add_command(label='Abrir chat', command=self.abrir_chat)
+        menu.add_command(label='Escribir junto a Capri', command=self.dialogo.abrir)
+        menu.add_command(label='Historial de conversación', command=self.abrir_chat)
         menu.add_command(label='Ajustes', command=self.configurar)
         menu.add_separator()
         menu.add_command(label='Cerrar Capri', command=self.cerrar)
@@ -144,31 +166,25 @@ class Capri:
         self.fase += .065
         c = self.canvas
         c.delete('all')
-        color = GREEN if self.escuchando else RED
-        dy = math.sin(self.fase)*3
-        x = 141
-        c.create_polygon(22,19, 249,19, 265,35, 265,256, 249,272, 17,272,17,35, fill=BG, outline=color, width=1)
-        c.create_text(32,35, text='CAPRI', anchor='w', fill=FG, font=('Segoe UI', 10, 'bold'))
-        c.create_text(250,35, text='●', anchor='e', fill=color, font=('Segoe UI',11))
-        if self.fotos:
-            # Son ilustraciones originales completas: no se redibuja ni deforma su cara.
-            indice = int(time.monotonic()/4)%len(self.fotos) if self.hablando else 0
-            self.imagen_ref = ImageTk.PhotoImage(self.fotos[indice])
-            c.create_image(x,147+dy, image=self.imagen_ref)
+        animaciones=self.cfg.get('animaciones',True)
+        color=GREEN if self.escuchando else ('#f2d959' if self.hablando or self.ocupada or self.voz_ticket is not None or (self.activacion_permitida and self.cfg.get('activacion_voz') and not self.activacion_lista) else '#7abfc5')
+        from avatar import dibujar_marco
+        dibujar_marco(c,self.fase if animaciones else 0,color,self.estado,self.nivel,self.avatar.glitch_activo if animaciones else False)
+        if self.avatar.fotos:
+            self.imagen_ref=self.avatar.imagen(self.hablando and self.boca_activa,glitch=self.cfg.get('efecto_glitch',True)) if animaciones else self.avatar.fotos[0]
+            c.create_image(180,160,image=self.imagen_ref)
+        elif self.fotos_tk:
+            self.imagen_ref=self.fotos_tk[0]
+            c.create_image(180,160,image=self.imagen_ref)
         else:
-            c.create_text(141,135, text='Falta descargar la imagen de Capri.\nAbre de nuevo «Abrir Capri».', width=210, justify='center', fill=MUTED, font=('Segoe UI',11))
+            c.create_text(180,160,text='Preparando imagen de Capri',fill=MUTED,font=('Segoe UI',11))
         if self.escuchando or self.hablando:
             for i in range(22):
-                amplitud = (.2+self.nivel)*16 if self.escuchando else (3+9*abs(math.sin(self.fase*3+i*.5)))
+                amplitud=(.2+self.nivel)*12 if self.escuchando else (3+7*abs(math.sin(self.fase*3+i*.5)))
                 h = max(2, amplitud*abs(math.sin(self.fase*2+i*.7)))
-                c.create_line(48+i*8.4,239-h,48+i*8.4,239+h,fill=color,width=3)
-        for i in range(5):
-            px = 30+((i*47+self.fase*4)%220)
-            py = 65+((i*31-self.fase*9)%150)
-            if px<50 or px>235: c.create_rectangle(px,py,px+2,py+3,fill=color,outline='')
-        if self.ocupada and int(self.fase*5)%16 == 0:
-            c.create_line(25,170,258,170,fill=RED,width=2)
-        c.create_text(141,258,text=self.estado[:37],fill=color,font=('Segoe UI',9))
+                c.create_line(43+i*13,268-h*.35,43+i*13,268+h*.35,fill=color,width=2)
+        if self.ocupada and animaciones:
+            c.create_text(180,246,text='RECIBIENDO '+'.'*(1+int(self.fase*4)%3),fill=color,font=('Consolas',8))
         self.root.after(66, self.animar)
 
     def abrir_chat(self):
@@ -189,8 +205,7 @@ class Capri:
         self.chat.tag_configure('yo',foreground=GREEN,font=('Segoe UI',10,'bold'))
         self.chat.tag_configure('capri',foreground=RED,font=('Segoe UI',10,'bold'))
         self.chat.tag_configure('aviso',foreground=MUTED)
-        self.poner_chat('Capri','Hola. Dime «abre Opera y busca…» o pulsa Hablar.\nPara conversar de cualquier tema, activa la IA local en Ajustes.')
-        self.subtitulo = tk.StringVar(value='F8 para hablar · Esc para detener')
+        self.pintar_historial()
         tk.Label(p,textvariable=self.subtitulo,bg=BG,fg=MUTED,wraplength=430,font=('Segoe UI',9)).pack(fill='x',padx=20,pady=9)
         caja = tk.Frame(p,bg=BG); caja.pack(fill='x',padx=18,pady=(0,10))
         self.entrada = tk.Entry(caja,bg=CARD,fg=FG,insertbackground=GREEN,relief='flat',font=('Segoe UI',11))
@@ -205,23 +220,30 @@ class Capri:
         p.protocol('WM_DELETE_WINDOW',p.withdraw)
         self.entrada.focus_set()
 
-    def poner_chat(self, autor, texto):
-        if not self.panel or not self.panel.winfo_exists(): return
+    def poner_chat(self, autor, texto,mostrar=True):
+        if autor=='Capri' and mostrar:self.dialogo.mostrar(texto)
+        self.historial.append((autor,texto))
+        self.pintar_historial()
+
+    def pintar_historial(self):
+        if not self.panel or not self.panel.winfo_exists():return
         self.chat.configure(state='normal')
-        self.chat.insert('end',autor.upper()+'\n','yo' if autor=='Tú' else 'capri')
-        self.chat.insert('end',texto+'\n\n')
+        self.chat.delete('1.0','end')
+        for i,(autor,texto) in enumerate(self.historial):
+            if autor=='Capri' and i==len(self.historial)-1 and self.voz_ticket==self.peticion:
+                texto=self.dialogo.visible
+            self.chat.insert('end',autor.upper()+'\n','yo' if autor=='Tú' else 'capri')
+            self.chat.insert('end',texto+'\n\n')
+        if self.stream_ticket is not None:
+            self.chat.insert('end','CAPRI\n','capri')
+            self.chat.insert('end','Preparando respuesta…' if self.puede_narrar() else self.respuesta_borrador)
         self.chat.configure(state='disabled'); self.chat.see('end')
 
     def mostrar_respuesta_parcial(self,ticket,texto):
-        self.chat.configure(state='normal')
-        if self.stream_ticket != ticket:
-            self.chat.insert('end','CAPRI\n','capri')
-            self.chat.mark_set('inicio_respuesta','end-1c')
-            self.chat.mark_gravity('inicio_respuesta','left')
-            self.stream_ticket=ticket
-        self.chat.delete('inicio_respuesta','end-1c')
-        self.chat.insert('end',texto)
-        self.chat.configure(state='disabled');self.chat.see('end')
+        if self.puede_narrar():self.dialogo.preparar_voz(texto,estado='GENERANDO RESPUESTA')
+        else:self.dialogo.mostrar(texto)
+        self.stream_ticket=ticket;self.respuesta_borrador=texto
+        self.pintar_historial()
 
     def mensaje_burbuja(self,texto):
         self.estado = texto[:37]
@@ -232,12 +254,12 @@ class Capri:
         self.entrada.delete(0,'end')
         self.enviar(texto)
 
-    def enviar(self, texto):
+    def enviar(self, texto,origen='texto'):
         if self.ocupada:
             self.estado='Un momento, estoy respondiendo…'; return
         self.detener_activacion()
-        self.voz.parar();self.voz_ticket=None;self.voz_cursor=0
-        self.abrir_chat()
+        self.narracion_activa=False;self.voz.parar();self.voz_ticket=None;self.voz_cursor=0
+        self.dialogo.recibir_usuario(texto)
         self.poner_chat('Tú',texto)
         orden = interpretar(texto)
         if orden and orden.tipo=='silencio':
@@ -247,8 +269,8 @@ class Capri:
             nuevo=1.0 if orden.valor=='normal' else normalizar_velocidad(actual+(.15 if orden.valor=='subir' else -.15))
             self.guardar('velocidad_voz',round(nuevo,2))
             respuesta=f'Listo. Velocidad de voz: {nuevo:.2f} veces.'
-            self.poner_chat('Capri',respuesta)
-            if self.cfg.get('voz'):self.voz.hablar(respuesta,self.cfg.get('voz_natural',True),perfil=self.cfg.get('voz_perfil','capri'),velocidad=nuevo,volumen=self.cfg.get('volumen_voz',100))
+            self.poner_chat('Capri',respuesta,mostrar=not self.puede_narrar())
+            if self.puede_narrar():self.narrar_respuesta(self.peticion,respuesta,final=True)
             return
         self.ocupada=True; self.estado='Pensando…'
         self.peticion += 1
@@ -258,18 +280,32 @@ class Capri:
         if self.panel: self.subtitulo.set('Procesando tu instrucción…')
         def trabajar():
             try:
-                if orden:
-                    respuesta = ejecutar(orden)
+                resuelta=orden
+                pregunta=''
+                if self.cfg.get('ia') and requiere_contexto(resuelta):
+                    decision=self.interprete.resolver(texto,self.cfg.get('modelo'),cancelar)
+                    resuelta=decision.orden
+                    pregunta=decision.pregunta
+                if cancelar.is_set():return
+                if pregunta:
+                    respuesta=pregunta
+                    resuelta=None
+                elif resuelta:
+                    respuesta = ejecutar(resuelta)
                 else:
                     try:
+                        self.ia.contexto_acciones=self.interprete.contexto()['turnos']
                         respuesta = self.ia.conversar(texto,self.cfg.get('modelo') or None,
-                                    al_texto=lambda t:self.eventos.put(('respuesta_parcial',(ticket,t))),cancelar=cancelar)
+                                    al_texto=lambda t:self.eventos.put(('respuesta_parcial',(ticket,t))),cancelar=cancelar,
+                                    origen=origen)
                     except InterruptedError:return
                     except (TimeoutError,urllib.error.URLError):
                         self.eventos.put(('error',(ticket,'No pude obtener la respuesta del modelo local. Comprueba que Ollama esté abierto y vuelve a intentarlo.')));return
                     except Exception as e:
                         self.eventos.put(('error',(ticket,'La IA local no pudo responder. '+str(e)[:180])));return
+                self.eventos.put(('contexto',(ticket,texto,resuelta,respuesta,bool(pregunta))))
                 self.eventos.put(('respuesta',(ticket,respuesta)))
+            except InterruptedError:return
             except Exception as e:
                 self.eventos.put(('error',(ticket,'No pude completar la orden. '+str(e)[:230])))
         threading.Thread(target=trabajar,daemon=True).start()
@@ -281,6 +317,7 @@ class Capri:
             if self.panel: self.subtitulo.set('El modelo local está tardando más de lo previsto.')
 
     def hablar(self):
+        if hasattr(self,'panel_prueba') and not self.panel_prueba.cerrado:self.panel_prueba.stop.set()
         if self.escuchando:
             if self.capturando_activacion:self.activacion_fin.set()
             self.micro_stop.set(); self.estado='Terminando de escuchar…'; return
@@ -307,6 +344,7 @@ class Capri:
 
     def detener_activacion(self):
         self.activacion_stop.set()
+        self.activacion_lista=False
         self.activacion_ticket+=1
         if self.capturando_activacion:
             self.capturando_activacion=False;self.escuchando=False
@@ -326,13 +364,18 @@ class Capri:
         def esperar():
             try:
                 texto=self.micro.esperar_activacion(detener,lambda:self.eventos.put(('nombre_detectado',ticket)),
-                         dispositivo=self.cfg.get('microfono'),motor=self.cfg.get('reconocimiento','mixto'),terminar=terminar)
+                         dispositivo=self.cfg.get('microfono'),motor=self.cfg.get('reconocimiento','mixto'),terminar=terminar,
+                         nivel=lambda n:self.eventos.put(('activacion_nivel',(ticket,n))),
+                         estado=lambda s:self.eventos.put(('activacion_estado',(ticket,s))),
+                         lista=lambda:self.eventos.put(('activacion_lista',ticket)))
                 self.eventos.put(('activacion_resultado',(ticket,texto,None)))
             except Exception as e:self.eventos.put(('activacion_resultado',(ticket,None,str(e))))
         self.activacion_hilo=threading.Thread(target=esperar,name='CapriActivacion',daemon=True)
         self.activacion_hilo.start()
 
     def parar(self,preservar_activacion=False):
+        self.dialogo.ocultar()
+        self.narracion_activa=False;self.boca_activa=False
         if not preservar_activacion:self.detener_activacion()
         self.descartar_micro=True
         self.respuesta_stop.set()
@@ -340,9 +383,10 @@ class Capri:
         self.peticion += 1; self.ocupada=False
         self.estado='Detenida'
         self.voz_ticket=None;self.voz_cursor=0
-        if self.stream_ticket is not None and self.panel and self.panel.winfo_exists():
-            self.chat.configure(state='normal');self.chat.insert('end','\n\n');self.chat.configure(state='disabled')
-            self.stream_ticket=None
+        if self.stream_ticket is not None:
+            if self.respuesta_borrador:self.historial.append(('Capri',self.respuesta_borrador))
+            self.stream_ticket=None;self.respuesta_borrador='';self.pintar_historial()
+        self.pintar_historial()
         # Una petición ya enviada al modelo termina en su hilo; su texto se conserva.
 
     def poll(self):
@@ -350,7 +394,12 @@ class Capri:
         for _ in range(150):
             try:tipo,valor=self.eventos.get_nowait()
             except queue.Empty:break
-            if tipo=='nombre_detectado':
+            if tipo=='activacion_lista':
+                if valor!=self.activacion_ticket:continue
+                self.activacion_lista=True
+                if not self.ocupada and not self.hablando and self.voz_ticket is None:self.estado='Di «Capri» o pulsa F8'
+                self.precalentar_ia()
+            elif tipo=='nombre_detectado':
                 if valor!=self.activacion_ticket:continue
                 self.parar(preservar_activacion=True)
                 self.escuchando=True;self.capturando_activacion=True;self.descartar_micro=False
@@ -359,23 +408,49 @@ class Capri:
             elif tipo=='activacion_resultado':
                 ticket,texto,error=valor
                 if ticket!=self.activacion_ticket:continue
-                self.escuchando=False;self.capturando_activacion=False;self.b_mic.configure(text='● Hablar · F8')
+                self.escuchando=False;self.capturando_activacion=False;self.nivel=0;self.b_mic.configure(text='● Hablar · F8')
+                self.activacion_lista=False
                 if error:
                     self.activacion_reintento=time.monotonic()+30
                     self.estado='Activación por voz no disponible'
-                    if self.panel and self.panel.winfo_exists():self.poner_chat('Capri','No pude mantener la escucha de «Capri». Puedes usar Hablar. '+error[:150])
+                    self.poner_chat('Capri','No pude mantener la escucha de «Capri». Puedes usar Hablar. '+error[:150])
                 elif texto:
                     self.recibir_dictado(texto)
                 elif texto is not None:
                     self.estado='No escuché una orden. Di «Capri» otra vez.'
+                else:
+                    self.estado='Di «Capri» o pulsa F8'
+            elif tipo=='activacion_nivel':
+                ticket,nivel=valor
+                if ticket==self.activacion_ticket and self.capturando_activacion:self.nivel=nivel
+            elif tipo=='activacion_estado':
+                ticket,estado=valor
+                if ticket!=self.activacion_ticket:continue
+                self.escuchando=False;self.capturando_activacion=False;self.nivel=0
+                self.activacion_lista=False
+                self.estado=estado;self.b_mic.configure(text='● Hablar · F8')
+                if self.panel and self.panel.winfo_exists():self.subtitulo.set(estado)
             elif tipo=='micro':self.hablar()
             elif tipo=='voz':
                 if isinstance(valor,tuple):
                     generacion,valor=valor
                     if generacion!=self.voz.generacion:continue
                 if self.escuchando:continue
-                if isinstance(valor,bool):self.hablando=valor;self.estado='Hablando…' if valor else ('Respondiendo…' if self.ocupada else 'Lista para ti')
-                else:self.estado=valor[:37];self.abrir_chat();self.poner_chat('Capri',valor)
+                if isinstance(valor,tuple) and valor[0]=='avance_voz':
+                    if self.voz_ticket==self.peticion:
+                        datos=valor[1];self.dialogo.revelar(*datos[:2])
+                        if len(datos)>2:self.boca_activa=datos[2]
+                        self.pintar_historial()
+                    continue
+                if isinstance(valor,bool):
+                    anterior=self.hablando;self.hablando=valor;self.boca_activa=valor
+                    self.estado='Hablando…' if valor else ('Respondiendo…' if self.ocupada else 'Lista para ti')
+                    if valor and self.voz_ticket==self.peticion:self.narracion_activa=True
+                    elif not valor and self.narracion_activa:
+                        self.dialogo.terminar_voz();self.narracion_activa=False;self.voz_ticket=None
+                        self.pintar_historial()
+                    if anterior and not valor:self.avatar.sonreir()
+                else:self.voz_ticket=None;self.estado=valor[:37];self.poner_chat('Capri',valor)
                 if self.hablando:self.detener_activacion()
             elif tipo=='nivel':self.nivel=valor
             elif tipo=='micro_estado':
@@ -388,50 +463,65 @@ class Capri:
                 self.escuchando=False;self.nivel=0;self.b_mic.configure(text='● Hablar · F8')
                 if self.descartar_micro: self.estado='Lista para ti'
                 elif tipo=='transcripcion' and valor:
-                    if getattr(self.micro,'confianza_baja',False):
-                        self.abrir_chat();self.entrada.delete(0,'end');self.entrada.insert(0,valor)
-                        self.estado='Revisa lo que entendí'
-                        self.subtitulo.set('No lo entendí con seguridad. Revisa la frase y pulsa Enviar.')
-                    else:self.enviar(valor)
+                    self.recibir_dictado(valor)
                 else:
                     self.estado='No te escuché. Pulsa F8 para repetir.' if not valor else 'Micrófono no disponible'
-                    self.abrir_chat();self.poner_chat('Capri',valor or 'No entendí la frase. Acércate al micrófono y vuelve a pulsar F8.')
+                    self.poner_chat('Capri',valor or 'No entendí la frase. Acércate al micrófono y vuelve a pulsar F8.')
             elif tipo=='respuesta_parcial':
                 ticket,texto=valor
                 if ticket!=self.peticion:continue
                 self.estado='Respondiendo…';self.subtitulo.set('Capri está respondiendo…')
                 self.mostrar_respuesta_parcial(ticket,texto)
+            elif tipo=='contexto':
+                ticket,texto,orden,resultado,aclaracion=valor
+                if ticket==self.peticion:self.interprete.registrar(texto,orden,resultado,aclaracion)
             elif tipo in ('respuesta','error'):
                 ticket,valor=valor
                 if ticket != self.peticion:continue
                 self.ocupada=False;self.estado='Lista para ti' if tipo=='respuesta' else 'No pude completar la orden'
                 if tipo=='error':self.voz.parar();self.voz_ticket=None;self.voz_cursor=0
-                if not self.panel or not self.panel.winfo_exists():self.abrir_chat()
                 if self.stream_ticket==ticket:
-                    self.mostrar_respuesta_parcial(ticket,valor)
-                    self.chat.configure(state='normal');self.chat.insert('end','\n\n');self.chat.configure(state='disabled');self.stream_ticket=None
-                else:self.poner_chat('Capri',valor)
+                    self.stream_ticket=None;self.respuesta_borrador=''
+                con_voz=tipo=='respuesta' and self.puede_narrar()
+                self.poner_chat('Capri',valor,mostrar=not con_voz)
                 self.subtitulo.set('F8 para hablar · Esc para detener')
-                if tipo=='respuesta' and self.cfg.get('voz'):
+                if con_voz:
                     self.narrar_respuesta(ticket,valor,final=True)
             elif tipo=='aviso':self.estado=valor[:37]
             elif tipo=='microfonos':
                 ticket,lista,error=valor
                 if ticket==self.micro_lista_ticket and self.ajustes and self.ajustes.winfo_exists():
                     self.mostrar_microfonos(lista,error)
+            elif tipo=='modelos_ia':
+                ventana,modelos,error=valor
+                if self.ajustes is ventana and ventana.winfo_exists():
+                    actual=self.cfg.get('modelo','')
+                    self.modelo_combo.configure(values=modelos,state='readonly' if modelos else 'disabled')
+                    if actual:self.modelo_combo.set(actual)
+                    self.modelo_estado.set(error or 'Elige un modelo instalado. Se usa para conversar y entender peticiones.')
         self.mantener_activacion()
         self.root.after(60,self.poll)
 
     def recibir_dictado(self,texto):
+        from activacion import quitar_nombre
+        sin_nombre=quitar_nombre(texto)
+        if sin_nombre is not None:texto=sin_nombre
+        if not texto.strip():
+            self.estado='Di qué quieres hacer';return
         if self.micro.confianza_baja:
-            self.abrir_chat();self.entrada.delete(0,'end');self.entrada.insert(0,texto)
+            self.dialogo.revisar(texto)
             self.estado='Revisa lo que entendí'
             self.subtitulo.set('No estoy segura de la frase. Revísala y pulsa Enviar.')
-        else:self.enviar(texto)
+        else:self.enviar(texto,origen='voz')
 
     def narrar_respuesta(self,ticket,texto,final=False):
-        if not final or not self.cfg.get('voz') or self.escuchando or ticket!=self.peticion:return
+        if not final or not self.puede_narrar() or self.escuchando or ticket!=self.peticion:return
+        self.voz_ticket=ticket;self.narracion_activa=False;self.dialogo.preparar_voz(texto)
+        self.estado='Preparando voz…'
         self.voz.hablar(texto,self.cfg.get('voz_natural',True),perfil=self.cfg.get('voz_perfil','capri'),velocidad=self.cfg.get('velocidad_voz',1.0),volumen=self.cfg.get('volumen_voz',100))
+        self.pintar_historial()
+
+    def puede_narrar(self):return bool(self.cfg.get('voz')) and normalizar_volumen(self.cfg.get('volumen_voz',100))>0
 
     def configurar(self):
         self.detener_activacion()
@@ -457,16 +547,26 @@ class Capri:
         self.micro_refrescar.pack(side='left',padx=(7,0))
         self.micro_estado=tk.StringVar(value='Buscando micrófonos…')
         tk.Label(f,textvariable=self.micro_estado,wraplength=460,justify='left',bg=BG,fg=MUTED,font=('Segoe UI',9)).pack(anchor='w',pady=(0,14))
+        from prueba_microfono import PanelPrueba
+        self.panel_prueba=PanelPrueba(f,self.micro,self.cfg,self.guardar,antes_grabar=self.parar)
+        self.panel_prueba.pack(fill='x',pady=(0,18))
         tk.Label(f,text='Reconocimiento de voz',bg=BG,fg=GREEN,font=('Segoe UI',12,'bold')).pack(anchor='w')
-        motor=ttk.Combobox(f,state='readonly',values=['Mixto · español e inglés','Rápido · Vosk español'],font=('Segoe UI',10))
+        motor=ttk.Combobox(f,state='readonly',values=['Whisper · español y nombres en inglés','Rápido · Vosk español'],font=('Segoe UI',10))
         motor.current(0 if self.cfg.get('reconocimiento','mixto') in ('preciso','mixto') else 1)
         motor.bind('<<ComboboxSelected>>',lambda e:self.guardar('reconocimiento','mixto' if motor.current()==0 else 'rapido'))
         motor.pack(fill='x',pady=(7,12))
-        from reconocimiento import disponible
-        if not disponible(BASE/'modelos'):
+        from reconocimiento import disponible,modelos_disponibles,elegir_modelo
+        self.whisper_opciones=modelos_disponibles(BASE/'modelos') or ['base']
+        self.whisper_combo=ttk.Combobox(f,state='readonly',values=['Whisper '+m for m in self.whisper_opciones],font=('Segoe UI',10))
+        elegido=elegir_modelo(BASE/'modelos',self.cfg.get('modelo_whisper','base'))
+        self.whisper_combo.current(self.whisper_opciones.index(elegido) if elegido in self.whisper_opciones else 0)
+        self.whisper_combo.bind('<<ComboboxSelected>>',lambda e:self.guardar('modelo_whisper',self.whisper_opciones[self.whisper_combo.current()]))
+        self.whisper_combo.pack(fill='x',pady=(0,4))
+        tk.Label(f,text='Small usa más memoria y puede tardar más. Base sigue disponible como respaldo.',wraplength=460,bg=BG,fg=MUTED,font=('Segoe UI',9)).pack(anchor='w',pady=(0,10))
+        if not disponible(BASE/'modelos',elegido):
             tk.Label(f,text='Preciso necesita descargar un modelo local de 148 MB.',wraplength=460,justify='left',bg=BG,fg=MUTED,font=('Segoe UI',9)).pack(anchor='w')
             self.boton(f,'Preparar reconocimiento preciso',self.preparar_reconocimiento).pack(anchor='w',pady=(5,12))
-        for key,texto in [('activacion_voz','Activar al decir «Capri» (escucha local)'),('voz','Responder en voz alta'),('voz_natural','Voz española natural por internet')]:
+        for key,texto in [('activacion_voz','Activar al decir «Capri» (escucha local)'),('voz','Responder en voz alta'),('voz_natural','Voz española natural por internet'),('dialogos_escritorio','Mostrar diálogos progresivos junto a Capri'),('animaciones','Estados de boca y expresiones del avatar'),('efecto_glitch','Interferencias breves de imagen y texto')]:
             var=tk.BooleanVar(value=bool(self.cfg.get(key)))
             tk.Checkbutton(f,text=texto,variable=var,command=lambda k=key,v=var:self.guardar(k,v.get()),bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,activeforeground=FG,font=('Segoe UI',11)).pack(anchor='w',pady=5)
         volumen=normalizar_volumen(self.cfg.get('volumen_voz',100))
@@ -494,6 +594,16 @@ class Capri:
         escala.pack(fill='x',pady=(0,10))
         tk.Label(f,text='El micrófono se reconoce en tu PC. La voz natural es una interpretación sintética, no la actriz de la serie; envía solo las respuestas a Microsoft. Si la desactivas se usa Windows.',wraplength=420,justify='left',bg=BG,fg=MUTED,font=('Segoe UI',9)).pack(anchor='w',pady=(5,20))
         tk.Label(f,text='Conversación libre',bg=BG,fg=GREEN,font=('Segoe UI',12,'bold')).pack(anchor='w')
+        self.modelo_combo=ttk.Combobox(f,state='disabled',font=('Segoe UI',10))
+        self.modelo_combo.set(self.cfg.get('modelo',''))
+        self.modelo_combo.bind('<<ComboboxSelected>>',lambda e:self.elegir_modelo_ia(self.modelo_combo.get()))
+        self.modelo_combo.pack(fill='x',pady=(7,4))
+        self.modelo_estado=tk.StringVar(value='Buscando modelos instalados en Ollama…')
+        tk.Label(f,textvariable=self.modelo_estado,wraplength=460,justify='left',bg=BG,fg=MUTED,font=('Segoe UI',9)).pack(anchor='w')
+        def consultar_modelos():
+            try:self.eventos.put(('modelos_ia',(p,self.ia.modelos(),None)))
+            except Exception:self.eventos.put(('modelos_ia',(p,[],'Abre Ollama para ver los modelos instalados.')))
+        threading.Thread(target=consultar_modelos,daemon=True).start()
         tk.Label(f,text='Ollama ejecuta la IA en tu equipo, sin clave ni pago por uso. La activación descarga un modelo de aproximadamente 2 GB.',wraplength=420,justify='left',bg=BG,fg=MUTED,font=('Segoe UI',10)).pack(anchor='w',pady=(7,10))
         self.boton(f,'Activar IA local',self.activar_ia,RED).pack(anchor='w')
         self.boton(f,'Vincular playlist de Spotify',self.vincular_playlist).pack(anchor='w',pady=(12,0))
@@ -543,6 +653,8 @@ class Capri:
         indice=self.micro_combo.current()
         if indice<0 or indice>=len(self.micro_opciones):return
         elegido=self.micro_opciones[indice]
+        if hasattr(self,'panel_prueba'):
+            self.panel_prueba.descartar()
         try:self.guardar('microfono',elegido)
         except OSError:
             self.micro_estado.set('No pude guardar la elección. Revisa los permisos de la carpeta de Capri.');return
@@ -565,9 +677,22 @@ class Capri:
     def guardar(self,k,v):
         self.cfg[k]=v
         (BASE/'ajustes.json').write_text(json.dumps(self.cfg,ensure_ascii=False,indent=2),encoding='utf8')
-        if k=='voz' and not v:self.voz.parar()
-        if k in ('activacion_voz','microfono','reconocimiento'):
+        if k=='voz' and not v:
+            self.voz.parar();self.voz_ticket=None;self.narracion_activa=False
+            if self.dialogo.objetivo:self.dialogo.mostrar(self.dialogo.objetivo)
+        if k=='dialogos_escritorio' and not v:self.dialogo.ocultar()
+        if k=='modelo_whisper':self.micro.modelo_whisper=v
+        if k=='umbral_microfono_db':self.micro.umbral_microfono_db=v
+        if k in ('activacion_voz','microfono','reconocimiento','modelo_whisper'):
             self.detener_activacion();self.activacion_reintento=0
+
+    def elegir_modelo_ia(self,nombre):
+        if nombre not in self.modelo_combo.cget('values'):return
+        self.parar()
+        self.guardar('modelo',nombre)
+        self.guardar('ia',True)
+        self.modelo_estado.set('Seleccionado: '+nombre+'. La primera carga puede tardar más.')
+        threading.Thread(target=self.preparar_ia,daemon=True).start()
 
     def vincular_playlist(self):
         nombre=simpledialog.askstring('Playlist de Spotify','¿Con qué nombre quieres pedir esta playlist?',parent=self.ajustes)

@@ -13,7 +13,8 @@ from nombres import nombre_aplicacion
 
 PERSONALIDAD = '''Te llamas CAPRI. Siempre te identificas como Capri, nunca inventas otro nombre.
 Eres la compañera digital de escritorio de quien utiliza la aplicación: una interpretación de aficionado de Capri de Cyberpunk: Edgerunners.
-No conoces el nombre de la persona hasta que te lo diga en esta conversación. Si te pregunta cómo se llama y no te lo ha dicho, pregúntale su nombre; nunca lo inventes.
+Tu nombre es Capri y siempre lo conoces. No confundas tu nombre con el de la persona que te habla. Solo si pregunta explícitamente por SU propio nombre y no te lo ha dicho, responde que todavía no lo sabes; nunca lo inventes.
+La activación al decir «Capri» depende del reconocimiento de voz y puede fallar. Preguntar si a veces no escuchas no demuestra un fallo actual. No diagnostiques una avería por el contenido de la pregunta. No pidas el nombre de la persona ni supongas que ya lo pediste.
 Eres curiosa, enérgica, pícara, juguetona y un poco caótica; bromeas con confianza, sin crueldad ni insultos al usuario.
 Hablas en primera persona femenina, en español latino natural. Tienes iniciativa para bromear y contagiar curiosidad.
 Evita el tono de asistente corporativa o terapeuta: nada de «estoy aquí para ayudarte en lo que necesites» ni «en qué puedo ayudarte hoy».
@@ -21,6 +22,7 @@ Responde normalmente con una o dos frases, máximo 55 palabras. Si te piden deta
 Conversar es parte de tu función: si la persona quiere hablar contigo, acepta y sigue la charla con una pregunta concreta.
 No repitas saludos, presentaciones, advertencias de IA o listas de funciones en cada respuesta.
 No inventes recuerdos, datos de la serie ni acceso a la pantalla, internet o archivos. Este canal solo conversa: las acciones del PC las realiza otro componente y no afirmes haberlas hecho.
+No inventes causas ni decisiones tuyas para justificar errores del micrófono, del dictado o de la activación por nombre. Si no recibes un diagnóstico, reconoce que no sabes la causa; no inventes que pediste un nombre ni una conversación anterior.
 Capri SÍ puede abrir Spotify, Opera GX, explorador, calculadora y otras aplicaciones registradas, buscar en internet y abrir carpetas mediante su ejecutor. Tú y ese ejecutor forman la misma aplicación Capri.
 Nunca digas que Capri solo puede conversar, que no puede abrir ninguna aplicación o que no puede interactuar con el computador. Si la frase está mal transcrita o es ambigua, explica que no entendiste la orden y pide aclararla; no niegues capacidades que sí existen.
 No sabes qué canción, artista o playlist está sonando. No afirmes que una canción sigue reproduciéndose mientras conversamos ni inventes títulos. Solo una consulta al ejecutor puede comprobar el estado de Spotify. No uses tus propias respuestas anteriores como prueba del estado actual.
@@ -174,7 +176,7 @@ def interpretar(texto):
         from playlists import cargar,clave
         if clave(cancion) in cargar():return Orden('spotify_playlist',cancion)
         return Orden('spotify',cancion[:500])
-    if n in ('pausa spotify','pausa la musica','pausa la cancion','pausar spotify','pausa la reproduccion','pausa'):
+    if n in ('pausa spotify','pausa la musica','pausa la cancion','pausar spotify','pausa la reproduccion','pausa') or re.fullmatch(r'(?:deten|detener|para|parar|frena|interrumpe)\s+(?:(?:la|mi|esa)\s+)?(?:cancion|musica|reproduccion|spotify)',n):
         return Orden('spotify_pausa')
     combinado=re.match(r'^'+ABRIR+r'\s+(.+?)\s+(?:y|para)\s+('+BUSCAR+r'\s+.+)$',texto,re.I)
     texto_busqueda=texto
@@ -313,11 +315,14 @@ class IA:
     """Conversación local. Sus respuestas son texto, nunca instrucciones ejecutables."""
     def __init__(self):
         self.historia = []
+        self.contexto_acciones = []
         self.ultima_medicion = {}
 
     def preparar(self, modelo):
         if not modelo:return
-        cuerpo=json.dumps({'model':modelo,'prompt':'','stream':False,'keep_alive':'15m','options':{'num_ctx':2048}}).encode('utf8')
+        datos={'model':modelo,'prompt':'','stream':False,'keep_alive':'15m','options':{'num_ctx':2048}}
+        if modelo.lower().startswith('qwen3'):datos['think']=False
+        cuerpo=json.dumps(datos).encode('utf8')
         req=urllib.request.Request('http://127.0.0.1:11434/api/generate',data=cuerpo,headers={'Content-Type':'application/json'})
         with urllib.request.urlopen(req,timeout=45) as r:json.load(r)
 
@@ -327,17 +332,37 @@ class IA:
         return [m['name'] for m in datos.get('models', []) if isinstance(m.get('name'), str)
                 and not m.get('remote_host') and not m.get('remote_model') and 'cloud' not in m['name'].lower()]
 
-    def conversar(self, texto, modelo=None, al_texto=None, cancelar=None):
+    def conversar(self, texto, modelo=None, al_texto=None, cancelar=None,origen='texto'):
         if not modelo:
             modelos = self.modelos()
             if not modelos:
                 raise RuntimeError('Ollama está instalado, pero falta descargar un modelo. Pulsa Activar IA local en Ajustes.')
             modelo = next((m for m in modelos if 'llama3.2' in m), modelos[0])
         mensajes = [{'role': 'system', 'content': PERSONALIDAD}]
+        if self.contexto_acciones:
+            mensajes.append({'role':'system','content':'Resultados recientes del ejecutor, como datos históricos; no garantizan el estado actual. Puedes explicarlos sin inventar acciones nuevas: '+json.dumps(self.contexto_acciones,ensure_ascii=False)})
         # No volver a alimentar al modelo con sus afirmaciones musicales inventadas.
         mensajes += [dict(m,content=respuesta_conversacion(m['content'])) if m['role']=='assistant' else m for m in self.historia[-8:]] + [{'role': 'user', 'content': texto}]
-        cuerpo = json.dumps({'model': modelo, 'messages': mensajes, 'stream': bool(al_texto),'keep_alive':'15m',
-                            'options': {'num_predict': 100,'num_ctx':2048,'temperature':.45,'repeat_penalty':1.1}}).encode('utf8')
+        # Reforzar los hechos después del historial evita que un modelo pequeño
+        # convierta sus propias respuestas anteriores en explicaciones del fallo.
+        mensajes.insert(len(mensajes)-1,{'role':'system','content':
+            'Hechos para esta respuesta: tú eres Capri; el usuario es otra persona. '
+            'El nombre de activación es Capri. No confundas una pregunta sobre posibles fallos con un fallo comprobado. '
+            'Captar audio, detectar Capri y transcribir palabras son pasos distintos; no diagnostiques uno por otro. '
+            'No tienes un diagnóstico del micrófono. No inventes motivos ni conversaciones anteriores. '
+            'F8 permite activar la captura manualmente, pero no corrige el dictado. No lo propongas automáticamente en cada pregunta. '
+            'Ante un fallo responde de forma directa, '
+            'sin bromas, sin pedir que repita muchas veces y sin afirmar que puedes repararte sola.'})
+        if origen=='voz':
+            mensajes.insert(len(mensajes)-1,{'role':'system','content':
+                'Esta frase actual llegó desde el micrófono y YA fue transcrita. Por tanto sí hubo captura de audio '
+                'en este turno. No digas que no puedes oír su voz ni que falló la activación en este turno. '
+                'Eso no demuestra que todos los turnos anteriores hayan funcionado. Puedes reconocer la posibilidad '
+                'de fallos ocasionales sin afirmar que estén ocurriendo ahora.'})
+        cuerpo={'model': modelo, 'messages': mensajes, 'stream': bool(al_texto),'keep_alive':'15m',
+                'options': {'num_predict': 100,'num_ctx':2048,'temperature':.45,'repeat_penalty':1.1}}
+        if modelo.lower().startswith('qwen3'):cuerpo['think']=False
+        cuerpo=json.dumps(cuerpo).encode('utf8')
         req = urllib.request.Request('http://127.0.0.1:11434/api/chat', data=cuerpo, headers={'Content-Type': 'application/json'})
         inicio=time.monotonic();primero=None;respuesta=''
         with urllib.request.urlopen(req, timeout=45) as r:

@@ -216,10 +216,13 @@ class EntradaVoz(unittest.TestCase):
     def test_volumen_windows_y_silencio_no_sintetiza(self):
         import voz,base64
         v=voz.Voz(lambda x:None)
-        with patch.object(v,'_reproducir_windows',return_value=True) as reproducir:
+        with patch.object(v,'_reproducir_windows',return_value=True) as reproducir,patch.object(v,'_reproducir_archivo',return_value=True) as audio:
             v._hablar('Hola',False,v.generacion,v.cancelar,volumen=35)
             script=base64.b64decode(reproducir.call_args.args[0]).decode('utf-16-le')
-            self.assertIn('$v.Volume=35;',script)
+            self.assertIn('$v.Volume=100;',script)
+            self.assertIn('SetOutputToWaveFile',script)
+            self.assertFalse(reproducir.call_args.kwargs['emitir'])
+            self.assertEqual(audio.call_args.args[3],35)
             reproducir.reset_mock()
             v._hablar('Hola',False,v.generacion,v.cancelar,volumen=0)
             reproducir.assert_not_called()
@@ -337,12 +340,12 @@ class EntradaVoz(unittest.TestCase):
             self.assertTrue(muerto.is_set());self.assertFalse(hilo.is_alive())
             self.assertIsNone(v.proceso)
 
-    def test_modo_mixto_transcribe_sin_imponer_espanol(self):
+    def test_modo_mixto_fija_espanol_para_evitar_idioma_inventado(self):
         import voz,reconocimiento
         with patch.object(reconocimiento,'disponible',return_value=True),patch.object(reconocimiento,'escuchar_preciso',return_value='Abre Spotify') as escuchar:
             texto=voz.Microfono(Path('.')).escuchar(threading.Event(),lambda t:None,lambda n:None,motor='mixto')
         self.assertEqual(texto,'Abre Spotify')
-        self.assertIsNone(escuchar.call_args.kwargs['idioma'])
+        self.assertEqual(escuchar.call_args.kwargs['idioma'],'es')
 
     def test_reintenta_otra_interfaz_del_usb_sin_cambiar_de_microfono(self):
         import voz
@@ -507,10 +510,99 @@ class EntradaVoz(unittest.TestCase):
             self.assertEqual(interpretar(texto),Orden('buscar','galaxias'))
 
 class Interfaz(PruebasTk):
+    def test_activacion_sin_nombre_confirmado_no_envia_y_sale_de_te_escucho(self):
+        import app as modulo
+        with patch.object(modulo.Voz,'parar'):
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
+            try:
+                capri.activacion_ticket=12
+                capri.eventos.put(('nombre_detectado',12));capri.poll()
+                with patch.object(capri,'enviar') as enviar:
+                    capri.eventos.put(('activacion_resultado',(12,None,None)));capri.poll()
+                    enviar.assert_not_called()
+                self.assertFalse(capri.escuchando)
+                self.assertEqual(capri.estado,'Di «Capri» o pulsa F8')
+            finally:capri.cerrar()
+
+    def test_selectores_de_modelos_conservan_ajustes_y_permiten_volver_atras(self):
+        import app as modulo
+        from reconocimiento import ARCHIVOS
+        with tempfile.TemporaryDirectory() as d,patch.object(modulo,'BASE',Path(d)),patch.object(modulo.IA,'modelos',return_value=['llama3.2:3b','modelo:nuevo']),patch.object(modulo.Capri,'cargar_microfonos'),patch.object(modulo.Capri,'preparar_ia'):
+            carpeta=Path(d)
+            for modelo in ('base','small'):
+                ruta=carpeta/'modelos'/('whisper-'+modelo);ruta.mkdir(parents=True)
+                for nombre in ARCHIVOS:(ruta/nombre).write_bytes(bytes(150))
+            (carpeta/'ajustes.json').write_text(json.dumps({'voz':False,'modelo':'llama3.2:3b','dato_conservado':42}),encoding='utf-8')
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
+            try:
+                capri.configurar();capri.ajustes.withdraw();limite=time.monotonic()+2
+                while str(capri.modelo_combo.cget('state'))=='disabled' and time.monotonic()<limite:capri.root.update();time.sleep(.01)
+                capri.elegir_modelo_ia('modelo:nuevo')
+                self.assertEqual(capri.cfg['modelo'],'modelo:nuevo')
+                self.assertTrue(capri.cfg['ia'])
+                capri.whisper_combo.current(capri.whisper_opciones.index('small'))
+                capri.whisper_combo.event_generate('<<ComboboxSelected>>');capri.root.update()
+                self.assertEqual(capri.cfg['modelo_whisper'],'small')
+                self.assertEqual(capri.micro.modelo_whisper,'small')
+                capri.elegir_modelo_ia('llama3.2:3b')
+                capri.whisper_combo.current(capri.whisper_opciones.index('base'))
+                capri.whisper_combo.event_generate('<<ComboboxSelected>>');capri.root.update()
+                cfg=json.loads((carpeta/'ajustes.json').read_text(encoding='utf-8'))
+                self.assertEqual(cfg['modelo'],'llama3.2:3b');self.assertEqual(cfg['modelo_whisper'],'base')
+                self.assertEqual(cfg['dato_conservado'],42);self.assertFalse(cfg['voz'])
+            finally:capri.cerrar()
+
+    def test_intencion_contextual_no_busca_otra_como_titulo_y_guarda_resultado(self):
+        import app as modulo
+        from intenciones import Decision
+        with patch.object(modulo.Interprete,'resolver',return_value=Decision(Orden('spotify_siguiente'))) as resolver,patch.object(modulo,'ejecutar',return_value='Pedí pasar a la siguiente.') as ejecutar,patch.object(modulo.IA,'conversar') as charla:
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
+            try:
+                capri.cfg.update({'ia':True,'modelo':'local','voz':False})
+                capri.interprete.registrar('pausa Spotify',Orden('spotify_pausa'),'Pausé Spotify.')
+                capri.enviar('pon otra');capri.panel.withdraw()
+                limite=time.monotonic()+2
+                while capri.ocupada and time.monotonic()<limite:capri.root.update();time.sleep(.01)
+                resolver.assert_called_once();ejecutar.assert_called_once_with(Orden('spotify_siguiente'))
+                charla.assert_not_called()
+                self.assertEqual(capri.interprete.contexto()['turnos'][-1]['resultado'],'Pedí pasar a la siguiente.')
+            finally:capri.cerrar()
+
+    def test_intencion_cancelada_no_ejecuta(self):
+        import app as modulo
+        from intenciones import Decision
+        entrando=threading.Event();soltar=threading.Event()
+        def resolver(*args):entrando.set();soltar.wait(2);return Decision(Orden('spotify_pausa'))
+        with patch.object(modulo.Interprete,'resolver',side_effect=resolver),patch.object(modulo,'ejecutar') as ejecutar:
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
+            try:
+                capri.cfg.update({'ia':True,'modelo':'local','voz':False})
+                capri.enviar('detenla un momento');capri.panel.withdraw()
+                self.assertTrue(entrando.wait(2));capri.parar();soltar.set()
+                limite=time.monotonic()+.2
+                while time.monotonic()<limite:capri.root.update();time.sleep(.01)
+                ejecutar.assert_not_called();self.assertEqual(capri.interprete.contexto()['turnos'],[])
+            finally:soltar.set();capri.cerrar()
+
+    def test_intencion_ambigua_pregunta_sin_ejecutar_y_guarda_aclaracion(self):
+        import app as modulo
+        from intenciones import Decision
+        with patch.object(modulo.Interprete,'resolver',return_value=Decision(pregunta='¿A qué te refieres?')),patch.object(modulo,'ejecutar') as ejecutar,patch.object(modulo.IA,'conversar') as charla:
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
+            try:
+                capri.cfg.update({'ia':True,'modelo':'local','voz':False})
+                capri.enviar('detenla');capri.panel.withdraw()
+                limite=time.monotonic()+2
+                while capri.ocupada and time.monotonic()<limite:capri.root.update();time.sleep(.01)
+                ejecutar.assert_not_called();charla.assert_not_called()
+                self.assertTrue(capri.interprete.contexto()['turnos'][-1]['aclaracion'])
+                self.assertIn('¿A qué te refieres?',capri.chat.get('1.0','end'))
+            finally:capri.cerrar()
+
     def test_volumen_ajustes_se_guarda_y_llega_a_la_voz(self):
         import app as modulo
         with tempfile.TemporaryDirectory() as d,patch.object(modulo,'BASE',Path(d)),patch.object(modulo.Capri,'cargar_microfonos'),patch.object(modulo.Voz,'hablar') as hablar:
-            capri=modulo.Capri(hotkeys=False);capri.root.withdraw()
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
             try:
                 capri.configurar();capri.ajustes.withdraw()
                 capri.escala_volumen.set(35);capri.root.update()
@@ -524,20 +616,20 @@ class Interfaz(PruebasTk):
     def test_peticion_de_pestana_no_pasa_por_modelo(self):
         import app as modulo
         with patch.object(modulo.Voz,'parar'),patch.object(modulo.Voz,'hablar'),patch.object(modulo.IA,'conversar') as modelo,patch.object(modulo,'ejecutar',return_value='Orden enviada a Opera GX') as accion:
-            capri=modulo.Capri(hotkeys=False);capri.root.withdraw()
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
             try:
                 capri.enviar('Me gustaría que abrieras una pestaña del Opera GX')
                 capri.panel.withdraw();limite=time.monotonic()+2
                 while capri.ocupada and time.monotonic()<limite:capri.root.update();time.sleep(.01)
                 accion.assert_called_once_with(Orden('pestana'))
                 modelo.assert_not_called()
-                self.assertIn('Orden enviada a Opera GX',capri.chat.get('1.0','end'))
+                self.assertIn('Orden enviada a Opera GX',capri.historial[-1][1])
             finally:capri.cerrar()
 
     def test_velocidad_por_voz_se_guarda_y_se_aplica(self):
         import app as modulo
         with tempfile.TemporaryDirectory() as d,patch.object(modulo,'BASE',Path(d)),patch.object(modulo.Voz,'parar'),patch.object(modulo.Voz,'hablar') as voz,patch.object(modulo.IA,'conversar') as modelo:
-            capri=modulo.Capri(hotkeys=False);capri.root.withdraw()
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
             try:
                 capri.enviar('Habla más rápido');capri.panel.withdraw()
                 self.assertEqual(capri.cfg['velocidad_voz'],1.15)
@@ -545,21 +637,22 @@ class Interfaz(PruebasTk):
                 self.assertEqual(voz.call_args.kwargs['velocidad'],1.15)
                 modelo.assert_not_called()
             finally:capri.cerrar()
-    def test_texto_progresivo_y_una_sola_lectura_continua(self):
+    def test_texto_espera_la_voz_y_una_sola_lectura_continua(self):
         import app as modulo
         continuar=threading.Event()
-        def respuesta(texto,modelo,al_texto,cancelar):
+        def respuesta(texto,modelo,al_texto,cancelar,origen='texto'):
             al_texto('Soy Capri.')
             continuar.wait(2)
             al_texto('Soy Capri. ¿Qué quieres contarme?')
             return 'Soy Capri. ¿Qué quieres contarme?'
         with patch.object(modulo.Voz,'parar'),patch.object(modulo.Voz,'iniciar_respuesta') as fragmentar,patch.object(modulo.Voz,'hablar') as voz,patch.object(modulo.IA,'conversar',side_effect=respuesta):
-            capri=modulo.Capri(hotkeys=False);capri.root.withdraw()
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
             try:
                 capri.enviar('Cuéntame algo');capri.panel.withdraw()
                 limite=time.monotonic()+2
-                while 'Soy Capri.' not in capri.chat.get('1.0','end') and time.monotonic()<limite:capri.root.update();time.sleep(.01)
+                while capri.stream_ticket is None and time.monotonic()<limite:capri.root.update();time.sleep(.01)
                 self.assertTrue(capri.ocupada)
+                self.assertNotIn('Soy Capri.',capri.chat.get('1.0','end'))
                 voz.assert_not_called()
                 continuar.set()
                 while capri.ocupada and time.monotonic()<limite:capri.root.update();time.sleep(.01)
@@ -568,6 +661,10 @@ class Interfaz(PruebasTk):
                 self.assertEqual(voz.call_args.args[0],'Soy Capri. ¿Qué quieres contarme?')
                 self.assertEqual(voz.call_args.kwargs['velocidad'],1.0)
                 fragmentar.assert_not_called()
+                texto='Soy Capri. ¿Qué quieres contarme?'
+                capri.eventos.put(('voz',(capri.voz.generacion,True)))
+                capri.eventos.put(('voz',(capri.voz.generacion,('avance_voz',(texto,len(texto),False)))))
+                capri.eventos.put(('voz',(capri.voz.generacion,False)));capri.poll()
                 self.assertEqual(capri.chat.get('1.0','end').count('Soy Capri.'),1)
             finally:continuar.set();capri.cerrar()
 
@@ -576,7 +673,7 @@ class Interfaz(PruebasTk):
         soltar=threading.Event();iniciado=threading.Event()
         def escuchar(*a,**kw):iniciado.set();soltar.wait(2);return ''
         with patch.object(modulo.Voz,'parar') as parar,patch.object(modulo.Voz,'hablar') as voz,patch.object(modulo.Microfono,'escuchar',side_effect=escuchar):
-            capri=modulo.Capri(hotkeys=False);capri.root.withdraw()
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
             try:
                 capri.ocupada=True;capri.hablando=True
                 vieja=capri.peticion;cancelar=capri.respuesta_stop
@@ -593,14 +690,14 @@ class Interfaz(PruebasTk):
     def test_transcripcion_dudosa_queda_editable_sin_ejecutar(self):
         import app as modulo
         with patch.object(modulo.Voz,'parar'):
-            capri=modulo.Capri(hotkeys=False);capri.root.withdraw()
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
             try:
                 capri.micro.confianza_baja=True
                 with patch.object(capri,'enviar') as enviar:
                     capri.eventos.put(('transcripcion','abre calculadora'))
                     capri.poll()
                     enviar.assert_not_called()
-                    self.assertEqual(capri.entrada.get(),'abre calculadora')
+                    self.assertEqual(capri.dialogo.entrada.get(),'abre calculadora')
             finally:capri.cerrar()
 
     def test_selector_recuerda_microfono_sin_reemplazar_otros_ajustes(self):
@@ -609,7 +706,7 @@ class Interfaz(PruebasTk):
         with tempfile.TemporaryDirectory() as d,patch.object(modulo,'BASE',Path(d)),patch.object(modulo,'listar_microfonos',return_value=[elegido]),patch.object(modulo.Voz,'parar'):
             carpeta=Path(d)
             (carpeta/'ajustes.json').write_text(json.dumps({'voz':False,'modelo':'mi-modelo'}),encoding='utf8')
-            capri=modulo.Capri(hotkeys=False);capri.root.withdraw()
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
             try:
                 capri.configurar();capri.ajustes.withdraw()
                 limite=time.monotonic()+2
@@ -639,7 +736,7 @@ class Interfaz(PruebasTk):
         import app as modulo
         with patch.object(modulo.Voz,'parar'),patch.object(modulo.Voz,'hablar') as hablar,patch.object(modulo,'ejecutar',return_value='Busqué gatos en Opera GX.') as ejecutar:
             capri=modulo.Capri(hotkeys=False)
-            capri.root.withdraw()
+            capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
             try:
                 capri.abrir_chat();capri.panel.withdraw()
                 capri.enviar('abre Opera y busca gatos')
@@ -647,7 +744,7 @@ class Interfaz(PruebasTk):
                 while capri.ocupada and time.monotonic()<limite:
                     capri.root.update();time.sleep(.01)
                 self.assertFalse(capri.ocupada)
-                self.assertIn('Busqué gatos',capri.chat.get('1.0','end'))
+                self.assertIn('Busqué gatos',capri.historial[-1][1])
                 ejecutar.assert_called_once_with(Orden('buscar','gatos'))
                 capri.ocupada=True;capri.peticion+=1
                 ticket=capri.peticion
@@ -811,6 +908,9 @@ class AmpliacionEscritorio(PruebasTk):
         self.assertEqual(quitar_nombre('Capri, busca memes'),'busca memes')
         self.assertEqual(quitar_nombre('Ey Capri abre Spotify'),'abre Spotify')
         self.assertEqual(quitar_nombre('Capri.'),'')
+        self.assertEqual(quitar_nombre('¿Capri, puedes abrir Spotify?'),'puedes abrir Spotify?')
+        self.assertEqual(quitar_nombre('Capri. Capri, abre Spotify'),'abre Spotify')
+        self.assertEqual(quitar_nombre('Capri, Capri, Capri, Capri, abre Spotify'),'abre Spotify')
         for texto in ['capricho','esto es un capricho','dile Capri que venga','Spotify']:
             self.assertIsNone(quitar_nombre(texto))
 
@@ -820,6 +920,8 @@ class AmpliacionEscritorio(PruebasTk):
         suave=array.array('h',[60,-60]*1600).tobytes()
         fuerte=amplificar_bajo(suave)
         self.assertGreater(energia(fuerte),energia(suave))
+        muy_suave=array.array('h',[25,-25]*1600).tobytes()
+        self.assertGreater(energia(amplificar_bajo(muy_suave)),energia(muy_suave))
         self.assertGreater(energia(suave),umbral_voz(.001))
         self.assertLess(energia(suave),.0025)
         self.assertEqual(amplificar_bajo(bytes(6400)),bytes(6400))
@@ -852,7 +954,7 @@ class AmpliacionEscritorio(PruebasTk):
         sd=types.SimpleNamespace(query_devices=lambda *a,**k:{'name':'USB'})
         vosk=types.SimpleNamespace(Model=Mock(),SetLogLevel=lambda x:None,KaldiRecognizer=lambda *a:Reconocedor())
         micro=types.SimpleNamespace(modelo=object(),carpeta=Path('.'),whisper=None)
-        with patch.dict(sys.modules,{'sounddevice':sd,'vosk':vosk}),patch.object(voz,'resolver_microfono',return_value=23),patch.object(voz,'_abrir_entrada',entrada),patch('reconocimiento.disponible',return_value=True),patch('reconocimiento.transcribir',return_value='Capri busca memes') as convertir:
+        with patch.object(activacion,'DetectorVoz',return_value=types.SimpleNamespace(analizar=lambda datos,tasa:bool(any(datos)))) ,patch.dict(sys.modules,{'sounddevice':sd,'vosk':vosk}),patch.object(voz,'resolver_microfono',return_value=23),patch.object(voz,'_abrir_entrada',entrada),patch('reconocimiento.disponible',return_value=True),patch('reconocimiento.transcribir',return_value='Capri busca memes') as convertir:
             self.assertEqual(activacion.esperar(micro,threading.Event(),Mock()),'busca memes')
             self.assertTrue(convertir.call_args.args[1].startswith(suave))
 
@@ -876,44 +978,11 @@ class AmpliacionEscritorio(PruebasTk):
         vosk=types.SimpleNamespace(Model=Mock(),SetLogLevel=lambda x:None,KaldiRecognizer=lambda *a:Reconocedor())
         micro=types.SimpleNamespace(modelo=modelo,carpeta=Path('.'),whisper=None)
         detectada=Mock()
-        with patch.dict(sys.modules,{'sounddevice':sd,'vosk':vosk}),patch.object(voz,'resolver_microfono',return_value=23),patch.object(voz,'_abrir_entrada',entrada),patch('reconocimiento.disponible',return_value=True),patch('reconocimiento.transcribir',return_value='Capri, busca memes de Cyberpunk') as transcribir:
+        with patch.object(activacion,'DetectorVoz',return_value=types.SimpleNamespace(analizar=lambda datos,tasa:bool(any(datos)))) ,patch.dict(sys.modules,{'sounddevice':sd,'vosk':vosk}),patch.object(voz,'resolver_microfono',return_value=23),patch.object(voz,'_abrir_entrada',entrada),patch('reconocimiento.disponible',return_value=True),patch('reconocimiento.transcribir',return_value='Capri, busca memes de Cyberpunk') as transcribir:
             texto=activacion.esperar(micro,threading.Event(),detectada,{'indice':23})
         self.assertEqual(texto,'busca memes de Cyberpunk')
         detectada.assert_called_once()
         self.assertIsInstance(transcribir.call_args.args[1],bytes)
-
-    def test_nombre_seguido_de_orden_detecta_nombre_aunque_transcriptor_lo_omita(self):
-        import activacion,voz,array
-        from contextlib import contextmanager
-        bloques=[array.array('h',[1200]*3200).tobytes()]*2+[bytes(6400)]*7
-        class Libre:
-            def __init__(self):self.i=0
-            def AcceptWaveform(self,audio):self.i+=1;return self.i==2
-            def Result(self):return '{"text":"abre spotify"}'
-            def PartialResult(self):return '{"partial":"abre"}' if self.i==1 else '{"partial":""}'
-            def FinalResult(self):return '{"text":""}'
-        detector=Mock()
-        detector.AcceptWaveform.return_value=False
-        detector.PartialResult.return_value='{"partial":"capri [unk]"}'
-        def crear(*args):
-            if len(args)==3:
-                self.assertIn('[unk]',json.loads(args[2]))
-                return detector
-            return Libre()
-        aperturas=[]
-        @contextmanager
-        def entrada(indice,datos,recibir,detener,intentos):
-            aperturas.append(indice)
-            for bloque in bloques:recibir(bloque,3200,None,None)
-            yield 16000
-        sd=types.SimpleNamespace(query_devices=lambda *a,**k:{'name':'USB'})
-        vosk=types.SimpleNamespace(Model=Mock(),SetLogLevel=lambda x:None,KaldiRecognizer=crear)
-        with patch.dict(sys.modules,{'sounddevice':sd,'vosk':vosk}),patch.object(voz,'resolver_microfono',return_value=23),patch.object(voz,'_abrir_entrada',entrada),patch('reconocimiento.disponible',return_value=True),patch('reconocimiento.transcribir',return_value='Capri abre Spotify') as convertir:
-            micro=types.SimpleNamespace(modelo=object(),carpeta=Path('.'),whisper=None)
-            self.assertEqual(activacion.esperar(micro,threading.Event(),Mock()),'abre Spotify')
-            self.assertTrue(convertir.call_args.args[1].startswith(b''.join(bloques[:2])))
-            self.assertEqual(aperturas,[23])
-            self.assertEqual(activacion.esperar(micro,threading.Event(),Mock(),motor='rapido'),'abre spotify')
 
     def test_nombre_y_orden_en_varios_segmentos_no_pierden_el_principio(self):
         import activacion,voz,array
@@ -942,7 +1011,7 @@ class AmpliacionEscritorio(PruebasTk):
             self.assertFalse(abierto)
             self.assertTrue(pcm.startswith(b''.join(bloques[:7])), 'Falta el comienzo del audio de la orden')
             return 'Capri, busca memes en Opera GX'
-        with patch.dict(sys.modules,{'sounddevice':sd,'vosk':vosk}),patch.object(voz,'resolver_microfono',return_value=23),patch.object(voz,'_abrir_entrada',entrada),patch('reconocimiento.disponible',return_value=True),patch('reconocimiento.transcribir',side_effect=transcribir) as convertir:
+        with patch.object(activacion,'DetectorVoz',return_value=types.SimpleNamespace(analizar=lambda datos,tasa:bool(any(datos)))) ,patch.dict(sys.modules,{'sounddevice':sd,'vosk':vosk}),patch.object(voz,'resolver_microfono',return_value=23),patch.object(voz,'_abrir_entrada',entrada),patch('reconocimiento.disponible',return_value=True),patch('reconocimiento.transcribir',side_effect=transcribir) as convertir:
             micro=types.SimpleNamespace(modelo=object(),carpeta=Path('.'),whisper=None)
             self.assertEqual(activacion.esperar(micro,threading.Event(),detectada), 'busca memes en Opera GX')
             convertir.assert_called_once()
@@ -953,7 +1022,7 @@ class AmpliacionEscritorio(PruebasTk):
     def test_solo_nombre_no_reabre_microfono_al_agotar_espera(self):
         import app as modulo
         with patch.object(modulo.Voz,'parar'):
-            capri=modulo.Capri(hotkeys=False);capri.root.withdraw()
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
             try:
                 capri.activacion_ticket=8
                 capri.eventos.put(('nombre_detectado',8));capri.poll()
@@ -966,7 +1035,7 @@ class AmpliacionEscritorio(PruebasTk):
     def test_activacion_cancela_respuesta_y_descarta_eventos_viejos(self):
         import app as modulo
         with patch.object(modulo.Voz,'parar'):
-            capri=modulo.Capri(hotkeys=False);capri.root.withdraw()
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
             try:
                 capri.ocupada=True;pendiente=capri.respuesta_stop
                 capri.activacion_ticket=10
@@ -974,12 +1043,42 @@ class AmpliacionEscritorio(PruebasTk):
                 self.assertTrue(pendiente.is_set());self.assertTrue(capri.escuchando)
                 with patch.object(capri,'enviar') as enviar:
                     capri.eventos.put(('activacion_resultado',(10,'busca memes',None)));capri.poll()
-                    enviar.assert_called_once_with('busca memes')
+                    enviar.assert_called_once_with('busca memes',origen='voz')
                     enviar.reset_mock()
                     capri.parar()
                     capri.eventos.put(('activacion_resultado',(10,'busca otro',None)));capri.poll()
                     enviar.assert_not_called()
                 self.assertFalse(capri.escuchando)
+            finally:capri.cerrar()
+
+    def test_dictado_limpia_nombre_tambien_en_f8_y_no_envia_nombre_solo(self):
+        import app as modulo
+        with patch.object(modulo.Voz,'parar'):
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
+            try:
+                capri.micro.confianza_baja=False
+                with patch.object(capri,'enviar') as enviar:
+                    capri.recibir_dictado('Capri, puedes abrir Spotify.')
+                    enviar.assert_called_once_with('puedes abrir Spotify.',origen='voz')
+                    enviar.reset_mock();capri.recibir_dictado('Capri.')
+                    enviar.assert_not_called()
+            finally:capri.cerrar()
+
+    def test_barra_y_estado_automaticos_descartan_eventos_anteriores(self):
+        import app as modulo
+        with patch.object(modulo.Voz,'parar'):
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw();capri.abrir_chat();capri.panel.withdraw()
+            try:
+                capri.activacion_ticket=11
+                capri.eventos.put(('nombre_detectado',11))
+                capri.eventos.put(('activacion_nivel',(11,.6)));capri.poll()
+                self.assertEqual(capri.nivel,.6);self.assertTrue(capri.escuchando)
+                capri.eventos.put(('activacion_estado',(10,'viejo')));capri.poll()
+                self.assertTrue(capri.escuchando)
+                capri.eventos.put(('activacion_estado',(11,'Reconociendo la frase…')))
+                capri.eventos.put(('activacion_nivel',(11,.9)));capri.poll()
+                self.assertFalse(capri.escuchando);self.assertEqual(capri.nivel,0)
+                self.assertEqual(capri.estado,'Reconociendo la frase…')
             finally:capri.cerrar()
 
 class Instalador(unittest.TestCase):

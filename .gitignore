@@ -33,6 +33,8 @@ models/
 src/assets/
 assets/*
 !assets/capri.ico
+!assets/capri-base-v2.png
+!assets/capri-bocas-v2.png
 build/
 dist/
 *.part

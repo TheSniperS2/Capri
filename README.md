@@ -50,7 +50,11 @@ Para una playlist privada, usa **Ajustes → Vincular playlist de Spotify** y pe
 
 - **Opera GX u Opera:** pestañas y búsquedas web.
 - **Spotify de escritorio con sesión iniciada:** controles multimedia y playlists.
-- **Ollama con un modelo local:** conversación libre.
+- **Ollama con un modelo local:** conversación libre e interpretación de peticiones con contexto.
+
+Los modelos instalados de Ollama se eligen desde Ajustes. Whisper también permite seleccionar Base o Small cuando estén descargados, conservando el anterior para volver atrás. Los modelos mayores pueden aumentar la precisión y también la demora; conviene compararlos en el equipo donde se usará Capri.
+
+Con la IA local activada puedes hablar con más naturalidad: «detén la canción» pausa Spotify; después de una pausa, «ahora sigue» permite reanudar, y «pon otra» cambia de pista cuando el tema reciente es música. Capri usa el modelo para interpretar la intención y el contexto reciente, pide una aclaración si falta el referente y ejecuta únicamente acciones implementadas. Las órdenes directas siguen funcionando sin consultar al modelo. La interpretación depende del modelo local y puede añadir una espera.
 
 Capri ejecuta un conjunto definido de acciones; no controla cualquier aplicación ni entiende cualquier instrucción. Las búsquedas abren páginas, pero no leen ni resumen los resultados. La reproducción por título o playlist depende de los controles accesibles que exponga Spotify. Si una acción no se confirma, lo informa.
 

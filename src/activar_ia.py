@@ -61,8 +61,12 @@ class Activar:
                     if self.cancelar.wait(1):return
                     if ping():break
                 else:raise RuntimeError('Ollama no respondió. Ábrelo desde Inicio y vuelve a intentar.')
-            self.q.put(('estado','Descargando llama3.2:3b. Puede tardar varios minutos según tu conexión.'))
-            req=urllib.request.Request('http://127.0.0.1:11434/api/pull',data=json.dumps({'model':'llama3.2:3b','stream':True}).encode(),headers={'Content-Type':'application/json'})
+            cfg={}
+            try:cfg=json.loads((BASE/'ajustes.json').read_text(encoding='utf8'))
+            except (OSError,ValueError):pass
+            modelo=cfg.get('modelo') or 'llama3.2:3b'
+            self.q.put(('estado','Preparando '+modelo+'. Puede tardar varios minutos según tu conexión.'))
+            req=urllib.request.Request('http://127.0.0.1:11434/api/pull',data=json.dumps({'model':modelo,'stream':True}).encode(),headers={'Content-Type':'application/json'})
             with urllib.request.urlopen(req,timeout=90) as r:
                 for linea in r:
                     if self.cancelar.is_set():return
@@ -73,7 +77,7 @@ class Activar:
             cfg={}
             try:cfg=json.loads((BASE/'ajustes.json').read_text(encoding='utf8'))
             except (OSError,ValueError):pass
-            cfg.update({'ia':True,'modelo':'llama3.2:3b'})
+            cfg.update({'ia':True,'modelo':modelo})
             (BASE/'ajustes.json').write_text(json.dumps(cfg,ensure_ascii=False,indent=2),encoding='utf8')
             self.q.put(('fin','IA activada. Ya puedes hablar de cualquier tema con Capri. No necesitas cerrar el chat.'))
         except Exception as e:self.q.put(('error',str(e)[:250]))
