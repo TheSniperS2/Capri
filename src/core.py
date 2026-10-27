@@ -13,6 +13,7 @@ from nombres import nombre_aplicacion
 
 PERSONALIDAD = '''Te llamas CAPRI. Siempre te identificas como Capri, nunca inventas otro nombre.
 Eres la compañera digital de escritorio de quien utiliza la aplicación: una interpretación de aficionado de Capri de Cyberpunk: Edgerunners.
+No conoces el nombre de la persona hasta que te lo diga en esta conversación. Si te pregunta cómo se llama y no te lo ha dicho, pregúntale su nombre; nunca lo inventes.
 Eres curiosa, enérgica, pícara, juguetona y un poco caótica; bromeas con confianza, sin crueldad ni insultos al usuario.
 Hablas en primera persona femenina, en español latino natural. Tienes iniciativa para bromear y contagiar curiosidad.
 Evita el tono de asistente corporativa o terapeuta: nada de «estoy aquí para ayudarte en lo que necesites» ni «en qué puedo ayudarte hoy».
@@ -37,7 +38,7 @@ def mantener_identidad(texto):
 def respuesta_conversacion(texto):
     texto=mantener_identidad(texto)
     frases=re.split(r'(?<=[.!?])\s+',texto)
-    afirmacion=r'\b(?:sigue|contin[uú]a|est[aá])\s+(?:reproduci[eé]ndose|sonando)|\bse\s+(?:sigue\s+|est[aá]\s+)?reproduciendo\b|\b(?:ahora|actualmente)\s+(?:suena|reproduce)|\b(?:est[aá]s|estoy|estamos)\s+escuchando\b'
+    afirmacion=r'\b(?:sigue|contin[uú]a|est[aá])\s+(?:reproduci[eé]ndose|sonando)|\bse\s+(?:sigue\s+|est[aá]\s+)?reproduciendo\b|\b(?:ahora|actualmente)\s+(?:suena|reproduce)|\b(?:est[aá]s|estoy|estamos)\s+escuchando\b|\b(?:tengo|hay|tenemos)\s+(?:ya\s+)?(?:una\s+|la\s+)?reproducci[oó]n\s+en\s+marcha|\b(?:he\s+)?(?:reanud[eé]|inici[eé]|activ[eé])\s+(?:la\s+)?reproducci[oó]n'
     frases=[f for f in frases if not re.search(afirmacion,f,re.I)]
     texto=' '.join(frases).strip() or 'Podemos seguir conversando. No he consultado qué está sonando en Spotify.'
     # El modelo de charla no conoce el resultado de acciones. Corregir negativas
@@ -132,6 +133,12 @@ def url_solicitada(texto):
 def interpretar(texto):
     texto = limpiar_peticion(texto)
     n=nombre_navegador(texto).strip(' .!')
+    # Errores reales de dictado: solo una orden completa de transporte, nunca
+    # búsquedas, títulos, citas, explicaciones ni negaciones.
+    transporte_erroneo=re.fullmatch(r'(revoluces|revoluce|reproduses|reproduse)\s+(?:(?:la|mi|esa)\s+)?(?:cancion|musica|reproduccion)(?:\s+en\s+spotify)?',n)
+    if transporte_erroneo:return Orden('spotify','')
+    if re.fullmatch(r'(?:ciente|siguente)\s+(?:cancion|pista|tema)(?:\s+en\s+spotify)?',n):
+        return Orden('spotify_siguiente')
     if re.fullmatch(PESTANA,n):return Orden('pestana')
     if n in ('habla mas rapido','hablame mas rapido','lee mas rapido','leer mas rapido','hablar mas rapido','aumenta la velocidad de voz'):
         return Orden('velocidad_voz','subir')

@@ -5,6 +5,7 @@ import json
 import queue
 import re
 import unicodedata
+from reconocimiento import amplificar_bajo,umbral_voz
 
 def quitar_nombre(texto):
     normal=''.join(c for c in unicodedata.normalize('NFD',texto.lower()) if unicodedata.category(c)!='Mn')
@@ -29,6 +30,11 @@ def esperar(micro,detener,detectada,dispositivo=None,motor='mixto',terminar=None
     reloj_audio=0;segmentos=[];parcial='';hay_orden=False;ruido=.001
     with _abrir_entrada(indice,datos,recibir,detener,micro.diagnostico['intentos']) as tasa:
         reconocedor=KaldiRecognizer(micro.modelo,tasa)
+        # Un detector centrado en el nombre no compite con la transcripción libre
+        # cuando «Capri» y el verbo se pronuncian juntos. Ambos reciben el mismo
+        # audio desde el principio: detectar el nombre nunca reabre el micrófono.
+        frases=['capri','oye capri','hey capri','hola capri','ok capri']
+        detector=KaldiRecognizer(micro.modelo,tasa,json.dumps(frases+[f+' [unk]' for f in frases]+['[unk]']))
         while not detener.is_set():
             if activada and terminar and terminar.is_set():
                 parcial=json.loads(reconocedor.FinalResult()).get('text','')
@@ -42,13 +48,19 @@ def esperar(micro,detener,detectada,dispositivo=None,motor='mixto',terminar=None
             muestras=array.array('h',bloque)
             rms=(sum(v*v for v in muestras)/max(1,len(muestras)))**.5/32768
             reloj_audio+=len(bloque)/(tasa*2)
-            if rms>max(.0025,ruido*2.5):ultima_voz=reloj_audio
+            if rms>umbral_voz(ruido):ultima_voz=reloj_audio
             elif not activada:ruido=.95*ruido+.05*min(rms,.004)
-            final=reconocedor.AcceptWaveform(bloque)
+            audio_reconocedor=amplificar_bajo(bloque)
+            final=reconocedor.AcceptWaveform(audio_reconocedor)
             resultado=json.loads(reconocedor.Result() if final else reconocedor.PartialResult())
             texto=resultado.get('text' if final else 'partial','').strip()
             resto=quitar_nombre(texto)
-            if resto is not None and not activada:
+            nombre_detectado=resto is not None
+            if not activada:
+                fin_nombre=detector.AcceptWaveform(audio_reconocedor)
+                nombre=json.loads(detector.Result() if fin_nombre else detector.PartialResult())
+                nombre_detectado=nombre_detectado or quitar_nombre(nombre.get('text' if fin_nombre else 'partial','')) is not None
+            if nombre_detectado and not activada:
                 activada=True;inicio_orden=reloj_audio;detectada()
             if activada:
                 if final:
@@ -57,7 +69,7 @@ def esperar(micro,detener,detectada,dispositivo=None,motor='mixto',terminar=None
                 else:parcial=texto
                 texto_final=' '.join(segmentos+[parcial]).strip()
                 resto_completo=quitar_nombre(texto_final)
-                if resto_completo:hay_orden=True
+                if resto_completo or (resto_completo is None and texto_final):hay_orden=True
                 silencio=reloj_audio-max(ultima_voz,inicio_orden)
                 # Un «final» de Vosk puede ser solo «Capri». No cerrar el stream
                 # ni cargar Whisper entre el nombre y la orden: seguir en el mismo.
@@ -65,8 +77,10 @@ def esperar(micro,detener,detectada,dispositivo=None,motor='mixto',terminar=None
                     cola=json.loads(reconocedor.FinalResult()).get('text','').strip()
                     texto_final=' '.join(segmentos+[cola or parcial]).strip();break
             elif final:
-                # No llevar conversaciones anteriores a la transcripción de la orden.
-                pcm.clear();cantidad=0
+                # Conservar un pequeño margen si el nombre tarda en detectarse.
+                # Un final prematuro del transcriptor libre no descarta el audio
+                # inmediatamente anterior a la activación.
+                while cantidad>int(tasa*2*1.5) and len(pcm)>1:cantidad-=len(pcm.popleft())
     if detener.is_set() or not activada:return None
     if motor in ('mixto','preciso'):
         from reconocimiento import disponible,transcribir
@@ -76,4 +90,5 @@ def esperar(micro,detener,detectada,dispositivo=None,motor='mixto',terminar=None
             # La activación ya fue detectada por Vosk; si Whisper omite el nombre,
             # aceptar solo la transcripción del mismo fragmento de audio.
             if texto.strip():return resto if resto is not None else texto.strip()
-    return quitar_nombre(texto_final) or ''
+    resto=quitar_nombre(texto_final)
+    return resto if resto is not None else texto_final

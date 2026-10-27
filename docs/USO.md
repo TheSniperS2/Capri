@@ -60,4 +60,14 @@ Edge TTS: https://github.com/rany2/edge-tts
 
 ## Estado de verificación
 
+El dictado usa búsqueda de cinco candidatos y contexto de órdenes musicales, conservando los nombres ingleses. Las transcripciones «revoluces la canción» y «ciente canción» se interpretan como reanudar y siguiente únicamente cuando forman una orden completa; no se sustituyen palabras dentro de búsquedas, títulos o negaciones. Esto mejora la interpretación de esos errores conocidos y no garantiza una transcripción perfecta.
+
+El nombre con que vinculas una playlist puede ser un alias. Para reproducirla, Capri busca el botón con el título real dentro de la página de esa playlist, aunque el título use emojis. La confirmación requiere el botón de pausa de esa misma playlist; el botón de pausa general no sirve como prueba. Si Spotify no expone esos controles, Capri informa que no pudo confirmar la reproducción.
+
+En **Ajustes → Volumen de Capri** puedes elegir de 0 a 100%. Se guarda para las siguientes respuestas, tanto con voz natural como con la voz de Windows; 0% la silencia. El control no modifica el volumen de Spotify ni el volumen general del equipo.
+
+Puedes decir «Capri abre Spotify» seguido, sin esperar una señal. Un detector dedicado al nombre y el transcriptor libre reciben el mismo audio en una única captura. Se conserva un margen breve de audio al cerrar un segmento preliminar para evitar descartar el principio de una orden rápida. La precisión con voz real depende del micrófono y del ambiente.
+
+La activación aplica una ganancia limitada al audio de voz bajo antes de enviarlo a Vosk y usa un umbral más bajo para captar frases suaves. No cambia el volumen del micrófono en Windows. La ganancia no amplifica el silencio, está limitada a tres veces y evita saturar los picos; la captura original se conserva para Whisper. La detección del nombre todavía depende del micrófono, el ruido y la pronunciación.
+
 Se prueban las órdenes, los argumentos de ejecución sin consola, las búsquedas, el paquete, la interfaz, el audio simulado, la revisión de transcripciones dudosas, el texto progresivo, la lectura continua y la interrupción durante la reproducción o preparación del audio. También se prueban la activación y transcripción de la orden con audio simulado, el descarte de órdenes canceladas y los resultados del adaptador de Spotify. Se comprobó que el vocabulario Vosk instalado incluye «capri» y que el controlador PowerShell de Spotify tiene sintaxis válida. Se comprobó la conversación real con el llama3.2:3b instalado, incluida su presentación como Capri y el tiempo de primer texto con el modelo cargado. La captura real, la precisión de Whisper con tu voz, la detección del nombre en tu ambiente, Spotify, las descargas nuevas y la voz sintética requieren comprobarse desde tu sesión normal fuera del entorno restringido de desarrollo.

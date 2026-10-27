@@ -29,6 +29,11 @@ def parametros_velocidad(valor=1.0):
     velocidad=normalizar_velocidad(valor)
     return f'{round((velocidad-1)*100):+d}%',round((velocidad-1)*8)
 
+def normalizar_volumen(valor=100):
+    try:valor=float(valor)
+    except (TypeError,ValueError):return 100
+    return round(min(100,max(0,valor))) if math.isfinite(valor) else 100
+
 def texto_para_voz(texto):
     """Mantiene la frase unida y evita pausas de formato o comas excesivas."""
     texto=re.sub(r'(?m)^\s*(?:#{1,6}|[-*•])\s+','',texto)
@@ -289,14 +294,14 @@ class Voz:
                 self._mci('close '+alias)
             self.estado(False)
 
-    def hablar(self, texto, natural=True, perfil='capri',velocidad=1.0):
+    def hablar(self, texto, natural=True, perfil='capri',velocidad=1.0,volumen=100):
         self.parar()
         with self._control:
             self.cancelar = threading.Event()
             token = self.generacion;cancelar=self.cancelar
-        threading.Thread(target=self._hablar, args=(texto[:1800], natural, token, cancelar,perfil,velocidad), daemon=True).start()
+        threading.Thread(target=self._hablar, args=(texto[:1800], natural, token, cancelar,perfil,velocidad,volumen), daemon=True).start()
 
-    def iniciar_respuesta(self,natural=True,perfil='capri',velocidad=1.0):
+    def iniciar_respuesta(self,natural=True,perfil='capri',velocidad=1.0,volumen=100):
         self.parar()
         with self._control:
             self.cancelar=threading.Event()
@@ -307,7 +312,7 @@ class Voz:
                 try:texto=frases.get(timeout=.15)
                 except queue.Empty:continue
                 if texto is None or cancelar.is_set():return
-                self._hablar(texto[:1800],natural,token,cancelar,perfil,velocidad)
+                self._hablar(texto[:1800],natural,token,cancelar,perfil,velocidad,volumen)
         threading.Thread(target=reproducir,daemon=True).start()
 
     def encolar(self,texto):
@@ -316,7 +321,7 @@ class Voz:
     def terminar_respuesta(self):
         self.frases.put(None)
 
-    def _reproducir_archivo(self,archivo,token,cancelar):
+    def _reproducir_archivo(self,archivo,token,cancelar,volumen=100):
         import ctypes
         alias=f'capri_voice_{token}_{time.monotonic_ns()}'
         with self._control:
@@ -324,6 +329,9 @@ class Voz:
             if self._mci(f'open "{archivo}" type mpegvideo alias {alias}'):
                 raise RuntimeError('No se pudo reproducir la voz natural.')
             self._alias=alias
+            if self._mci(f'setaudio {alias} volume to {normalizar_volumen(volumen)*10}'):
+                self._mci('close '+alias);self._alias=None
+                raise RuntimeError('No se pudo ajustar el volumen de Capri.')
             if self._mci('play '+alias):
                 self._mci('close '+alias);self._alias=None
                 raise RuntimeError('No se pudo iniciar la voz natural.')
@@ -355,11 +363,12 @@ class Voz:
                 if self.proceso is proceso:self.proceso=None
         return True
 
-    def _hablar(self, texto, natural, token, cancelar,perfil='capri',velocidad=1.0):
+    def _hablar(self, texto, natural, token, cancelar,perfil='capri',velocidad=1.0,volumen=100):
         if os.name != 'nt' or not self._vigente(token,cancelar):
             return
         texto=texto_para_voz(texto)
-        if not texto:return
+        volumen=normalizar_volumen(volumen)
+        if not texto or volumen==0:return
         archivo = None
         activo = False
         ritmo,rapidez_windows=parametros_velocidad(velocidad)
@@ -373,14 +382,14 @@ class Voz:
                                                           rate=ritmo,pitch='+16Hz' if perfil=='capri' else '+0Hz')
                         await asyncio.wait_for(comunicacion.save(str(archivo)), timeout=7)
                     asyncio.run(crear())
-                    activo=self._reproducir_archivo(archivo,token,cancelar)
+                    activo=self._reproducir_archivo(archivo,token,cancelar,volumen)
                     return
                 except Exception:
                     if cancelar.is_set(): return
                     self.natural_no_hasta = time.monotonic()+45
             # El texto viaja como datos base64, nunca interpolado como PowerShell.
             codificado = base64.b64encode(texto.encode('utf8')).decode('ascii')
-            script = "$ErrorActionPreference='Stop';Add-Type -AssemblyName System.Speech;$v=New-Object System.Speech.Synthesis.SpeechSynthesizer;$v.Rate="+str(rapidez_windows)+";$es=$v.GetInstalledVoices()|Where-Object {$_.VoiceInfo.Culture.Name -like 'es-*'}|Select-Object -First 1;if($es){$v.SelectVoice($es.VoiceInfo.Name)};$v.Speak([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + codificado + "')));$v.Dispose()"
+            script = "$ErrorActionPreference='Stop';Add-Type -AssemblyName System.Speech;$v=New-Object System.Speech.Synthesis.SpeechSynthesizer;$v.Volume="+str(volumen)+";$v.Rate="+str(rapidez_windows)+";$es=$v.GetInstalledVoices()|Where-Object {$_.VoiceInfo.Culture.Name -like 'es-*'}|Select-Object -First 1;if($es){$v.SelectVoice($es.VoiceInfo.Name)};$v.Speak([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + codificado + "')));$v.Dispose()"
             encoded = base64.b64encode(script.encode('utf-16-le')).decode('ascii')
             activo=self._reproducir_windows(encoded,token,cancelar)
         except Exception:

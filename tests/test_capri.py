@@ -196,6 +196,34 @@ class Archivos(unittest.TestCase):
             self.assertFalse(ruta.exists());self.assertFalse(ruta.with_suffix('.zip.part').exists())
 
 class EntradaVoz(unittest.TestCase):
+    def test_volumen_de_voz_natural_se_aplica_antes_de_reproducir(self):
+        import voz
+        self.assertEqual(voz.normalizar_volumen(-20),0)
+        self.assertEqual(voz.normalizar_volumen(200),100)
+        self.assertEqual(voz.normalizar_volumen(float('nan')),100)
+        self.assertEqual(voz.normalizar_volumen('incorrecto'),100)
+        v=voz.Voz(lambda x:None);comandos=[]
+        def mci(cmd,*args):
+            comandos.append(cmd)
+            if cmd.startswith('status '):args[0].value='stopped'
+            return 0
+        with patch.object(v,'_mci',side_effect=mci):
+            self.assertTrue(v._reproducir_archivo(Path('voz.mp3'),v.generacion,v.cancelar,35))
+        ajuste=next(i for i,c in enumerate(comandos) if c.startswith('setaudio ') and c.endswith('volume to 350'))
+        reproduccion=next(i for i,c in enumerate(comandos) if c.startswith('play '))
+        self.assertLess(ajuste,reproduccion)
+
+    def test_volumen_windows_y_silencio_no_sintetiza(self):
+        import voz,base64
+        v=voz.Voz(lambda x:None)
+        with patch.object(v,'_reproducir_windows',return_value=True) as reproducir:
+            v._hablar('Hola',False,v.generacion,v.cancelar,volumen=35)
+            script=base64.b64decode(reproducir.call_args.args[0]).decode('utf-16-le')
+            self.assertIn('$v.Volume=35;',script)
+            reproducir.reset_mock()
+            v._hablar('Hola',False,v.generacion,v.cancelar,volumen=0)
+            reproducir.assert_not_called()
+
     def test_velocidad_normal_y_ajustes_en_ambos_motores(self):
         from voz import parametros_velocidad,normalizar_velocidad
         self.assertEqual(parametros_velocidad(1.35),('+35%',3))
@@ -230,6 +258,9 @@ class EntradaVoz(unittest.TestCase):
         self.assertEqual(datos_transcripcion[0][0].dtype,np.float32)
         self.assertEqual(datos_transcripcion[0][1]['language'],'es')
         self.assertTrue(datos_transcripcion[0][1]['vad_filter'])
+        self.assertEqual(datos_transcripcion[0][1]['beam_size'],5)
+        self.assertIn('Siguiente canción',datos_transcripcion[0][1]['initial_prompt'])
+        self.assertIn('reproduce',datos_transcripcion[0][1]['hotwords'])
 
     def test_pcm_16k_y_remuestreo_no_utilizan_av_open(self):
         import reconocimiento as rec,numpy as np,av
@@ -476,6 +507,20 @@ class EntradaVoz(unittest.TestCase):
             self.assertEqual(interpretar(texto),Orden('buscar','galaxias'))
 
 class Interfaz(PruebasTk):
+    def test_volumen_ajustes_se_guarda_y_llega_a_la_voz(self):
+        import app as modulo
+        with tempfile.TemporaryDirectory() as d,patch.object(modulo,'BASE',Path(d)),patch.object(modulo.Capri,'cargar_microfonos'),patch.object(modulo.Voz,'hablar') as hablar:
+            capri=modulo.Capri(hotkeys=False);capri.root.withdraw()
+            try:
+                capri.configurar();capri.ajustes.withdraw()
+                capri.escala_volumen.set(35);capri.root.update()
+                capri.escala_volumen.tk.call(capri.escala_volumen.cget('command'),35)
+                cfg=json.loads((Path(d)/'ajustes.json').read_text(encoding='utf-8'))
+                self.assertEqual(cfg['volumen_voz'],35)
+                capri.narrar_respuesta(capri.peticion,'Hola',final=True)
+                self.assertEqual(hablar.call_args.kwargs['volumen'],35)
+            finally:capri.cerrar()
+
     def test_peticion_de_pestana_no_pasa_por_modelo(self):
         import app as modulo
         with patch.object(modulo.Voz,'parar'),patch.object(modulo.Voz,'hablar'),patch.object(modulo.IA,'conversar') as modelo,patch.object(modulo,'ejecutar',return_value='Orden enviada a Opera GX') as accion:
@@ -615,6 +660,54 @@ class Interfaz(PruebasTk):
             finally:capri.cerrar()
 
 class AmpliacionEscritorio(PruebasTk):
+    def test_errores_reales_de_dictado_musical_solo_en_orden_completa(self):
+        for texto in ['Revoluces la canción.','Capri, revoluces la canción','reproduse mi musica']:
+            self.assertEqual(interpretar(texto),Orden('spotify',''))
+        for texto in ['ciente canción.','siguente cancion','ciente pista en Spotify']:
+            self.assertEqual(interpretar(texto),Orden('spotify_siguiente'))
+        for texto in ['no revoluces la canción','no ciente canción','explica ciente canción','me gusta la frase ciente canción']:
+            self.assertIsNone(interpretar(texto))
+        self.assertEqual(interpretar('busca revoluces la canción'),Orden('buscar','revoluces la canción'))
+        self.assertEqual(interpretar('reproduce Ciente de Artist'),Orden('spotify','Ciente de Artist'))
+        with patch('multimedia.controlar_sesion',return_value='Pedido al ejecutor') as controlar:
+            core.ejecutar(interpretar('ciente canción'))
+            controlar.assert_called_once_with('siguiente')
+
+    def test_chat_no_confirma_reproduccion_inventada_del_dialogo_real(self):
+        respuesta=core.respuesta_conversacion('¡Genial! Ahora tengo una reproducción en marcha. ¿Quieres saber qué canción es?')
+        self.assertNotIn('reproducción en marcha',respuesta)
+        self.assertNotIn('Reanudé la reproducción',core.respuesta_conversacion('Reanudé la reproducción.'))
+
+    def test_playlist_alias_no_depende_del_nombre_de_su_boton(self):
+        import playlists,base64
+        with tempfile.TemporaryDirectory() as d:
+            carpeta=Path(d);playlists.vincular('juntos','spotify:playlist:1234567890123456789012',carpeta)
+            abrir=Mock();correr=Mock(return_value=types.SimpleNamespace(stdout='{"ok":true}',returncode=0))
+            self.assertIn('Activé',playlists.reproducir_playlist('juntos',carpeta,abrir,correr))
+            datos=json.loads(correr.call_args.kwargs['input'])
+            self.assertEqual(datos['accion'],'playlist')
+            codigo=base64.b64decode(correr.call_args.args[0][-1]).decode('utf-16-le')
+            self.assertEqual(codigo,playlists.PLAYLIST_UI)
+            correr.return_value=types.SimpleNamespace(stdout='{"ok":false}',returncode=0)
+            self.assertIn('no confirmó',playlists.reproducir_playlist('juntos',carpeta,abrir,correr))
+
+    def test_selector_playlist_real_no_confunde_boton_global_o_cancion(self):
+        import os,playlists,base64,subprocess
+        if os.name!='nt':self.skipTest('Selector UIA de Windows')
+        funcion=playlists.PLAYLIST_UI.split(' function Coincide',1)[1].split(' $limite=',1)[0]
+        funcion='function Coincide'+funcion
+        script=funcion+'''\n$d=[Console]::In.ReadToEnd()|ConvertFrom-Json
+@($d|ForEach-Object {Coincide $_.nombre $_.titulo ([bool]$_.pausa)})|ConvertTo-Json -Compress
+'''
+        casos=[{'nombre':'Reproducir 🤍🤍🤍','titulo':'🤍🤍🤍','pausa':False},
+               {'nombre':'Reproducir una canción','titulo':'🤍🤍🤍','pausa':False},
+               {'nombre':'Pausar','titulo':'🤍🤍🤍','pausa':True},
+               {'nombre':'Pausar 🤍🤍🤍','titulo':'🤍🤍🤍','pausa':True},
+               {'nombre':'Play lista [1]','titulo':'lista [1]','pausa':False}]
+        r=subprocess.run(['powershell.exe','-NoProfile','-NonInteractive','-EncodedCommand',base64.b64encode(script.encode('utf-16-le')).decode()],input=json.dumps(casos),text=True,capture_output=True,timeout=10)
+        self.assertEqual(r.returncode,0,r.stderr)
+        self.assertEqual(json.loads(r.stdout),[True,False,False,True,True])
+
     def test_musica_actual_y_siguiente_no_son_busquedas(self):
         for texto in ['reproduce la música','reproduce música','reanuda la canción','pon la música',
                       'podrías poner la música','continúa la reproducción']:
@@ -721,6 +814,48 @@ class AmpliacionEscritorio(PruebasTk):
         for texto in ['capricho','esto es un capricho','dile Capri que venga','Spotify']:
             self.assertIsNone(quitar_nombre(texto))
 
+    def test_audio_suave_gana_nivel_sin_recorte_ni_amplificar_silencio(self):
+        import array
+        from reconocimiento import amplificar_bajo,energia,umbral_voz
+        suave=array.array('h',[60,-60]*1600).tobytes()
+        fuerte=amplificar_bajo(suave)
+        self.assertGreater(energia(fuerte),energia(suave))
+        self.assertGreater(energia(suave),umbral_voz(.001))
+        self.assertLess(energia(suave),.0025)
+        self.assertEqual(amplificar_bajo(bytes(6400)),bytes(6400))
+        ruido=array.array('h',[10,-10]*1600).tobytes()
+        self.assertEqual(amplificar_bajo(ruido),ruido)
+        picos=array.array('h',[60]*3199+[32767]).tobytes()
+        self.assertEqual(amplificar_bajo(picos),picos)
+        self.assertLess(energia(suave),umbral_voz(.004))
+
+    def test_detector_entrega_voz_suave_amplificada_y_conserva_audio_original(self):
+        import activacion,voz,array
+        from contextlib import contextmanager
+        suave=array.array('h',[60,-60]*1600).tobytes()
+        class Reconocedor:
+            def __init__(self):self.i=0
+            def AcceptWaveform(self,bloque):
+                self.i+=1
+                if self.i==1:
+                    self.activado=max(array.array('h',bloque))>=150
+                    return self.activado
+                return False
+            def Result(self):return '{"text":"capri busca memes"}'
+            def PartialResult(self):return '{"partial":""}'
+            def FinalResult(self):return '{"text":""}'
+        @contextmanager
+        def entrada(indice,datos,recibir,detener,intentos):
+            recibir(suave,3200,None,None)
+            for _ in range(7):recibir(bytes(6400),3200,None,None)
+            yield 16000
+        sd=types.SimpleNamespace(query_devices=lambda *a,**k:{'name':'USB'})
+        vosk=types.SimpleNamespace(Model=Mock(),SetLogLevel=lambda x:None,KaldiRecognizer=lambda *a:Reconocedor())
+        micro=types.SimpleNamespace(modelo=object(),carpeta=Path('.'),whisper=None)
+        with patch.dict(sys.modules,{'sounddevice':sd,'vosk':vosk}),patch.object(voz,'resolver_microfono',return_value=23),patch.object(voz,'_abrir_entrada',entrada),patch('reconocimiento.disponible',return_value=True),patch('reconocimiento.transcribir',return_value='Capri busca memes') as convertir:
+            self.assertEqual(activacion.esperar(micro,threading.Event(),Mock()),'busca memes')
+            self.assertTrue(convertir.call_args.args[1].startswith(suave))
+
     def test_detector_recoge_orden_y_reconoce_solo_en_memoria(self):
         import activacion,voz,array
         from contextlib import contextmanager
@@ -746,6 +881,39 @@ class AmpliacionEscritorio(PruebasTk):
         self.assertEqual(texto,'busca memes de Cyberpunk')
         detectada.assert_called_once()
         self.assertIsInstance(transcribir.call_args.args[1],bytes)
+
+    def test_nombre_seguido_de_orden_detecta_nombre_aunque_transcriptor_lo_omita(self):
+        import activacion,voz,array
+        from contextlib import contextmanager
+        bloques=[array.array('h',[1200]*3200).tobytes()]*2+[bytes(6400)]*7
+        class Libre:
+            def __init__(self):self.i=0
+            def AcceptWaveform(self,audio):self.i+=1;return self.i==2
+            def Result(self):return '{"text":"abre spotify"}'
+            def PartialResult(self):return '{"partial":"abre"}' if self.i==1 else '{"partial":""}'
+            def FinalResult(self):return '{"text":""}'
+        detector=Mock()
+        detector.AcceptWaveform.return_value=False
+        detector.PartialResult.return_value='{"partial":"capri [unk]"}'
+        def crear(*args):
+            if len(args)==3:
+                self.assertIn('[unk]',json.loads(args[2]))
+                return detector
+            return Libre()
+        aperturas=[]
+        @contextmanager
+        def entrada(indice,datos,recibir,detener,intentos):
+            aperturas.append(indice)
+            for bloque in bloques:recibir(bloque,3200,None,None)
+            yield 16000
+        sd=types.SimpleNamespace(query_devices=lambda *a,**k:{'name':'USB'})
+        vosk=types.SimpleNamespace(Model=Mock(),SetLogLevel=lambda x:None,KaldiRecognizer=crear)
+        with patch.dict(sys.modules,{'sounddevice':sd,'vosk':vosk}),patch.object(voz,'resolver_microfono',return_value=23),patch.object(voz,'_abrir_entrada',entrada),patch('reconocimiento.disponible',return_value=True),patch('reconocimiento.transcribir',return_value='Capri abre Spotify') as convertir:
+            micro=types.SimpleNamespace(modelo=object(),carpeta=Path('.'),whisper=None)
+            self.assertEqual(activacion.esperar(micro,threading.Event(),Mock()),'abre Spotify')
+            self.assertTrue(convertir.call_args.args[1].startswith(b''.join(bloques[:2])))
+            self.assertEqual(aperturas,[23])
+            self.assertEqual(activacion.esperar(micro,threading.Event(),Mock(),motor='rapido'),'abre spotify')
 
     def test_nombre_y_orden_en_varios_segmentos_no_pierden_el_principio(self):
         import activacion,voz,array

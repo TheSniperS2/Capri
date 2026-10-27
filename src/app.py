@@ -15,7 +15,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 from PIL import Image, ImageTk, ImageOps
 from core import IA, interpretar, ejecutar, HIDDEN
-from voz import Microfono, Voz, Atajo, listar_microfonos,normalizar_velocidad
+from voz import Microfono, Voz, Atajo, listar_microfonos,normalizar_velocidad,normalizar_volumen
 
 BASE = Path(__file__).resolve().parent
 BG = '#0b0c13'
@@ -61,7 +61,7 @@ class Capri:
         self.micro = Microfono(BASE/'modelos')
         self.ia = IA()
         self.cfg = {'voz': True, 'voz_natural': True, 'modelo': '', 'ia': False, 'microfono': None,
-                    'reconocimiento':'mixto','voz_perfil':'capri','velocidad_voz':1.0,'activacion_voz':True}
+                    'reconocimiento':'mixto','voz_perfil':'capri','velocidad_voz':1.0,'volumen_voz':100,'activacion_voz':True}
         try:
             self.cfg.update(json.loads((BASE/'ajustes.json').read_text(encoding='utf8')))
         except (OSError, ValueError): pass
@@ -248,7 +248,7 @@ class Capri:
             self.guardar('velocidad_voz',round(nuevo,2))
             respuesta=f'Listo. Velocidad de voz: {nuevo:.2f} veces.'
             self.poner_chat('Capri',respuesta)
-            if self.cfg.get('voz'):self.voz.hablar(respuesta,self.cfg.get('voz_natural',True),perfil=self.cfg.get('voz_perfil','capri'),velocidad=nuevo)
+            if self.cfg.get('voz'):self.voz.hablar(respuesta,self.cfg.get('voz_natural',True),perfil=self.cfg.get('voz_perfil','capri'),velocidad=nuevo,volumen=self.cfg.get('volumen_voz',100))
             return
         self.ocupada=True; self.estado='Pensando…'
         self.peticion += 1
@@ -431,7 +431,7 @@ class Capri:
 
     def narrar_respuesta(self,ticket,texto,final=False):
         if not final or not self.cfg.get('voz') or self.escuchando or ticket!=self.peticion:return
-        self.voz.hablar(texto,self.cfg.get('voz_natural',True),perfil=self.cfg.get('voz_perfil','capri'),velocidad=self.cfg.get('velocidad_voz',1.0))
+        self.voz.hablar(texto,self.cfg.get('voz_natural',True),perfil=self.cfg.get('voz_perfil','capri'),velocidad=self.cfg.get('velocidad_voz',1.0),volumen=self.cfg.get('volumen_voz',100))
 
     def configurar(self):
         self.detener_activacion()
@@ -469,6 +469,19 @@ class Capri:
         for key,texto in [('activacion_voz','Activar al decir «Capri» (escucha local)'),('voz','Responder en voz alta'),('voz_natural','Voz española natural por internet')]:
             var=tk.BooleanVar(value=bool(self.cfg.get(key)))
             tk.Checkbutton(f,text=texto,variable=var,command=lambda k=key,v=var:self.guardar(k,v.get()),bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,activeforeground=FG,font=('Segoe UI',11)).pack(anchor='w',pady=5)
+        volumen=normalizar_volumen(self.cfg.get('volumen_voz',100))
+        texto_volumen=tk.StringVar(value=f'Volumen de Capri: {volumen}%')
+        tk.Label(f,textvariable=texto_volumen,bg=BG,fg=FG,font=('Segoe UI',10)).pack(anchor='w',pady=(10,0))
+        self.escala_volumen=tk.Scale(f,from_=0,to=100,resolution=5,orient='horizontal',showvalue=False,
+                        bg=BG,fg=FG,troughcolor=CARD,highlightthickness=0,activebackground=RED)
+        self.escala_volumen.set(volumen)
+        def cambiar_volumen(valor):
+            valor=normalizar_volumen(valor)
+            texto_volumen.set(f'Volumen de Capri: {valor}%')
+            self.guardar('volumen_voz',valor)
+        self.escala_volumen.configure(command=cambiar_volumen)
+        self.escala_volumen.pack(fill='x',pady=(0,4))
+        tk.Label(f,text='Se aplica a la siguiente respuesta. 0% silencia a Capri.',bg=BG,fg=MUTED,font=('Segoe UI',9)).pack(anchor='w')
         velocidad=normalizar_velocidad(self.cfg.get('velocidad_voz',1.0))
         texto_velocidad=tk.StringVar(value=f'Velocidad de voz: {velocidad:.2f}×')
         tk.Label(f,textvariable=texto_velocidad,bg=BG,fg=FG,font=('Segoe UI',10)).pack(anchor='w',pady=(10,0))

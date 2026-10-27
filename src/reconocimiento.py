@@ -6,6 +6,7 @@ import time
 from nombres import VOCABULARIO
 
 ARCHIVOS=('config.json','model.bin','tokenizer.json','vocabulary.txt')
+ORDENES='Reproduce la canción. Siguiente canción. Canción anterior. Pausa la música. Pon mi playlist.'
 
 def disponible(carpeta):
     return all((carpeta/'whisper-base'/n).is_file() for n in ARCHIVOS) and importlib.util.find_spec('faster_whisper') is not None
@@ -13,6 +14,20 @@ def disponible(carpeta):
 def energia(datos):
     muestras=array.array('h',datos)
     return (sum(x*x for x in muestras)/max(1,len(muestras)))**.5/32768
+
+def umbral_voz(ruido):
+    """Admitir voz suave sin tratar todo el ruido de fondo como habla."""
+    return max(.0015,ruido*1.8)
+
+def amplificar_bajo(datos):
+    """Ganancia limitada para Vosk; no modifica la captura ni amplifica silencio."""
+    rms=energia(datos)
+    if rms<.0015 or rms>=.025:return datos
+    muestras=array.array('h',datos)
+    pico=max((abs(v) for v in muestras),default=0)
+    ganancia=min(3.0,.025/rms,30000/max(1,pico))
+    if ganancia<=1:return datos
+    return array.array('h',(round(v*ganancia) for v in muestras)).tobytes()
 
 def preparar_pcm(datos,tasa):
     """Whisper recibe muestras a 16 kHz; evita el decodificador WAV incompatible."""
@@ -50,7 +65,7 @@ def escuchar_preciso(micro,detener,nivel,estado,limite,dispositivo,idioma='es'):
             fragmentos.append(bloque)
             rms=energia(bloque);nivel(min(1,rms*10))
             ahora=time.monotonic()
-            if rms>max(.0025,ruido*2.5):
+            if rms>umbral_voz(ruido):
                 duracion_voz+=len(bloque)/(tasa*2)
                 hubo_voz=duracion_voz>=.12
                 ultima_voz=ahora
@@ -68,10 +83,10 @@ def transcribir(micro,pcm,tasa,idioma=None):
     if micro.whisper is None:
         from faster_whisper import WhisperModel
         micro.whisper=WhisperModel(str(micro.carpeta/'whisper-base'),device='cpu',compute_type='int8',cpu_threads=4)
-    muestras=preparar_pcm(pcm,tasa)
-    segmentos,_=micro.whisper.transcribe(muestras,language=idioma,task='transcribe',hotwords=VOCABULARIO,beam_size=3,best_of=1,temperature=0,
+    muestras=preparar_pcm(amplificar_bajo(pcm),tasa)
+    segmentos,_=micro.whisper.transcribe(muestras,language=idioma,task='transcribe',hotwords=VOCABULARIO+', reproduce, siguiente canción, playlist',beam_size=5,best_of=1,temperature=0,
                     vad_filter=True,vad_parameters={'min_silence_duration_ms':450},condition_on_previous_text=False,
-                    initial_prompt='Conversación en español e inglés. Conservar los nombres de aplicaciones sin traducirlos: '+VOCABULARIO+'.')
+                    initial_prompt='Conversación y órdenes en español e inglés. '+ORDENES+' Conservar nombres de aplicaciones y canciones sin traducirlos: '+VOCABULARIO+'.')
     segmentos=list(segmentos)
     if not segmentos:return ''
     micro.confianza_baja=all(getattr(s,'avg_logprob',0)<-.9 or getattr(s,'no_speech_prob',0)>.6 for s in segmentos)
