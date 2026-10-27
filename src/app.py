@@ -195,6 +195,7 @@ class Capri:
         self.root.geometry(f'{ancho}x{alto}+{x}+{y}')
 
     def iniciar_intro(self):
+        self.pasar_clics_intro(False)
         self.intro_activa=True;self.inicio_intro=time.monotonic();self.dialogo.ocultar()
         self.entrada_compacta.pack_forget();self.intro_en_viaje=False
         self.escala_avatar=min(1.65,max(1.25,limitar_escala(self.cfg.get('escala_avatar',1))*1.35))
@@ -207,19 +208,42 @@ class Capri:
     def finalizar_intro(self):
         if not self.intro_activa:return
         self.intro_activa=False
+        self.pasar_clics_intro(False)
         self.entrada_compacta.pack(fill='x');self.aplicar_escala(inicial=True)
 
+    def pasar_clics_intro(self,activar):
+        # La estela usa una superficie más amplia, pero deja pasar el ratón.
+        if os.name!='nt':return
+        import ctypes
+        from ctypes import wintypes
+        try:
+            u=ctypes.windll.user32
+            u.GetParent.argtypes=[wintypes.HWND];u.GetParent.restype=wintypes.HWND
+            obtener=u.GetWindowLongPtrW;poner=u.SetWindowLongPtrW
+            obtener.argtypes=[wintypes.HWND,ctypes.c_int];obtener.restype=ctypes.c_ssize_t
+            poner.argtypes=[wintypes.HWND,ctypes.c_int,ctypes.c_ssize_t];poner.restype=ctypes.c_ssize_t
+            hwnd=u.GetParent(self.root.winfo_id()) or self.root.winfo_id()
+            if activar:
+                self.intro_estilo=obtener(hwnd,-20);poner(hwnd,-20,self.intro_estilo|0x20)
+            elif hasattr(self,'intro_estilo'):
+                poner(hwnd,-20,self.intro_estilo);del self.intro_estilo
+        except (AttributeError,OSError):pass
+
     def mover_intro(self,progreso):
-        if progreso<.68:return
+        from intro import VIAJE
+        if progreso<VIAJE:return
         if not self.intro_en_viaje:
             self.intro_en_viaje=True
+            inicio=(self.intro_centro[0]+180*self.escala_avatar,self.intro_centro[1]+153*self.escala_avatar)
             self.escala_avatar=limitar_escala(self.cfg.get('escala_avatar',1));self.avatar.redimensionar(self.escala_avatar)
-        w=round(360*self.escala_avatar);h=round(292*self.escala_avatar)
-        sw=self.root.winfo_screenwidth();sh=self.root.winfo_screenheight()
-        t=min(1,(progreso-.68)/.32);t=1-(1-t)**3
-        x=round(self.intro_centro[0]+(sw-w-24-self.intro_centro[0])*t)
-        y=round(self.intro_centro[1]+(sh-h-116-self.intro_centro[1])*t)
-        self.root.geometry(f'{w}x{h}+{max(0,x)}+{max(0,y)}')
+            s=self.escala_avatar;sw=self.root.winfo_screenwidth();sh=self.root.winfo_screenheight()
+            fin=(sw-180*s-24,sh-132*s-116)
+            x=max(0,math.floor(min(inicio[0],fin[0])-180*s));y=max(0,math.floor(min(inicio[1],fin[1])-140*s))
+            w=min(sw-x,math.ceil(max(inicio[0],fin[0])+180*s-x))
+            h=min(sh-y,math.ceil(max(inicio[1],fin[1])+140*s-y))
+            self.intro_ruta=(((inicio[0]-x)/s,(inicio[1]-y)/s),((fin[0]-x)/s,(fin[1]-y)/s))
+            self.canvas.configure(width=w,height=h);self.root.geometry(f'{w}x{h}+{x}+{y}')
+            self.pasar_clics_intro(True)
 
     def animar(self):
         if self.cerrado: return
@@ -246,15 +270,12 @@ class Capri:
             c.create_text(180,160,text='Preparando imagen de Capri',fill=MUTED,font=('Chakra Petch',11))
         self.entrada_compacta.señal(self.nivel,self.escuchando,self.hablando and self.boca_activa)
         if self.intro_activa:
-            from intro import dibujar,DURACION
-            progreso=(time.monotonic()-self.inicio_intro)/DURACION
-            if progreso>=1:self.finalizar_intro()
-            else:
-                imagen_intro=self.imagen_ref
-                if self.avatar.glitches and .36<progreso<.76:imagen_intro=self.avatar.glitches[0][int(progreso*24)%2]
-                dibujar(c,progreso,imagen_intro,self.escala_avatar)
+            from intro import dibujar
+            imagen_intro=self.imagen_ref
+            if self.avatar.glitches and .36<progreso<.76:imagen_intro=self.avatar.glitches[0][int(progreso*24)%2]
+            dibujar(c,progreso,imagen_intro,self.escala_avatar,getattr(self,'intro_ruta',None))
         if self.escala_avatar!=1:c.scale('all',0,0,self.escala_avatar,self.escala_avatar)
-        self.root.after(66, self.animar)
+        self.root.after(25 if self.intro_activa else 66, self.animar)
 
     def abrir_chat(self):
         if self.panel and self.panel.winfo_exists():

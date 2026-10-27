@@ -62,7 +62,7 @@ class Enlace(PruebasTk):
             textos=[c.dialogo.canvas.itemcget(i,'text') for i in c.dialogo.canvas.find_all() if c.dialogo.canvas.type(i)=='text']
             self.assertNotIn('HISTORIAL',' '.join(textos));self.assertNotIn('DETENER',' '.join(textos))
             self.assertEqual(c.dialogo.canvas.cget('bg'),app.TRANS)
-            if os.name=='nt':self.assertEqual(c.dialogo.ventana.wm_attributes('-transparentcolor'),app.TRANS)
+            if os.name=='nt':self.assertEqual(str(c.dialogo.ventana.wm_attributes('-transparentcolor')),app.TRANS)
             self.assertEqual(tkfont.Font(root=c.root,font=('Chakra Petch',12)).actual()['family'],'Chakra Petch')
 
     def test_tamano_persistente_y_reescala_imagen_sin_cambiar_modelos(self):

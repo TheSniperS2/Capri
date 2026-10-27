@@ -120,6 +120,6 @@ Al abrir normalmente se reproduce una intro visual de unos 2,8 segundos, con el 
 
 La boca normal se retira antes de aplicar la expresión de habla o sonrisa. Los emojis permanecen en el chat, pero no se envían a la voz. El diálogo compacto muestra hasta seis líneas recientes de respuesta y una línea de pregunta; el historial conserva el texto completo.
 
-La intro comienza ampliada en el centro durante unos segundos y viaja como un rayo rojo hacia la posición habitual. F8, Esc o una petición la interrumpen. La entrada reaparece al terminar y el tamaño elegido se conserva.
+La intro comienza ampliada en el centro durante unos segundos. Capri acumula electricidad roja y se desplaza hacia su posición habitual con un relámpago principal de quiebres angulares, bifurcaciones breves, chispas aisladas y una reaparición con interferencias. Los destellos cambian durante el recorrido; la estela es transparente y deja pasar los clics. F8, Esc o una petición la interrumpen. La entrada reaparece al terminar y el tamaño elegido se conserva.
 
 La [comparación local de Llama y Qwen](COMPARACION_MODELOS.md) explica la recomendación para el equipo evaluado, los tiempos y sus límites.
