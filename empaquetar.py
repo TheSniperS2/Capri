@@ -2,7 +2,7 @@ from pathlib import Path
 import base64,hashlib,io,zipfile
 
 BASE=Path(__file__).resolve().parent
-ARCHIVOS=['app.py','core.py','voz.py','recursos.py','activar_ia.py','reconocimiento.py','nombres.py','activacion.py','escritorio.py','multimedia.py','playlists.py','intenciones.py','prueba_microfono.py','dialogos.py','avatar.py','sincronia.py','assets/capri-base-v2.png','assets/capri-bocas-v2.png','capri.ico','preparar_whisper.py','requirements.txt','LEEME.md','ARTE_ANIMADO.md']
+ARCHIVOS=['app.py','core.py','voz.py','recursos.py','activar_ia.py','reconocimiento.py','nombres.py','activacion.py','escritorio.py','multimedia.py','playlists.py','intenciones.py','prueba_microfono.py','dialogos.py','avatar.py','sincronia.py','entrada.py','fuentes.py','intro.py','assets/capri-base-v2.png','assets/capri-bocas-v2.png','assets/fonts/ChakraPetch-Regular.ttf','assets/fonts/ChakraPetch-Bold.ttf','assets/fonts/OFL.txt','capri.ico','preparar_whisper.py','requirements.txt','LEEME.md','ARTE_ANIMADO.md']
 
 def origen(nombre):
     if nombre.startswith('assets/'):return BASE/nombre

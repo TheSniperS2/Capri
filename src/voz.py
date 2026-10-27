@@ -232,7 +232,7 @@ class Microfono:
         return esperar(self,detener,detectada,dispositivo,motor,terminar,nivel,estado,lista)
 
     @_en_hilo_audio
-    def escuchar(self, detener, parcial, nivel, limite=18, dispositivo=None, motor='rapido', estado=None):
+    def escuchar(self, detener, parcial, nivel, limite=18, dispositivo=None, motor='mixto', estado=None):
         self.confianza_baja=False
         if motor in ('preciso','mixto'):
             from reconocimiento import escuchar_preciso, disponible

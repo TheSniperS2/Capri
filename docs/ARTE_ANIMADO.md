@@ -2,7 +2,9 @@
 
 `assets/capri-base-v2.png` conserva, byte por byte, la imagen capri-3.png que ya usaba la aplicación: https://mudae.net/uploads/3127100/OwjeVmT~59966d2d98c2.png. El pelo, los ojos, el cuerpo y la pose no se generan de nuevo. El avatar anterior de seis fotogramas quedó descartado.
 
-`assets/capri-bocas-v2.png` es un atlas transparente generado con la herramienta integrada image_gen el 27 de octubre de 2026. Contiene solo formas de boca blancas; no contiene personajes. El renderer conserva el estado normal original y superpone las variantes abierta/sonrisa únicamente dentro de la región (103,64)-(141,86) de la imagen base de 225 × 350. Las pruebas comparan los píxeles fuera de esa región para verificar que permanecen iguales.
+`assets/capri-bocas-v2.png` es un atlas transparente generado con la herramienta integrada image_gen el 27 de octubre de 2026. Contiene solo formas de boca blancas; no contiene personajes. El renderer conserva el estado normal original y superpone las variantes abierta/sonrisa únicamente dentro de la región (111,64)-(142,89) de la imagen base de 225 × 350. La posición se corrigió contrastando la línea blanca original con una vista ampliada de coordenadas. La superposición también recorta sus píxeles al plano neutro para no invadir piel verde, ojos ni contornos de color. Las pruebas comprueban que esas zonas permanecen intactas.
+
+La interfaz usa Chakra Petch, procedente de https://github.com/google/fonts/tree/main/ofl/chakrapetch. Se incluyen las variantes Regular/Bold y su licencia en `assets/fonts/OFL.txt`. La fuente solo se registra dentro del proceso de Capri.
 
 Los tres estados comparten un recorte de cámara y el mismo efecto de pantalla. Las bandas desplazadas de las interferencias son un efecto temporal del renderer, no otro dibujo del personaje. No hay colmillos ni lengua de colores en las bocas generadas.
 

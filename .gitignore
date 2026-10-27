@@ -35,6 +35,11 @@ assets/*
 !assets/capri.ico
 !assets/capri-base-v2.png
 !assets/capri-bocas-v2.png
+!assets/fonts/
+assets/fonts/*
+!assets/fonts/ChakraPetch-Regular.ttf
+!assets/fonts/ChakraPetch-Bold.ttf
+!assets/fonts/OFL.txt
 build/
 dist/
 *.part

@@ -2,8 +2,9 @@
 import random
 import time
 from PIL import Image,ImageTk,ImageDraw
+from fuentes import FAMILIA
 
-BOCA=(103,64,141,86)
+BOCA=(111,64,142,89)
 
 def estados_originales(ruta,bocas):
     with Image.open(ruta) as im:base=im.convert('RGBA')
@@ -15,6 +16,14 @@ def estados_originales(ruta,bocas):
             caja=boca.getchannel('A').point(lambda a:255 if a>64 else 0).getbbox()
             if caja:boca=boca.crop(caja)
             boca=boca.resize((BOCA[2]-BOCA[0],BOCA[3]-BOCA[1]),Image.Resampling.LANCZOS)
+            # Recortar la pintura al plano neutro de la boca: ni siquiera los
+            # píxeles de antialias pueden invadir piel verde, ojos o contornos.
+            alfa=boca.getchannel('A');region=base.crop(BOCA)
+            for y in range(boca.height):
+                for x in range(boca.width):
+                    r,g,b,_=region.getpixel((x,y))
+                    if max(r,g,b)-min(r,g,b)>45:alfa.putpixel((x,y),0)
+            boca.putalpha(alfa)
             estado=base.copy();estado.alpha_composite(boca,BOCA[:2]);estados.append(estado)
     return estados
 
@@ -35,14 +44,18 @@ def interferencia(vista,variante):
 
 class Avatar:
     def __init__(self,ruta,bocas=None):
-        self.fotos=[];self.glitches=[];self.estados=[];self.glitch_activo=False
+        self.fotos=[];self.glitches=[];self.estados=[];self.glitch_activo=False;self.vistas=[];self.escala=1
         self.proximo_glitch=time.monotonic()+random.uniform(3,6);self.glitch_hasta=0;self.sonrisa_hasta=0
         try:
             self.estados=estados_originales(ruta,bocas or ruta.with_name('capri-bocas-v2.png'))
-            for estado in self.estados:
-                vista=vista_pantalla(estado);self.fotos.append(ImageTk.PhotoImage(vista))
-                self.glitches.append([ImageTk.PhotoImage(interferencia(vista,i)) for i in range(2)])
+            self.vistas=[vista_pantalla(estado) for estado in self.estados]
+            self.redimensionar(1)
         except (OSError,ValueError):pass
+
+    def redimensionar(self,escala):
+        self.escala=escala;tamaño=(round(320*escala),round(210*escala))
+        self.fotos=[ImageTk.PhotoImage(v.resize(tamaño,Image.Resampling.BILINEAR)) for v in self.vistas]
+        self.glitches=[[ImageTk.PhotoImage(interferencia(v,i).resize(tamaño,Image.Resampling.BILINEAR)) for i in range(2)] for v in self.vistas]
 
     def indice(self,hablando=False,feliz=False,ahora=None):
         ahora=time.monotonic() if ahora is None else ahora
@@ -60,16 +73,16 @@ class Avatar:
         self.glitch_activo=glitch and ahora<self.glitch_hasta
         return self.glitches[indice][int(ahora*18)%2] if self.glitch_activo else self.fotos[indice]
 
-def dibujar_marco(c,fase,color,estado,nivel=0,glitch=False):
-    c.create_polygon(13,11,343,11,352,20,352,284,342,293,8,293,8,20,fill='#080d17',outline='#45616d',width=1)
+def dibujar_marco(c,fase,color,estado,nivel=0,glitch=False,escala=1):
+    c.create_polygon(13,11,343,11,352,20,352,280,342,289,8,289,8,20,fill='#080d17',outline='#45616d',width=1)
     c.create_line(23,43,339,43,fill='#273a49')
-    c.create_text(25,28,text='CAPRI',anchor='w',fill='#edf6f6',font=('Segoe UI',11,'bold'))
-    c.create_text(92,29,text='// ENLACE PERSONAL',anchor='w',fill='#79909e',font=('Consolas',8))
-    c.create_oval(327,24,333,30,fill=color,outline='')
+    c.create_text(25,28,text='CAPRI',anchor='w',fill='#edf6f6',font=(FAMILIA,round(13*escala),'bold'))
+    c.create_text(310,29,text=estado,anchor='e',fill=color,font=(FAMILIA,max(8,round(9*escala))))
+    c.create_text(337,27,text='···',fill='#79909e',font=(FAMILIA,round(11*escala),'bold'))
     for x,y,sx,sy in [(16,51,1,1),(344,51,-1,1),(16,269,1,-1),(344,269,-1,-1)]:
         c.create_line(x,y,x+sx*28,y,fill=color,width=2)
         c.create_line(x,y,x,y+sy*18,fill=color,width=2)
-    c.create_text(24,282,text=estado[:39],anchor='w',fill=color,font=('Consolas',8))
+    c.create_line(23,281,336,281,fill='#243c48')
     if glitch:
         c.create_line(17,49,135,49,fill='#ff3c72',width=3)
         c.create_line(170,271,337,271,fill='#6df4e8',width=3)

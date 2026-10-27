@@ -19,6 +19,11 @@ class Sincronia(PruebasTk):
             caja=diferencia.getbbox();self.assertIsNotNone(caja)
             self.assertGreaterEqual(caja[0],BOCA[0]);self.assertGreaterEqual(caja[1],BOCA[1])
             self.assertLessEqual(caja[2],BOCA[2]);self.assertLessEqual(caja[3],BOCA[3])
+            for y in range(110):
+                for x in range(estados[0].width):
+                    r,g,b,a=estados[0].getpixel((x,y))
+                    if g>80 and g>r*1.8 and g>b*1.8:
+                        self.assertEqual(estado.getpixel((x,y)),(r,g,b,a),'La boca invade la zona verde de la cara')
 
     def test_marcas_repetidas_y_puntuacion_se_alinean_al_texto_original(self):
         texto='Hola, Capri. Hola.'
