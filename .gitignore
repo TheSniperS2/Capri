@@ -1,0 +1,49 @@
+# Python y entornos locales
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Ajustes, playlists, credenciales y diagnósticos del usuario
+ajustes.json
+playlists.json
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.log
+diagnostico*.json
+dependencias-listas.txt
+CONTINUIDAD.md
+write-test.txt
+respaldo-*/
+.publicacion/
+
+# Recursos descargados y archivos generados
+modelos/
+models/
+src/assets/
+assets/*
+!assets/capri.ico
+build/
+dist/
+*.part
+*.zip
+Abrir Capri.pyw
+Preparar Capri.pyw
+Abrir Capri.vbs
+
+# Editores y Windows
+.idea/
+.vscode/
+Thumbs.db
+Desktop.ini
+*.lnk

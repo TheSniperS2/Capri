@@ -1,0 +1,32 @@
+name: Publicar versión
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python empaquetar.py
+      - name: Crear Release con descargas
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          GH_TAG: ${{ github.ref_name }}
+        run: >-
+          gh release create "$GH_TAG"
+          --verify-tag
+          --title "Capri $GH_TAG"
+          --notes-file docs/RELEASE.md
+          "dist/Abrir Capri.pyw"
+          "dist/Capri.zip"
