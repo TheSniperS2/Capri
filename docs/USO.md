@@ -114,4 +114,12 @@ La cabecera resume los estados como Conectando, Enlace activo, Escucha, Recibien
 
 Usa **Ctrl + rueda** sobre Capri, **clic derecho → Tamaño de Capri**, o el control en Ajustes para cambiar entre 75% y 160%. El tamaño se guarda; las imágenes se recalculan solo al cambiarlo. La fuente Chakra Petch se incluye con su licencia OFL y se carga de forma privada dentro del proceso de Capri, sin instalarla para otros programas.
 
-Al abrir normalmente se reproduce una intro visual de unos 2,3 segundos, con el nombre, barridos y la señal del personaje. No representa un porcentaje real de carga del modelo ni bloquea el micrófono. Escape, F8, enviar una petición o detectar el nombre la interrumpen. Puedes desactivarla en **Intro visual al abrir Capri** o repetirla desde el menú contextual. No reproduce un sonido de inicio.
+Al abrir normalmente se reproduce una intro visual de unos 2,8 segundos, con el nombre, barridos y la señal del personaje. No representa un porcentaje real de carga del modelo ni bloquea el micrófono. Escape, F8, enviar una petición o detectar el nombre la interrumpen. Puedes desactivarla en **Intro visual al abrir Capri** o repetirla desde el menú contextual. No reproduce un sonido de inicio.
+
+## Actualización de expresiones e interfaz
+
+La boca normal se retira antes de aplicar la expresión de habla o sonrisa. Los emojis permanecen en el chat, pero no se envían a la voz. El diálogo compacto muestra hasta seis líneas recientes de respuesta y una línea de pregunta; el historial conserva el texto completo.
+
+La intro comienza ampliada en el centro durante unos segundos y viaja como un rayo rojo hacia la posición habitual. F8, Esc o una petición la interrumpen. La entrada reaparece al terminar y el tamaño elegido se conserva.
+
+La [comparación local de Llama y Qwen](COMPARACION_MODELOS.md) explica la recomendación para el equipo evaluado, los tiempos y sus límites.

@@ -115,7 +115,7 @@ class Capri:
         self.entrada_compacta.foco_cambio=lambda foco:setattr(self.dialogo,'editando',foco)
         self.dialogo.entrada=self.entrada_compacta.entrada;self.dialogo.control_entrada=self.entrada_compacta;self.dialogo.menu=self.menu
         self.aplicar_escala(inicial=True)
-        self.inicio_intro=time.monotonic()
+        if self.intro_activa:self.iniciar_intro()
         self.atajo = Atajo(lambda: self.eventos.put(('micro', None)), lambda t: self.eventos.put(('aviso', t))) if hotkeys else None
         self.root.bind('<Escape>', lambda e: self.parar())
         self.root.protocol('WM_DELETE_WINDOW', self.cerrar)
@@ -196,9 +196,38 @@ class Capri:
 
     def iniciar_intro(self):
         self.intro_activa=True;self.inicio_intro=time.monotonic();self.dialogo.ocultar()
+        self.entrada_compacta.pack_forget();self.intro_en_viaje=False
+        self.escala_avatar=min(1.65,max(1.25,limitar_escala(self.cfg.get('escala_avatar',1))*1.35))
+        self.avatar.redimensionar(self.escala_avatar)
+        w=round(360*self.escala_avatar);h=round(292*self.escala_avatar)
+        self.intro_centro=((self.root.winfo_screenwidth()-w)//2,(self.root.winfo_screenheight()-h)//2)
+        self.canvas.configure(width=w,height=h)
+        self.root.geometry(f'{w}x{h}+{self.intro_centro[0]}+{self.intro_centro[1]}')
+
+    def finalizar_intro(self):
+        if not self.intro_activa:return
+        self.intro_activa=False
+        self.entrada_compacta.pack(fill='x');self.aplicar_escala(inicial=True)
+
+    def mover_intro(self,progreso):
+        if progreso<.68:return
+        if not self.intro_en_viaje:
+            self.intro_en_viaje=True
+            self.escala_avatar=limitar_escala(self.cfg.get('escala_avatar',1));self.avatar.redimensionar(self.escala_avatar)
+        w=round(360*self.escala_avatar);h=round(292*self.escala_avatar)
+        sw=self.root.winfo_screenwidth();sh=self.root.winfo_screenheight()
+        t=min(1,(progreso-.68)/.32);t=1-(1-t)**3
+        x=round(self.intro_centro[0]+(sw-w-24-self.intro_centro[0])*t)
+        y=round(self.intro_centro[1]+(sh-h-116-self.intro_centro[1])*t)
+        self.root.geometry(f'{w}x{h}+{max(0,x)}+{max(0,y)}')
 
     def animar(self):
         if self.cerrado: return
+        from intro import DURACION
+        progreso=(time.monotonic()-self.inicio_intro)/DURACION
+        if self.intro_activa:
+            if progreso>=1:self.finalizar_intro()
+            else:self.mover_intro(progreso)
         self.fase += .065
         c = self.canvas
         c.delete('all')
@@ -219,7 +248,7 @@ class Capri:
         if self.intro_activa:
             from intro import dibujar,DURACION
             progreso=(time.monotonic()-self.inicio_intro)/DURACION
-            if progreso>=1:self.intro_activa=False
+            if progreso>=1:self.finalizar_intro()
             else:
                 imagen_intro=self.imagen_ref
                 if self.avatar.glitches and .36<progreso<.76:imagen_intro=self.avatar.glitches[0][int(progreso*24)%2]
@@ -297,7 +326,7 @@ class Capri:
     def enviar(self, texto,origen='texto'):
         if self.ocupada:
             self.estado='Un momento, estoy respondiendo…'; return False
-        self.intro_activa=False
+        self.finalizar_intro()
         self.detener_activacion()
         self.narracion_activa=False;self.voz.parar();self.voz_ticket=None;self.voz_cursor=0
         self.dialogo.recibir_usuario(texto)
@@ -414,7 +443,7 @@ class Capri:
         self.activacion_hilo.start()
 
     def parar(self,preservar_activacion=False):
-        self.intro_activa=False
+        self.finalizar_intro()
         self.dialogo.ocultar()
         self.narracion_activa=False;self.boca_activa=False
         if not preservar_activacion:self.detener_activacion()
@@ -557,6 +586,9 @@ class Capri:
 
     def narrar_respuesta(self,ticket,texto,final=False):
         if not final or not self.puede_narrar() or self.escuchando or ticket!=self.peticion:return
+        from voz import texto_para_voz
+        if not texto_para_voz(texto):
+            self.dialogo.mostrar(texto);return
         self.voz_ticket=ticket;self.narracion_activa=False;self.dialogo.preparar_voz(texto)
         self.estado='Preparando voz…'
         self.voz.hablar(texto,self.cfg.get('voz_natural',True),perfil=self.cfg.get('voz_perfil','capri'),velocidad=self.cfg.get('velocidad_voz',1.0),volumen=self.cfg.get('volumen_voz',100))
@@ -565,7 +597,7 @@ class Capri:
     def puede_narrar(self):return bool(self.cfg.get('voz')) and normalizar_volumen(self.cfg.get('volumen_voz',100))>0
 
     def configurar(self):
-        self.intro_activa=False
+        self.finalizar_intro()
         self.detener_activacion()
         if self.ajustes and self.ajustes.winfo_exists():self.ajustes.lift();return
         p=self.ajustes=tk.Toplevel(self.root);p.title('Capri · Ajustes');p.configure(bg=BG)
@@ -737,7 +769,7 @@ class Capri:
         if k=='dialogos_escritorio' and not v:self.dialogo.ocultar()
         if k=='modelo_whisper':self.micro.modelo_whisper=v
         if k=='umbral_microfono_db':self.micro.umbral_microfono_db=v
-        if k=='escala_avatar':self.aplicar_escala()
+        if k=='escala_avatar':self.finalizar_intro();self.aplicar_escala()
         if k in ('activacion_voz','microfono','reconocimiento','modelo_whisper'):
             self.detener_activacion();self.activacion_reintento=0
 

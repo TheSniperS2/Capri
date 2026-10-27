@@ -36,6 +36,9 @@ def normalizar_volumen(valor=100):
 
 def texto_para_voz(texto):
     """Mantiene la frase unida y evita pausas de formato o comas excesivas."""
+    # Los símbolos quedan visibles en el diálogo, pero no se envían al TTS.
+    texto=re.sub('[\U0001F000-\U0001FAFF\u2600-\u27BF\uFE0E\uFE0F\u200D\u20E3]', '', texto)
+    texto=re.sub(r'(?<!\S)(?:[:;=8][-^]?[)(DPp/]|<3)(?!\S)', '', texto)
     texto=re.sub(r'(?m)^\s*(?:#{1,6}|[-*•])\s+','',texto)
     texto=texto.replace('**','').replace('`','')
     texto=re.sub(r'\.{2,}|…','.',texto)

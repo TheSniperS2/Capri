@@ -24,7 +24,18 @@ def estados_originales(ruta,bocas):
                     r,g,b,_=region.getpixel((x,y))
                     if max(r,g,b)-min(r,g,b)>45:alfa.putpixel((x,y),0)
             boca.putalpha(alfa)
-            estado=base.copy();estado.alpha_composite(boca,BOCA[:2]);estados.append(estado)
+            estado=base.copy()
+            # Retirar la boca original antes de pintar la expresión nueva.
+            # El plano oscuro local conserva la piel y el contorno coloreado.
+            oscuros=[region.getpixel((x,y))[:3] for y in range(region.height) for x in range(region.width)
+                     if max(region.getpixel((x,y))[:3])<45 and max(region.getpixel((x,y))[:3])-min(region.getpixel((x,y))[:3])<=15]
+            fondo=tuple(sorted(c[j] for c in oscuros)[len(oscuros)//2] for j in range(3)) if oscuros else (8,8,12)
+            for y in range(region.height):
+                for x in range(region.width):
+                    r,g,b,a=region.getpixel((x,y))
+                    if max(r,g,b)-min(r,g,b)<=45 and max(r,g,b)>45:
+                        estado.putpixel((BOCA[0]+x,BOCA[1]+y),(*fondo,a))
+            estado.alpha_composite(boca,BOCA[:2]);estados.append(estado)
     return estados
 
 def vista_pantalla(estado):

@@ -124,7 +124,7 @@ class Ordenes(unittest.TestCase):
         self.assertEqual(texto,parciales[-1])
         enviado=json.loads(red.call_args.args[0].data)
         self.assertTrue(enviado['stream']);self.assertEqual(enviado['keep_alive'],'15m')
-        self.assertIn('Te llamas CAPRI',enviado['messages'][0]['content'])
+        self.assertIn('Tu nombre es Capri',enviado['messages'][0]['content'])
         self.assertLess(enviado['options']['num_predict'],220)
         self.assertEqual(len(ia.historia),2)
 

@@ -12,6 +12,36 @@ from test_capri import PruebasTk
 import app
 
 class Enlace(PruebasTk):
+    def test_texto_largo_no_invade_etiqueta_y_cabe_en_panel_pequeno(self):
+        with self.capri() as (c,_):
+            c.root.update_idletasks()
+            pregunta='Podrías contarme una historia muy larga ' * 30
+            respuesta=('¡Claro! 😏 Hace un tiempo. ' * 60)+'fin'
+            c.dialogo.recibir_usuario(pregunta);c.dialogo.mostrar(respuesta)
+            c.dialogo.visible=c.dialogo.objetivo
+            c.dialogo.canvas.configure(width=280);c.root.update_idletasks();c.dialogo.dibujar()
+            cv=c.dialogo.canvas;cab=cv.bbox('pregunta');cuerpo=cv.bbox('cuerpo')
+            self.assertLess(cab[3],44)
+            self.assertGreaterEqual(cuerpo[1],75)
+            self.assertLess(cuerpo[3],c.dialogo.alto_canvas-12)
+            texto=cv.itemcget(cv.find_withtag('cuerpo')[0],'text')
+            self.assertLessEqual(len(texto.splitlines()),6)
+            self.assertTrue(texto.endswith('fin'));self.assertEqual(c.dialogo.usuario,pregunta)
+
+    def test_intro_centrada_luego_rayo_y_restaura_tamano_y_entrada(self):
+        with self.capri() as (c,_):
+            c.iniciar_intro();c.root.update_idletasks()
+            self.assertGreater(c.escala_avatar,c.cfg['escala_avatar'])
+            self.assertFalse(c.entrada_compacta.winfo_manager())
+            c.inicio_intro=time.monotonic()-1;c.animar()
+            textos=[c.canvas.itemcget(i,'text') for i in c.canvas.find_all() if c.canvas.type(i)=='text']
+            self.assertIn('CONECTANDO',textos)
+            c.inicio_intro=time.monotonic()-2.2;c.animar()
+            self.assertTrue(c.intro_en_viaje)
+            self.assertTrue(all(c.canvas.type(i)=='line' for i in c.canvas.find_all()))
+            c.parar();self.assertEqual(c.escala_avatar,c.cfg['escala_avatar'])
+            self.assertEqual(c.entrada_compacta.winfo_manager(),'pack')
+
     @contextmanager
     def capri(self):
         with tempfile.TemporaryDirectory() as d,patch.object(app,'BASE',Path(d)),patch.object(app.Voz,'parar'):

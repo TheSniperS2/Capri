@@ -3,6 +3,7 @@ import random
 import time
 import tkinter as tk
 import os
+from tkinter import font as tkfont
 from fuentes import FAMILIA
 
 TRANS='#010203'
@@ -22,6 +23,8 @@ class Dialogo:
         if os.name=='nt':p.wm_attributes('-transparentcolor',TRANS)
         self.canvas=tk.Canvas(p,width=364,height=self.alto_canvas,bg=TRANS,highlightthickness=0)
         self.canvas.pack(fill='both',expand=True)
+        self.fuente_pregunta=tkfont.Font(root=p,family=FAMILIA,size=9)
+        self.fuente_cuerpo=tkfont.Font(root=p,family=FAMILIA,size=12)
         self.canvas.bind('<Button-3>',lambda e:self.menu(e) if self.menu else None)
         p.bind('<Escape>',lambda e:self.detener() if self.detener else self.ocultar())
 
@@ -47,7 +50,7 @@ class Dialogo:
 
     def mostrar(self,texto,sincronizada=False):
         if (not self.habilitado() and not self.manual) or not texto:return
-        self.crear();texto=texto[:1400]
+        self.crear()
         if sincronizada or not texto.startswith(self.objetivo):self.visible=''
         self.sincronizada=sincronizada
         self.objetivo=texto;self.estado='TRANSMISIÓN';self.vence=time.monotonic()+25
@@ -59,9 +62,9 @@ class Dialogo:
 
     def revelar(self,texto,caracteres):
         if not self.habilitado() and not self.manual:return
-        self.objetivo=texto[:1400];self.visible=self.objetivo[:max(0,caracteres)]
+        self.objetivo=texto;self.visible=self.objetivo[:max(0,caracteres)]
         self.sincronizada=True;self.estado='HABLANDO';self.vence=time.monotonic()+25
-        if self.ventana and self.ventana.winfo_exists():self.dibujar()
+        if self.ventana and self.ventana.winfo_exists():self.dibujar();self.posicionar()
 
     def terminar_voz(self):
         self.visible=self.objetivo;self.sincronizada=False;self.estado='ENLACE ABIERTO'
@@ -81,28 +84,39 @@ class Dialogo:
         self.ventana.geometry(f'{ancho}x{alto}+{x}+{y}')
 
     def dibujar(self):
-        c=self.canvas;c.delete('all');ancho=max(280,c.winfo_width());alto=self.alto_canvas
-        c.create_polygon(13,9,ancho-22,9,ancho-10,21,ancho-10,alto-24,ancho-22,alto-12,22,alto-12,10,alto-24,10,22,
+        c=self.canvas;c.delete('all');ancho=max(280,c.winfo_width());limite=ancho-62
+        pregunta=' '.join(self.usuario.split())
+        pregunta=('TÚ > '+pregunta) if pregunta else 'ENLACE PERSONAL'
+        if self.fuente_pregunta.measure(pregunta)>limite:
+            while pregunta and self.fuente_pregunta.measure(pregunta+'…')>limite:pregunta=pregunta[:-1]
+            pregunta+='…'
+        escribiendo=len(self.visible)<len(self.objetivo)
+        punta=random.choice('_/-') if escribiendo and self.glitch() else ('_' if escribiendo else '')
+        # Envolver por ancho real, incluyendo palabras largas. Solo la vista
+        # compacta muestra las últimas seis líneas; el historial queda completo.
+        lineas=['']
+        for palabra in (' '.join(self.visible.split())+punta).split(' '):
+            candidato=(lineas[-1]+' '+palabra).strip()
+            if lineas[-1] and self.fuente_cuerpo.measure(candidato)>limite:lineas.append('')
+            for caracter in ((' ' if lineas[-1] else '')+palabra):
+                if self.fuente_cuerpo.measure(lineas[-1]+caracter)>limite:lineas.append('')
+                lineas[-1]+=caracter
+        if len(lineas)>6:
+            lineas=lineas[-6:];lineas[0]='…'+lineas[0]
+            while self.fuente_cuerpo.measure(lineas[0])>limite:lineas[0]='…'+lineas[0][2:]
+        cuerpo=c.create_text(29,76,text='\n'.join(lineas),anchor='nw',fill='#edf0fa',font=self.fuente_cuerpo,tags='cuerpo')
+        caja=c.bbox(cuerpo);alto=max(108,(caja[3] if caja else 86)+24)
+        self.alto_canvas=alto;c.configure(height=alto)
+        fondo=c.create_polygon(13,9,ancho-22,9,ancho-10,21,ancho-10,alto-24,ancho-22,alto-12,22,alto-12,10,alto-24,10,22,
                          fill='#0d111b',outline='#6f9ba3',width=1)
+        c.tag_lower(fondo)
         c.create_line(22,alto-11,ancho-23,alto-11,fill='#ec3c62',width=3)
         c.create_rectangle(26,44,80,61,fill='#f2d959',outline='')
         c.create_text(31,53,text='CAPRI',anchor='w',fill='#151822',font=(FAMILIA,10,'bold'))
         c.create_text(92,53,text=self.estado,anchor='w',fill='#80939c',font=(FAMILIA,8))
-        pregunta=self.usuario.replace('\n',' ')
-        c.create_text(29,25,text=('TÚ > '+pregunta[:52]+('…' if len(pregunta)>52 else '')) if pregunta else 'ENLACE PERSONAL',anchor='w',width=ancho-58,fill='#8d98a4',font=(FAMILIA,9))
-        contenido=self.visible[-230:].replace('\n',' ')
-        # El glitch afecta solo a la punta de escritura; el texto confirmado
-        # permanece intacto, accesible en el historial sin símbolos añadidos.
-        escribiendo=len(self.visible)<len(self.objetivo)
-        punta=random.choice('_/-') if escribiendo and self.glitch() else ('_' if escribiendo else '')
-        cuerpo=c.create_text(29,76,text=('…' if len(self.visible)>230 else '')+contenido+punta,anchor='nw',width=ancho-62,
-                      fill='#edf0fa',font=(FAMILIA,12))
-        caja=c.bbox(cuerpo)
-        requerido=max(108,min(300,(caja[3] if caja else 86)+24))
-        if requerido!=self.alto_canvas:
-            self.alto_canvas=requerido;c.configure(height=requerido)
+        c.create_text(29,25,text=pregunta,anchor='w',fill='#8d98a4',font=self.fuente_pregunta,tags='pregunta')
         if escribiendo and self.glitch() and self.fase%9==0:
-            y=81+(self.fase*7)%60;c.create_line(ancho-75,y,ancho-29,y,fill='#ff4267')
+            y=81+(self.fase*7)%max(1,alto-110);c.create_line(ancho-75,y,ancho-29,y,fill='#ff4267')
 
     def tick(self):
         self.pendiente=None

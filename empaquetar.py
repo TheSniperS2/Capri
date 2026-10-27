@@ -2,13 +2,13 @@ from pathlib import Path
 import base64,hashlib,io,zipfile
 
 BASE=Path(__file__).resolve().parent
-ARCHIVOS=['app.py','core.py','voz.py','recursos.py','activar_ia.py','reconocimiento.py','nombres.py','activacion.py','escritorio.py','multimedia.py','playlists.py','intenciones.py','prueba_microfono.py','dialogos.py','avatar.py','sincronia.py','entrada.py','fuentes.py','intro.py','assets/capri-base-v2.png','assets/capri-bocas-v2.png','assets/fonts/ChakraPetch-Regular.ttf','assets/fonts/ChakraPetch-Bold.ttf','assets/fonts/OFL.txt','capri.ico','preparar_whisper.py','requirements.txt','LEEME.md','ARTE_ANIMADO.md']
+ARCHIVOS=['app.py','core.py','voz.py','recursos.py','activar_ia.py','reconocimiento.py','nombres.py','activacion.py','escritorio.py','multimedia.py','playlists.py','intenciones.py','prueba_microfono.py','dialogos.py','avatar.py','sincronia.py','entrada.py','fuentes.py','intro.py','assets/capri-base-v2.png','assets/capri-bocas-v2.png','assets/fonts/ChakraPetch-Regular.ttf','assets/fonts/ChakraPetch-Bold.ttf','assets/fonts/OFL.txt','capri.ico','preparar_whisper.py','requirements.txt','LEEME.md','ARTE_ANIMADO.md','COMPARACION_MODELOS.md']
 
 def origen(nombre):
     if nombre.startswith('assets/'):return BASE/nombre
     if nombre=='capri.ico':return BASE/'assets'/nombre
     if nombre=='LEEME.md':return BASE/'docs/USO.md'
-    if nombre=='ARTE_ANIMADO.md':return BASE/'docs'/nombre
+    if nombre in ('ARTE_ANIMADO.md','COMPARACION_MODELOS.md'):return BASE/'docs'/nombre
     if nombre=='requirements.txt':return BASE/nombre
     return BASE/'src'/nombre
 
