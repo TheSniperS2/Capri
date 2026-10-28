@@ -149,6 +149,9 @@ def interpretar(texto):
         return Orden('velocidad_voz','bajar')
     if n in ('habla a velocidad normal','velocidad de voz normal'):
         return Orden('velocidad_voz','normal')
+    from playlists import interpretar_cancion_playlist
+    en_lista=interpretar_cancion_playlist(texto)
+    if en_lista:return Orden('spotify_playlist_cancion',json.dumps(en_lista,ensure_ascii=False))
     # Transporte de la cola actual ANTES de interpretar títulos o búsquedas.
     transporte=re.sub(r'\s+en\s+spotify$','',n)
     if re.fullmatch(r'(?:reproduce|reproducir|pon(?:er|me|ga|gas)?|reanuda(?:r)?|contin[uú]a|sigue)\s+(?:(?:la|mi|esa)\s+)?(?:musica|reproduccion|cancion|spotify)',transporte) or transporte in ('reanuda','reproduce','pon musica','dale play','continua la reproduccion','reproduce una cancion'):
@@ -270,6 +273,9 @@ def ejecutar(orden, spawn=subprocess.Popen, open_url=None):
     if orden.tipo=='spotify_playlist':
         from playlists import reproducir_playlist
         return reproducir_playlist(orden.valor)
+    if orden.tipo=='spotify_playlist_cancion':
+        from playlists import reproducir_cancion_playlist
+        return reproducir_cancion_playlist(**json.loads(orden.valor))
     if orden.tipo in ('spotify','spotify_buscar','spotify_pausa'):
         from escritorio import controlar_spotify
         return controlar_spotify(orden.valor,accion={'spotify':'reproducir','spotify_buscar':'buscar','spotify_pausa':'pausa'}[orden.tipo])

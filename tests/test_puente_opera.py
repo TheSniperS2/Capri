@@ -106,7 +106,7 @@ const headers={'X-Capri-Puente':id,'Origin':'chrome-extension://'+id};
         self.assertEqual(salida[0]['volumen'],50);self.assertTrue(salida[0]['ok'])
 
     @unittest.skipUnless(shutil.which('node'),'Prueba JavaScript requiere Node de desarrollo')
-    def test_worker_real_solo_entrega_a_la_pestana_seleccionada(self):
+    def test_worker_real_entrega_al_video_aunque_otra_pagina_tenga_foco(self):
         self.peticion('GET','/siguiente');salida=[]
         t=threading.Thread(target=lambda:salida.append(self.p.ejecutar('volumen',{'operacion':'fijar:25','restaurar':40})))
         t.start()
@@ -116,14 +116,13 @@ const api=require(process.argv[1]+'/control.js');
 const base=process.argv[2],id=process.argv[3];let listener,llamadas=0,entregas=0;
 const {video,doc}=require(process.argv[4]).crear({volumen:.8});
 const chrome={runtime:{id,onMessage:{addListener:l=>listener=l}},tabs:{
- query:async()=>[{id:1,url:'https://www.youtube.com/watch?v=prueba'}],
- sendMessage:async(tab,m)=>{assert.equal(tab,1);entregas++;return api.ejecutar(doc,'https://www.youtube.com/watch?v=prueba',m.tarea)}
+ query:async q=>q.active ? [{id:9,url:'https://example.org/'}] : [{id:1,url:'https://www.youtube.com/watch?v=prueba'}],
+ sendMessage:async(tab,m)=>{assert.equal(tab,1);if(m.tipo==='capri_estado')return {video:true,reproduciendo:true};entregas++;return api.ejecutar(doc,'https://www.youtube.com/watch?v=prueba',m.tarea)}
 }};
 vm.runInNewContext(fs.readFileSync(process.argv[1]+'/worker.js','utf8'),{chrome,URL,AbortSignal,fetch:(url,op)=>{llamadas++;return fetch(url.replace('http://127.0.0.1:18741',base),op)}});
 function consultar(tab){return new Promise(resolve=>listener({tipo:'capri_consultar'},{id,tab:{id:tab},url:'https://www.youtube.com/watch?v=prueba'},resolve))}
 (async()=>{
- await consultar(2);assert.equal(llamadas,0);
- const r=await consultar(1);assert.equal(r.ok,true);assert.equal(entregas,1);assert.equal(video.volume,.25);
+ const r=await consultar(2);assert.equal(r.ok,true);assert.equal(entregas,1);assert.equal(video.volume,.25);
 })().catch(e=>{console.error(e);process.exitCode=1});
 '''
         r=subprocess.run(['node','-e',codigo,str(RAIZ/'integraciones/opera-capri'),'http://127.0.0.1:'+str(self.puerto),bridge.EXTENSION_ID,str(RAIZ/'tests/fixtures/reproductor_youtube.js')],text=True,capture_output=True,timeout=10)

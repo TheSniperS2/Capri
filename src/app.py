@@ -1118,7 +1118,7 @@ class Capri:
         texto=('1. Abre el gestor de extensiones de Opera GX.\n'
                '2. Activa Modo desarrollador y elige Cargar extensión descomprimida.\n'
                '3. Selecciona la carpeta que abre el botón de abajo.\n'
-               '4. Recarga la pestaña de YouTube y deja seleccionado el vídeo.\n\n'
+               '4. Recarga YouTube e inicia un vídeo. Después puedes usar otra pestaña.\n\n'
                'La extensión solo accede a YouTube y a la conexión local con Capri.\n'
                'No lee otras páginas, contraseñas ni archivos.')
         tk.Label(ventana,text=texto,bg=BG,fg=FG,font=('Chakra Petch',11),justify='left',wraplength=535).pack(padx=18,pady=16)
@@ -1133,7 +1133,7 @@ class Capri:
         tk.Label(ventana,textvariable=estado,bg=BG,fg=GREEN,font=('Chakra Petch',11),wraplength=530).pack(pady=16)
         def actualizar():
             if not ventana.winfo_exists():return
-            estado.set(puente.error or ('Conectada con la pestaña seleccionada de YouTube.' if puente.conectado() else 'Esperando la extensión y una pestaña seleccionada de YouTube…'))
+            estado.set(puente.error or ('Conectada con YouTube; puedes usar otra pestaña.' if puente.conectado() else 'Esperando la extensión y una pestaña de YouTube…'))
             ventana.after(700,actualizar)
         actualizar()
 

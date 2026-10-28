@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Capri — YouTube en Opera",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Conecta el reproductor de YouTube con Capri en este computador.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAl+2NU5FgHMEikxTmkr+hNvOEhTnlZZX6G0GJqhlM1UQoe8BU3o475hFprVwI+8QZqHYmOwIthgdBH9u4flgsruhCSU5NMqt4u76ZsqOsIOzkumzxILAuNwWq93vET94ahI7hyVbqqFYWTZ3+fppZybBgSZ8KpvdNdwOm/s+6jcSw1zQvBNpkrUyQdKLZCsolOD1uWiNgm1/T5993Xzj0guM9lyli3aIz7+162Nx841nofzRQb9n6VYWJ3YA15P+w/uS7tAgnXRDlpZXKUHdcObH/j3F2cY/R/uAPfB40ZUiB03wJ6UlFoYpeI0Y/UWSb+5PV+w3tq+KxIs4+MJa5WQIDAQAB",
   "host_permissions": ["http://127.0.0.1/*", "https://www.youtube.com/*", "https://youtube.com/*", "https://m.youtube.com/*", "https://www.youtube.cl/*", "https://youtube.cl/*"],

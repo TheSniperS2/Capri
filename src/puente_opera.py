@@ -75,7 +75,7 @@ class Puente:
                         if type(resultado['silenciado']) is not bool:raise ValueError()
                         limpio['silenciado']=resultado['silenciado']
                     if resultado.get('estado') in ('Playing','Paused','Solicitado'):limpio['estado']=resultado['estado']
-                    if resultado.get('codigo') in ('sin_video','sin_control','pagina_invalida','operacion_invalida','reproduccion_bloqueada','cambio_no_confirmado'):
+                    if resultado.get('codigo') in ('sin_video','sin_control','pagina_invalida','operacion_invalida','reproduccion_bloqueada','cambio_no_confirmado','varios_videos'):
                         limpio['codigo']=resultado['codigo']
                     with propietario.lock:
                         p=propietario.pendientes.get(id)
@@ -129,6 +129,7 @@ def cerrar():
 
 def mensaje_error(resultado):
     return {'sin_video':'No encontré un vídeo cargado en la pestaña de YouTube.',
+            'varios_videos':'Hay varios vídeos de YouTube disponibles. Selecciona la pestaña del que quieres controlar y repite la orden.',
             'sin_control':'Ese vídeo no ofrece el control solicitado.',
             'pagina_invalida':'La pestaña seleccionada no es YouTube.',
             'reproduccion_bloqueada':'YouTube bloqueó el inicio automático; inicia el vídeo una vez.',

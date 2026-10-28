@@ -8,7 +8,7 @@ import urllib.request
 from core import Orden,APPS,normalizar,url_solicitada,limpiar_peticion,ABRIR
 
 ACCIONES=('spotify','spotify_pausa','spotify_siguiente','spotify_anterior',
-          'spotify_estado','spotify_playlist','spotify_buscar','spotify_volumen','abrir','buscar','pestana','carpeta',
+          'spotify_estado','spotify_playlist','spotify_playlist_cancion','spotify_buscar','spotify_volumen','abrir','buscar','pestana','carpeta',
           'youtube_buscar','youtube_video','youtube_siguiente','youtube_anterior','youtube_pausa','youtube_reanudar','youtube_volumen')
 SIN_ARGUMENTO=('charla','aclarar','spotify_pausa','spotify_siguiente','spotify_anterior','spotify_estado',
                'youtube_siguiente','youtube_anterior','youtube_pausa','youtube_reanudar')
@@ -24,6 +24,7 @@ spotify_pausa significa parar/detener la musica, hacer que deje de sonar, basta 
 spotify_siguiente significa cambiar a otra cancion de la cola; spotify_anterior volver a la de antes.
 Reconoce peticiones indirectas: no necesitan empezar con un verbo de comando.
 Acciones con valor extraido del mensaje: spotify (titulo de cancion), spotify_playlist (nombre), spotify_buscar (consulta), abrir (app), buscar (consulta web), pestana (URL o vacio), carpeta.
+Si pide una canción dentro de una playlist, spotify_playlist_cancion usa valor como JSON con claves cancion y nombre, extraídos literalmente del mensaje. Nunca convertirlo en búsqueda general de Spotify.
 Apps: opera, opera gx, navegador, calculadora, bloc de notas, explorador, spotify, youtube.
 Sitios conocidos (pestana con valor nombre): youtube, netflix, twitch, crunchyroll, disney plus, prime video, github, reddit, steam, google, wikipedia. Buscar un nombre exacto de sitio es navegar; buscar opiniones o buscar en Google es buscar. Nunca programa_abrir para una búsqueda web.
 spotify_volumen: valor subir:10 o bajar:10 (diez puntos), fijar:50 para un porcentaje explícito, silenciar, activar o consultar. Mueve el deslizador interno de Spotify.
@@ -118,6 +119,9 @@ class Interprete:
         accion=datos['accion'];valor=datos['valor']
         if not all(isinstance(v,str) for v in (accion,valor)):return aclarar
         if accion=='charla':return Decision()
+        from playlists import interpretar_cancion_playlist
+        en_lista=interpretar_cancion_playlist(limpiar_peticion(texto)) if not protegida(texto) else None
+        if en_lista:return Decision(Orden('spotify_playlist_cancion',json.dumps(en_lista,ensure_ascii=False)))
         from navegador import interpretar_web
         directa=interpretar_web(limpiar_peticion(texto)) if not protegida(texto) else None
         if directa and accion in ('abrir','buscar','programa_abrir'):return Decision(directa)
@@ -148,6 +152,14 @@ class Interprete:
         valor=valor.strip()
         if len(valor)>500 or any(ord(c)<32 for c in valor):return aclarar
         n=normalizar(texto)
+        if accion=='spotify_playlist_cancion':
+            try:objetivo=json.loads(valor)
+            except ValueError:return aclarar
+            if not isinstance(objetivo,dict) or set(objetivo)!={'cancion','nombre'}:return aclarar
+            if not all(isinstance(v,str) and v.strip() and len(v)<=200 and normalizar(v) in n for v in objetivo.values()):return aclarar
+            lista=normalizar(objetivo['nombre'])
+            if not re.search(r'\b(?:playlist|lista(?: de reproduccion)?)\s+[«"\'“]?'+re.escape(lista)+r'(?:[»"\'”]|\s|[.!?]|$)',n):return aclarar
+            return Decision(Orden(accion,json.dumps(objetivo,ensure_ascii=False)))
         if accion.startswith('spotify'):
             if not re.search(r'\b(?:spotify|musica|cancion|canciones|tema|pista|playlist|lista|reproduccion|sonando|reproductor)\b',n) and contexto['tema_activo']!='spotify':return aclarar
         if accion.startswith('youtube_'):
