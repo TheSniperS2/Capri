@@ -786,6 +786,7 @@ class AmpliacionEscritorio(PruebasTk):
             codigo=base64.b64decode(correr.call_args.args[0][-1]).decode('utf-16-le')
             self.assertEqual(codigo,playlists.PLAYLIST_UI)
             correr.return_value=types.SimpleNamespace(stdout='{"ok":false}',returncode=0)
+            correr.side_effect=[types.SimpleNamespace(stdout=json.dumps({'ok':True}),returncode=0),correr.return_value]
             self.assertIn('no confirmó',playlists.reproducir_playlist('juntos',carpeta,abrir,correr))
 
     def test_selector_playlist_real_no_confunde_boton_global_o_cancion(self):
@@ -854,7 +855,7 @@ class AmpliacionEscritorio(PruebasTk):
             self.assertEqual(playlists.cargar(carpeta)['mi lista privada'],uri)
             abrir=Mock();correr=Mock(return_value=types.SimpleNamespace(stdout='{"ok":true}',returncode=0))
             respuesta=playlists.reproducir_playlist('Mi Lista Privada',carpeta,abrir,correr)
-            abrir.assert_called_once_with(uri)
+            abrir.assert_not_called()
             self.assertIn('Activé',respuesta)
             self.assertEqual(json.loads(correr.call_args.kwargs['input'])['consulta'],'Mi Lista Privada')
             with self.assertRaises(ValueError):playlists.vincular('mal','https://otro.com/playlist/1234567890123456789012',carpeta)
@@ -896,12 +897,13 @@ class AmpliacionEscritorio(PruebasTk):
         args=correr.call_args
         self.assertNotIn(consulta,' '.join(args.args[0]))
         self.assertEqual(json.loads(args.kwargs['input'])['consulta'],consulta)
-        self.assertTrue(abrir.call_args.args[0].startswith('spotify:search:'))
+        abrir.assert_not_called()  # Buscar música no trae Spotify al frente.
         correr.return_value=types.SimpleNamespace(stdout='{"ok":false}',returncode=0)
-        self.assertIn('no pude confirmar',controlar_spotify('Cyberpunk',abrir=abrir,correr=correr))
+        self.assertIn('segundo plano',controlar_spotify('Cyberpunk',abrir=abrir,correr=correr,proteger=lambda:True))
         correr.reset_mock()
-        self.assertIn('búsqueda',controlar_spotify('Cyberpunk',accion='buscar',abrir=abrir,correr=correr))
-        correr.assert_not_called()
+        self.assertIn('búsqueda',controlar_spotify('Cyberpunk',accion='buscar',abrir=abrir,correr=correr,proteger=lambda:True))
+        self.assertEqual(json.loads(correr.call_args.kwargs['input'])['accion'],'buscar')
+        abrir.assert_not_called()
 
     def test_activacion_nombre_completo_y_orden_en_misma_frase(self):
         from activacion import quitar_nombre

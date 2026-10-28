@@ -5,11 +5,13 @@ import json
 import re
 import time
 import urllib.request
-from core import Orden,APPS,normalizar,url_solicitada
+from core import Orden,APPS,normalizar,url_solicitada,limpiar_peticion,ABRIR
 
 ACCIONES=('spotify','spotify_pausa','spotify_siguiente','spotify_anterior',
-          'spotify_estado','spotify_playlist','spotify_buscar','abrir','buscar','pestana','carpeta')
-SIN_ARGUMENTO=('charla','aclarar','spotify_pausa','spotify_siguiente','spotify_anterior','spotify_estado')
+          'spotify_estado','spotify_playlist','spotify_buscar','spotify_volumen','abrir','buscar','pestana','carpeta',
+          'youtube_buscar','youtube_video','youtube_siguiente','youtube_anterior','youtube_pausa','youtube_reanudar','youtube_volumen')
+SIN_ARGUMENTO=('charla','aclarar','spotify_pausa','spotify_siguiente','spotify_anterior','spotify_estado',
+               'youtube_siguiente','youtube_anterior','youtube_pausa','youtube_reanudar')
 def esquema_accion(acciones,valor):
     return {'type':'object','additionalProperties':False,'required':['accion','valor'],
             'properties':{'accion':{'type':'string','enum':list(acciones)},'valor':valor}}
@@ -23,6 +25,11 @@ spotify_siguiente significa cambiar a otra cancion de la cola; spotify_anterior 
 Reconoce peticiones indirectas: no necesitan empezar con un verbo de comando.
 Acciones con valor extraido del mensaje: spotify (titulo de cancion), spotify_playlist (nombre), spotify_buscar (consulta), abrir (app), buscar (consulta web), pestana (URL o vacio), carpeta.
 Apps: opera, opera gx, navegador, calculadora, bloc de notas, explorador, spotify, youtube.
+Sitios conocidos (pestana con valor nombre): youtube, netflix, twitch, crunchyroll, disney plus, prime video, github, reddit, steam, google, wikipedia. Buscar un nombre exacto de sitio es navegar; buscar opiniones o buscar en Google es buscar. Nunca programa_abrir para una búsqueda web.
+spotify_volumen: valor subir:10 o bajar:10 (diez puntos), fijar:50 para un porcentaje explícito, silenciar, activar o consultar. Mueve el deslizador interno de Spotify.
+youtube_volumen: mismos valores para el deslizador del reproductor de YouTube. "Sube el volumen del vídeo" se refiere a YouTube; sin nombre usa el tema activo.
+youtube_buscar y youtube_video llevan consulta literal: buscar videos frente a reproducir un video en YouTube.
+youtube_siguiente, youtube_anterior, youtube_pausa, youtube_reanudar llevan valor vacío. Si tema_activo=youtube, siguiente video o paúsalo controlan YouTube, no Spotify.
 Carpetas: Downloads, Documents, Desktop, Pictures, Music, Videos.
 No inventes parametros. Puedes reutilizar el valor del ultimo objetivo explicito.
 Si tema_activo=spotify, resuelve pronombres y frases cortas con ese tema. Sin referente claro, aclarar.
@@ -82,8 +89,28 @@ class Interprete:
     def contexto(self):
         recientes=[{k:v for k,v in t.items() if k!='momento'} for t in self.turnos
                    if time.monotonic()-t['momento']<180]
-        tema='spotify' if ultimo_tema(recientes).get('accion','').startswith('spotify') else ''
+        ultimo=ultimo_tema(recientes)
+        tema='spotify' if ultimo.get('accion','').startswith('spotify') else ''
+        if ultimo.get('accion','').startswith('youtube_') or (ultimo.get('accion') in ('pestana','abrir') and 'youtube' in ultimo.get('valor','')):tema='youtube'
         return {'tema_activo':tema,'turnos':recientes}
+
+    def ajustar_orden(self,texto,orden,control_ampliado=False):
+        if protegida(texto):return orden
+        t=limpiar_peticion(texto);n=normalizar(t).strip(' .!')
+        from volumen_apps import interpretar_volumen
+        volumen=interpretar_volumen(t,contexto=self.contexto()['tema_activo'])
+        if volumen:return volumen
+        if self.contexto()['tema_activo']=='youtube':
+            opciones={'siguiente':'siguiente','pon otra':'siguiente','pon otro':'siguiente','la siguiente':'siguiente',
+                      'el siguiente':'siguiente','la anterior':'anterior','el anterior':'anterior',
+                      'pausa':'pausa','pausalo':'pausa','detenlo':'pausa','continua':'reanudar','reanuda':'reanudar','ahora sigue':'reanudar'}
+            if n in opciones:return Orden('youtube_'+opciones[n])
+        if control_ampliado:
+            apertura=re.fullmatch(ABRIR+r'\s+(?:el\s+|la\s+)?(.+?)[.!]?',t,re.I)
+            if apertura and orden and orden.tipo=='desconocida':return Orden('programa_abrir',apertura[1])
+            cierre=re.fullmatch(r'(?:cierra|cerrar|cierre|cierres|termina)\s+(?:el\s+|la\s+)?(?!ventana\b)(.+?)[.!]?',t,re.I)
+            if cierre:return Orden('programa_cerrar',cierre[1])
+        return orden
 
     def validar(self,datos,texto,contexto,control_ampliado=False):
         aclarar=Decision(pregunta='¿A qué te refieres? Dime qué quieres controlar o cambiar.')
@@ -91,8 +118,23 @@ class Interprete:
         accion=datos['accion'];valor=datos['valor']
         if not all(isinstance(v,str) for v in (accion,valor)):return aclarar
         if accion=='charla':return Decision()
+        from navegador import interpretar_web
+        directa=interpretar_web(limpiar_peticion(texto)) if not protegida(texto) else None
+        if directa and accion in ('abrir','buscar','programa_abrir'):return Decision(directa)
+        if accion in ('spotify_volumen','youtube_volumen'):
+            from volumen_apps import interpretar_volumen
+            volumen=interpretar_volumen(texto,contexto=contexto['tema_activo'])
+            return Decision(volumen) if volumen and volumen.tipo==accion and volumen.valor==valor and not protegida(texto) else aclarar
+        if accion=='abrir' and valor:
+            from core import SITIOS
+            if normalizar(valor) in SITIOS and normalizar(valor) not in APPS and normalizar(valor) in normalizar(texto):
+                accion='pestana'
         if control_ampliado:
             from control_pc import ACCIONES as PC,validar
+            if accion=='programa_abrir' and re.match(r'^(?:busca|buscar|buscame|encuentra|investiga)\b',normalizar(limpiar_peticion(texto))):
+                from core import interpretar
+                web=interpretar(texto)
+                return Decision(web) if web and web.tipo in ('buscar','pestana','youtube_buscar','spotify_buscar') else aclarar
             if accion=='abrir' and normalizar(valor) not in APPS and valor and normalizar(valor) in normalizar(texto):
                 accion='archivo_abrir' if re.search(r'\b(?:archivo|imagen|foto|documento)\b',normalizar(texto)) or re.search(r'[\\/]|\.(?:png|jpg|jpeg|pdf|txt|docx|xlsx)$',valor,re.I) else 'programa_abrir'
             if accion in ('ventana_minimizar','ventana_maximizar','ventana_cerrar') and not valor:
@@ -108,6 +150,9 @@ class Interprete:
         n=normalizar(texto)
         if accion.startswith('spotify'):
             if not re.search(r'\b(?:spotify|musica|cancion|canciones|tema|pista|playlist|lista|reproduccion|sonando|reproductor)\b',n) and contexto['tema_activo']!='spotify':return aclarar
+        if accion.startswith('youtube_'):
+            if 'youtube' not in n and 'video' not in n and contexto['tema_activo']!='youtube':return aclarar
+            if accion in SIN_ARGUMENTO:return Decision(Orden(accion)) if not valor else aclarar
         if accion in ('spotify_pausa','spotify_siguiente','spotify_anterior','spotify_estado'):
             return Decision(Orden(accion)) if not valor else aclarar
         if accion=='spotify' and not valor:return Decision(Orden(accion))
@@ -125,6 +170,9 @@ class Interprete:
                      'Pictures':('imagenes','fotos'),'Music':('musica',),'Videos':('videos',)}
             if valor not in nombres or not any(x in n for x in nombres[valor]):return aclarar
         elif accion=='pestana':
+            from core import SITIOS
+            destino=next((sitio for nombre,sitio in SITIOS.items() if normalizar(valor)==normalizar(sitio) and re.search(r'\b'+re.escape(nombre)+r'\b',n)),None)
+            if destino:return Decision(Orden('pestana',destino))
             if not valor or normalizar(valor) not in n:return aclarar
             valor=url_solicitada(valor)
             if not valor:return aclarar

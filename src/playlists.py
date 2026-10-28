@@ -65,7 +65,7 @@ try {
    }
    if (-not $biblioteca) {continue}
    $items=$biblioteca.FindAll([Windows.Automation.TreeScope]::Descendants,[Windows.Automation.Condition]::TrueCondition)
-   if(-not $filtrada) {
+   if(-not $filtrada -and -not $d.uri) {
     foreach($e in $items) {
      if ((N $e.Current.Name) -match '(buscar en (tu |la )?biblioteca|search (in )?your library)') {
       $p=$null
@@ -77,6 +77,14 @@ try {
    $candidatos=@()
    foreach($e in $items) {
     $nombre=N $e.Current.Name;$buscado=N $d.nombre
+    if($d.uri){
+     $p=$null;$enlace=''
+     if($e.TryGetCurrentPattern([Windows.Automation.ValuePattern]::Pattern,[ref]$p)){$enlace=$p.Current.Value}
+     elseif($e.TryGetCurrentPattern([Windows.Automation.LegacyIAccessiblePattern]::Pattern,[ref]$p)){$enlace=$p.Current.Value}
+     $id=($d.uri -split ':')[-1]
+     if($enlace -match ('playlist[:/]'+[regex]::Escape($id)+'(?:[/?]|$)')){$candidatos+=,$e}
+     continue
+    }
     if(($nombre -eq $buscado -or $nombre.StartsWith($buscado+' Playlist') -or $nombre.StartsWith($buscado+' playlist') -or $nombre.StartsWith($buscado+' Lista') -or $nombre.StartsWith($buscado+' lista')) -and $e.Current.ControlType.ProgrammaticName -match '(ListItem|TreeItem|Hyperlink|Button)$') {$candidatos+=,$e}
    }
    if($candidatos.Count -eq 1 -and (Invocar $candidatos[0])) {@{ok=$true}|ConvertTo-Json -Compress;exit 0}
@@ -153,12 +161,11 @@ def ejecutar_ui(script,datos,correr):
     return r.returncode==0 and isinstance(valor,dict) and valor.get('ok') is True
 
 def reproducir_playlist(nombre,carpeta=None,abrir=None,correr=None):
-    correr=correr or subprocess.run;abrir=abrir or getattr(os,'startfile',None)
+    correr=correr or subprocess.run
     listas=cargar(carpeta);uri=listas.get(clave(nombre));abierta=False
     try:
-        if uri and abrir:
-            abrir(uri_playlist(uri));abierta=True
-        else:abierta=ejecutar_ui(BIBLIOTECA_PS,{'nombre':nombre},correr)
+        # Sin URI de apertura: no sacar al usuario de un juego a pantalla completa.
+        abierta=ejecutar_ui(BIBLIOTECA_PS,{'nombre':nombre,'uri':uri_playlist(uri) if uri else ''},correr)
         if abierta and ejecutar_ui(PLAYLIST_UI,{'consulta':nombre,'accion':'playlist'},correr):
             return 'Activé la reproducción de la playlist «'+nombre+'» en Spotify.'
     except (OSError,ValueError,subprocess.TimeoutExpired):pass

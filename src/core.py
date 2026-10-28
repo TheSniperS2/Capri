@@ -59,6 +59,10 @@ ABRIR = r'(?:[áa]bre(?:me)?|abrir(?:me)?|abras|abres|abrieras|abriera|abririas|
 BUSCAR = r'(?:b[uú]sca(?:r(?:me)?|me)?|b[uú]sque(?:s|n)?|investiga(?:r|me)?|encuentra(?:me)?|encontrar|mu[eé]strame)'
 PESTANA = r'(?:una |otra |nueva |una nueva |otra nueva )?pestana(?: nueva)?(?:\s+(?:en|de|del|con)\s+(?:el\s+)?(?:opera(?: gx)?|navegador))?'
 SITIOS = {'google':'https://www.google.com/', 'youtube':'https://www.youtube.com/',
+          'netflix':'https://www.netflix.com/', 'twitch':'https://www.twitch.tv/',
+          'crunchyroll':'https://www.crunchyroll.com/', 'disney plus':'https://www.disneyplus.com/',
+          'prime video':'https://www.primevideo.com/', 'github':'https://github.com/',
+          'reddit':'https://www.reddit.com/', 'steam':'https://store.steampowered.com/',
           'wikipedia':'https://es.wikipedia.org/', 'spotify':'https://open.spotify.com/'}
 
 def error_de_una_letra(a,b):
@@ -110,6 +114,8 @@ def nombre_navegador(texto):
 def url_solicitada(texto):
     texto=texto.strip().strip(' .!')
     n=normalizar(texto)
+    n={'crunchy roll':'crunchyroll','crunchy':'crunchyroll','disney+':'disney plus','disneyplus':'disney plus',
+       'primevideo':'prime video','amazon prime video':'prime video'}.get(n,n)
     if n in SITIOS:return SITIOS[n]
     candidato=texto if re.match(r'^https?://',texto,re.I) else ('https://'+texto if re.fullmatch(r'(?:www\.)?[\w-]+(?:\.[\w-]+)+(?:/\S*)?',texto) else '')
     if not candidato:return None
@@ -123,6 +129,13 @@ def url_solicitada(texto):
 def interpretar(texto):
     texto = limpiar_peticion(texto)
     n=nombre_navegador(texto).strip(' .!')
+    from volumen_apps import interpretar_volumen
+    volumen=interpretar_volumen(texto)
+    if volumen:return volumen
+    # Sitios y vídeos se resuelven antes de música o búsqueda general.
+    from navegador import interpretar_web
+    web=interpretar_web(texto)
+    if web:return web
     # Errores reales de dictado: solo una orden completa de transporte, nunca
     # búsquedas, títulos, citas, explicaciones ni negaciones.
     transporte_erroneo=re.fullmatch(r'(revoluces|revoluce|reproduses|reproduse)\s+(?:(?:la|mi|esa)\s+)?(?:cancion|musica|reproduccion)(?:\s+en\s+spotify)?',n)
@@ -245,6 +258,12 @@ def abrir_opera(consulta=None, spawn=subprocess.Popen, pagina=None):
     spawn(argumentos, shell=False, creationflags=HIDDEN)
 
 def ejecutar(orden, spawn=subprocess.Popen, open_url=None):
+    if orden.tipo in ('spotify_volumen','youtube_volumen'):
+        from volumen_apps import controlar_volumen
+        return controlar_volumen(orden.valor,destino=orden.tipo.removesuffix('_volumen'))
+    if orden.tipo.startswith('youtube_'):
+        from navegador import ejecutar_youtube
+        return ejecutar_youtube(orden,spawn=spawn)
     if orden.tipo in ('spotify_siguiente','spotify_anterior','spotify_estado'):
         from multimedia import controlar_sesion
         return controlar_sesion(orden.tipo.removeprefix('spotify_'))

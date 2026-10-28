@@ -72,6 +72,9 @@ class Capri:
         self.micro = Microfono(BASE/'modelos')
         self.ia = IA()
         self.interprete = Interprete()
+        if hotkeys:
+            from puente_opera import iniciar
+            iniciar()
         self.cfg = {'voz': True, 'voz_natural': True, 'modelo': '', 'ia': False, 'microfono': None,
                     'reconocimiento':'mixto','modelo_whisper':'base','voz_perfil':'capri','velocidad_voz':1.0,'volumen_voz':100,'activacion_voz':True,'dialogos_escritorio':True,'animaciones':True,'efecto_glitch':True,'escala_avatar':1.0,'intro_inicio':True}
         try:
@@ -197,6 +200,7 @@ class Capri:
         menu.add_command(label='Escribir junto a Capri', command=self.dialogo.abrir)
         menu.add_command(label='Historial de conversación', command=self.abrir_chat)
         menu.add_command(label='Ajustes', command=self.configurar)
+        menu.add_command(label='Conectar YouTube con Opera',command=self.conectar_opera)
         tamaño=tk.Menu(menu,tearoff=False,font=('Chakra Petch',11))
         for porcentaje in (75,100,125,150):
             tamaño.add_command(label=f'{porcentaje}%',command=lambda p=porcentaje:self.guardar('escala_avatar',p/100))
@@ -587,6 +591,7 @@ class Capri:
         self.dialogo.recibir_usuario(texto)
         self.poner_chat('Tú',texto)
         orden = interpretar(texto)
+        orden = self.interprete.ajustar_orden(texto,orden,bool(self.cfg.get('control_ampliado')))
         from core import normalizar
         juego=normalizar(texto).strip(' .!¡¿?')
         if self.es_personaje():
@@ -1103,7 +1108,39 @@ class Capri:
         except (OSError,ValueError) as e:messagebox.showerror('Playlist de Spotify',str(e),parent=self.ajustes);return
         messagebox.showinfo('Playlist de Spotify','Vinculada. Puedes decir «Capri, pon mi playlist '+nombre+'».',parent=self.ajustes)
 
+    def conectar_opera(self):
+        from puente_opera import iniciar
+        puente=iniciar()
+        carpeta=BASE/'integraciones/opera-capri'
+        if not carpeta.exists():carpeta=BASE.parent/'integraciones/opera-capri'
+        ventana=tk.Toplevel(self.root);ventana.title('Conectar YouTube con Opera');ventana.configure(bg=BG)
+        ventana.geometry('570x345');ventana.attributes('-topmost',True)
+        texto=('1. Abre el gestor de extensiones de Opera GX.\n'
+               '2. Activa Modo desarrollador y elige Cargar extensión descomprimida.\n'
+               '3. Selecciona la carpeta que abre el botón de abajo.\n'
+               '4. Recarga la pestaña de YouTube y deja seleccionado el vídeo.\n\n'
+               'La extensión solo accede a YouTube y a la conexión local con Capri.\n'
+               'No lee otras páginas, contraseñas ni archivos.')
+        tk.Label(ventana,text=texto,bg=BG,fg=FG,font=('Chakra Petch',11),justify='left',wraplength=535).pack(padx=18,pady=16)
+        fila=tk.Frame(ventana,bg=BG);fila.pack()
+        def gestor():
+            from core import abrir_opera
+            try:abrir_opera(pagina='opera://extensions')
+            except OSError as e:messagebox.showerror('Opera GX',str(e),parent=ventana)
+        tk.Button(fila,text='Abrir gestor de Opera',command=gestor).pack(side='left',padx=6)
+        tk.Button(fila,text='Abrir carpeta de extensión',command=lambda:os.startfile(str(carpeta))).pack(side='left',padx=6)
+        estado=tk.StringVar()
+        tk.Label(ventana,textvariable=estado,bg=BG,fg=GREEN,font=('Chakra Petch',11),wraplength=530).pack(pady=16)
+        def actualizar():
+            if not ventana.winfo_exists():return
+            estado.set(puente.error or ('Conectada con la pestaña seleccionada de YouTube.' if puente.conectado() else 'Esperando la extensión y una pestaña seleccionada de YouTube…'))
+            ventana.after(700,actualizar)
+        actualizar()
+
     def cerrar(self):
+        if self.activacion_permitida:
+            from puente_opera import cerrar
+            cerrar()
         self.detener_activacion()
         self.cerrado=True;self.respuesta_stop.set();self.micro_stop.set();self.voz.parar()
         if self.atajo:self.atajo.cerrar()

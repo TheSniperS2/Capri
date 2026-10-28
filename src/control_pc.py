@@ -10,7 +10,7 @@ from core import normalizar
 
 ACCIONES=('archivo_abrir','archivo_buscar','archivo_listar','archivo_leer','archivo_crear_carpeta',
           'archivo_borrar','archivo_mover','archivo_renombrar','ventana_listar','ventana_minimizar',
-          'ventana_maximizar','ventana_cerrar','programa_listar','programa_abrir','equipo_apagar','equipo_reiniciar','equipo_cancelar_apagado')
+          'ventana_maximizar','ventana_cerrar','programa_listar','programa_abrir','programa_cerrar','equipo_apagar','equipo_reiniciar','equipo_cancelar_apagado')
 SISTEMA='''Si control ampliado está activo, también puedes usar estas acciones:
 archivo_abrir, archivo_buscar, archivo_listar, archivo_leer, archivo_crear_carpeta, archivo_borrar.
 valor debe ser un nombre o ruta EXACTO del mensaje. Para el archivo seleccionado: valor="seleccionado", solo si el usuario pide el seleccionado o esta imagen/este archivo.
@@ -18,6 +18,7 @@ archivo_mover y archivo_renombrar: valor="origen | destino", ambos datos extraí
 ventana_minimizar, ventana_maximizar, ventana_cerrar: valor es parte literal del título o nombre de la aplicación.
 ventana_listar y equipo_apagar, equipo_reiniciar, equipo_cancelar_apagado: valor vacío.
 programa_listar: valor vacío para listar aplicaciones instaladas; programa_abrir: nombre literal de otra aplicación instalada fuera de las apps de la lista básica.
+programa_cerrar: nombre literal de la aplicación que se quiere cerrar, incluso si está minimizada o su ventana muestra una canción.
 No confirmes borrados ni cierres: el ejecutor SIEMPRE preguntará. "sí" no es una nueva orden de borrar.
 No inventes rutas, nombres, aplicaciones o argumentos. Nada de código, scripts o comandos.'''
 
@@ -128,6 +129,9 @@ class ControlPC:
                 if n in ('no','cancelar','cancela','no lo hagas','dejalo','no gracias'):return 'Cancelado. No hice cambios.'
                 return None
             if pendiente.accion.startswith('equipo_'):return self.energia(pendiente.accion)
+            if pendiente.accion=='programa_cerrar':
+                from aplicaciones import cerrar
+                return cerrar(pendiente.ruta)
             if pendiente.accion=='ventana_cerrar':
                 from ventanas import visibles,controlar
                 actual=next((v for v in visibles() if v['id']==pendiente.ruta['id'] and v['titulo']==pendiente.ruta['titulo']),None)
@@ -157,18 +161,13 @@ class ControlPC:
             self.pendiente=None
             if accion not in ACCIONES:raise ValueError('Operación no disponible.')
             if accion.startswith('programa_'):
-                import base64,json
-                script="[Console]::OutputEncoding=New-Object Text.UTF8Encoding($false); @(Get-StartApps | Select-Object Name,AppID) | ConvertTo-Json -Compress"
-                r=subprocess.run(['powershell.exe','-NoProfile','-NonInteractive','-EncodedCommand',base64.b64encode(script.encode('utf-16le')).decode()],
-                                 capture_output=True,text=True,encoding='utf8',errors='replace',timeout=10,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
-                if r.returncode:raise OSError('No pude consultar las aplicaciones instaladas.')
-                apps=json.loads(r.stdout or '[]');apps=[apps] if isinstance(apps,dict) else apps
-                if accion=='programa_listar':return 'Aplicaciones instaladas: '+('; '.join(a['Name'] for a in apps[:60]) or 'ninguna disponible')
-                opciones=[a for a in apps if normalizar(a['Name'])==normalizar(valor)]
-                if not opciones:opciones=[a for a in apps if normalizar(valor) in normalizar(a['Name'])]
-                if len(opciones)!=1:return 'Necesito un nombre más preciso. Coincidencias: '+('; '.join(a['Name'] for a in opciones[:8]) or 'ninguna')
-                app=opciones[0];subprocess.Popen(['explorer.exe','shell:AppsFolder\\'+app['AppID']],creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
-                return 'Solicité abrir '+app['Name']+'.'
+                from aplicaciones import catalogo,abrir,procesos
+                if accion=='programa_listar':return 'Aplicaciones instaladas: '+'; '.join(a['nombre'] for a in catalogo()[:60])
+                if accion=='programa_abrir':return abrir(valor)
+                seleccion=procesos(valor)
+                if not seleccion:return 'No encontré esa aplicación en ejecución: '+valor+'.'
+                self.pendiente=Pendiente(accion,seleccion,None,None,self.reloj()+120)
+                return '¿Confirmas cerrar '+valor+'? Se terminarán sus procesos; puedes perder trabajo sin guardar. Responde «sí, confirmo» o «cancelar».'
             if accion.startswith('equipo_'):
                 if accion=='equipo_cancelar_apagado':return self.energia(accion)
                 self.pendiente=Pendiente(accion,None,None,None,self.reloj()+120)

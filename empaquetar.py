@@ -2,13 +2,13 @@ from pathlib import Path
 import base64,hashlib,io,zipfile
 
 BASE=Path(__file__).resolve().parent
-ARCHIVOS=['app.py','core.py','voz.py','recursos.py','activar_ia.py','reconocimiento.py','nombres.py','activacion.py','escritorio.py','multimedia.py','playlists.py','intenciones.py','prueba_microfono.py','dialogos.py','avatar.py','sincronia.py','entrada.py','fuentes.py','intro.py','companera.py','travesuras.py','ventanas.py','control_pc.py','assets/capri-personaje-v1.png','assets/capri-caminar-v1.png','assets/capri-base-v2.png','assets/capri-bocas-v2.png','assets/fonts/ChakraPetch-Regular.ttf','assets/fonts/ChakraPetch-Bold.ttf','assets/fonts/OFL.txt','capri.ico','preparar_whisper.py','requirements.txt','LEEME.md','ARTE_ANIMADO.md','COMPARACION_MODELOS.md','PERSONAJE_Y_CONTROL.md','PROMPT_CAMINAR.md']
+ARCHIVOS=['puente_opera.py','integraciones/opera-capri/manifest.json','integraciones/opera-capri/control.js','integraciones/opera-capri/page.js','integraciones/opera-capri/content.js','integraciones/opera-capri/worker.js','CONECTAR_OPERA.md','volumen_apps.py','aplicaciones.py','navegador.py','app.py','core.py','voz.py','recursos.py','activar_ia.py','reconocimiento.py','nombres.py','activacion.py','escritorio.py','multimedia.py','playlists.py','intenciones.py','prueba_microfono.py','dialogos.py','avatar.py','sincronia.py','entrada.py','fuentes.py','intro.py','companera.py','travesuras.py','ventanas.py','control_pc.py','assets/capri-personaje-v1.png','assets/capri-caminar-v1.png','assets/capri-base-v2.png','assets/capri-bocas-v2.png','assets/fonts/ChakraPetch-Regular.ttf','assets/fonts/ChakraPetch-Bold.ttf','assets/fonts/OFL.txt','capri.ico','preparar_whisper.py','requirements.txt','LEEME.md','ARTE_ANIMADO.md','COMPARACION_MODELOS.md','PERSONAJE_Y_CONTROL.md','PROMPT_CAMINAR.md']
 
 def origen(nombre):
-    if nombre.startswith('assets/'):return BASE/nombre
+    if nombre.startswith(('assets/','integraciones/')):return BASE/nombre
     if nombre=='capri.ico':return BASE/'assets'/nombre
     if nombre=='LEEME.md':return BASE/'docs/USO.md'
-    if nombre in ('ARTE_ANIMADO.md','COMPARACION_MODELOS.md','PERSONAJE_Y_CONTROL.md','PROMPT_CAMINAR.md'):return BASE/'docs'/nombre
+    if nombre in ('ARTE_ANIMADO.md','COMPARACION_MODELOS.md','PERSONAJE_Y_CONTROL.md','PROMPT_CAMINAR.md','CONECTAR_OPERA.md'):return BASE/'docs'/nombre
     if nombre=='requirements.txt':return BASE/nombre
     return BASE/'src'/nombre
 
@@ -27,6 +27,7 @@ def crear():
         z.write(BASE/'docs/USO.md','LEEME.md')
         z.write(BASE/'docs/PERSONAJE_Y_CONTROL.md','PERSONAJE_Y_CONTROL.md')
         z.write(BASE/'docs/PROMPT_CAMINAR.md','PROMPT_CAMINAR.md')
+        z.write(BASE/'docs/CONECTAR_OPERA.md','CONECTAR_OPERA.md')
         for nombre in ARCHIVOS:z.write(origen(nombre),'codigo/'+nombre)
     print('Lanzador:',destino)
     print('ZIP:',salida/'Capri.zip')
