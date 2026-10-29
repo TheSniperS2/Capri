@@ -62,9 +62,11 @@ class Transformacion:
         panel.alpha_composite(vista.resize((960,630),Image.Resampling.LANCZOS),(60,165))
         fuente=Path(__file__).resolve().parent/'assets/fonts/ChakraPetch-Bold.ttf'
         if not fuente.exists():fuente=Path(__file__).resolve().parents[1]/'assets/fonts/ChakraPetch-Bold.ttf'
+        from idiomas import ui,idioma_actual
+        if idioma_actual()=='ja':fuente='YuGothB.ttc'
         try:fuente=ImageFont.truetype(str(fuente),38)
         except OSError:fuente=ImageFont.load_default()
-        d.text((54,60),'CAPRI // ENLACE PERSONAL',fill='#ffb0c3',font=fuente)
+        d.text((54,60),ui('CAPRI // ENLACE PERSONAL'),fill='#ffb0c3',font=fuente)
         self.normal=(360*escala,292*escala)
         self.grande=(min(ancho*.78,alto*.8*saludo.width/saludo.height),alto*.8)
         self.pequena=personaje.size

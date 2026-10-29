@@ -6,6 +6,7 @@ import queue
 import threading
 import time
 import tkinter as tk
+from idiomas import Lienzo as CanvasUI
 
 from reconocimiento import energia
 
@@ -77,7 +78,7 @@ class PanelPrueba(tk.Frame):
         tk.Label(self,text='Prueba de micrófono',bg=bg,fg=fg,font=('Segoe UI',11,'bold')).pack(anchor='w')
         tk.Label(self,text='Graba 5 segundos y escucha cómo llega tu voz. No necesitas decir Capri.',
                  bg=bg,fg='#bb929f',wraplength=425,justify='left').pack(anchor='w',pady=(3,8))
-        self.medidor=tk.Canvas(self,height=25,bg='#10090d',highlightthickness=0)
+        self.medidor=CanvasUI(self,height=25,bg='#10090d',highlightthickness=0)
         self.medidor.pack(fill='x');self.medidor.bind('<Configure>',lambda e:self.dibujar())
         self.etiqueta=tk.StringVar(value='Sin prueba · el micrófono se abre al pulsar Grabar.')
         tk.Label(self,textvariable=self.etiqueta,bg=bg,fg=fg,wraplength=425,justify='left').pack(anchor='w',pady=5)
@@ -96,16 +97,22 @@ class PanelPrueba(tk.Frame):
         self.escala.set(umbral_db(cfg.get('umbral_microfono_db')) or -56)
         self.escala.configure(state='disabled' if self.automatico.get() else 'normal')
         self.escala.bind('<ButtonRelease-1>',self.cambiar);self.escala.bind('<KeyRelease>',self.cambiar)
-        self.escala.pack(fill='x')
-        tk.Label(self,text='Izquierda: capta voz más baja. Derecha: exige hablar más fuerte.\n'
+        if not self.automatico.get():self.escala.pack(fill='x',pady=(6,0))
+        self.ayuda_umbral=tk.Label(self,text='Izquierda: capta voz más baja. Derecha: exige hablar más fuerte.\n'
                  'La línea marca el umbral manual. Pasarlo no garantiza reconocer las palabras.\n'
-                 'La prueba se escucha sin este filtro y se borra al cerrar Ajustes.',bg=bg,fg='#bb929f',wraplength=425,justify='left').pack(anchor='w')
+                 'La prueba se escucha sin este filtro y se borra al cerrar Ajustes.',bg=bg,fg='#bb929f',wraplength=425,justify='left')
+        self.ayuda_umbral.pack(anchor='w',pady=(6,0))
+        self.ayuda_manual=self.ayuda_umbral.cget('text')
+        if self.automatico.get():self.ayuda_umbral.configure(text='El umbral se ajusta automáticamente a tu voz.')
         self.bind('<Destroy>',self.destruir)
         self.pendiente=self.raiz.after(60,self.poll)
 
     def cambiar(self,event=None):
         valor=None if self.automatico.get() else float(self.escala.get())
         self.escala.configure(state='disabled' if valor is None else 'normal')
+        if valor is None:self.escala.pack_forget()
+        elif not self.escala.winfo_manager():self.escala.pack(fill='x',pady=(6,0),before=self.ayuda_umbral)
+        self.ayuda_umbral.configure(text='El umbral se ajusta automáticamente a tu voz.' if valor is None else self.ayuda_manual)
         self.guardar('umbral_microfono_db',valor);self.dibujar()
 
     def dibujar(self):

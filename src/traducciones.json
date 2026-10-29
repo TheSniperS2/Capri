@@ -1,0 +1,1317 @@
+{
+  "\nResponde «sí, confirmo» o «cancelar». No hice cambios todavía.": [
+    "\nReply «sí, confirmo» or «cancelar». No changes made yet.",
+    "\nResponda «sí, confirmo» ou «cancelar». Ainda não fiz alterações.",
+    "\n「sí, confirmo」または「cancelar」と答えてね。まだ変更はしていないよ。"
+  ],
+  " Abre Spotify y selecciona una canción primero.": [
+    " Open Spotify and select a song first.",
+    " Abra o Spotify e selecione uma música primeiro.",
+    " Spotifyを開き、先に曲を選んでね。"
+  ],
+  " Capri": [
+    " Capri",
+    " Capri",
+    " Capri"
+  ],
+  " No hice una búsqueda general.": [
+    " I did not perform a general search.",
+    " Não realizei uma busca geral.",
+    " 一般検索を行っていません。"
+  ],
+  " PARA HABLAR": [
+    " TO TALK",
+    " PARA FALAR",
+    " で話す"
+  ],
+  " Sigue silenciado.": [
+    " Still muted.",
+    " Continua silenciado.",
+    " まだミュート中だよ。"
+  ],
+  " También falló el control accesible de la página.": [
+    " The accessible control of the page also failed.",
+    " O controle acessível da página também falhou.",
+    " ページのアクセシブルコントロールも失敗しました。"
+  ],
+  " Un pequeño atajo, choom.": [
+    " A small shortcut, choom.",
+    " Um atalho pequeno, choom.",
+    " 小さなショートカット、choom。"
+  ],
+  " con esa página.": [
+    " with that page.",
+    " com aquela página.",
+    " そのページで。"
+  ],
+  " de ": [
+    " of ",
+    " de ",
+    " の "
+  ],
+  " de YouTube mediante su sesión multimedia.": [
+    " from YouTube through its media session.",
+    " do YouTube pela sessão de mídia.",
+    " YouTubeのメディアセッションで。"
+  ],
+  " el computador? Guarda tu trabajo. Responde «sí, confirmo» o «cancelar».": [
+    " the computer? Save your work. Reply «sí, confirmo» or «cancelar».",
+    " o computador? Salve seu trabalho. Responda «sí, confirmo» ou «cancelar».",
+    " コンピューター？作業を保存してね。「sí, confirmo」または「cancelar」と答えてね。"
+  ],
+  " este archivo?\n": [
+    " this file?\n",
+    " este arquivo?\n",
+    " このファイル？\n"
+  ],
+  " está ocupada por otra aplicación. Elige otra tecla en Ajustes.": [
+    " is used by another application. Choose another key in Settings.",
+    " está sendo usada por outro aplicativo. Escolha outra tecla nas Configurações.",
+    " は別のアプリで使われているよ。設定で別のキーを選んでね。"
+  ],
+  " no confirmó el cambio de su volumen interno. No cambié el mezclador de Windows.": [
+    " did not confirm the internal volume change. I did not change the Windows mixer.",
+    " não confirmou a alteração do volume interno. Não alterei o mixer do Windows.",
+    " の内部音量変更を確認できなかったよ。Windowsミキサーは変更していないよ。"
+  ],
+  " nueva.": [
+    " new.",
+    " nova.",
+    " 新規。"
+  ],
+  " para hablar": [
+    " to speak",
+    " para falar",
+    " 話すため"
+  ],
+  " para hablar · Esc para detener": [
+    " to talk · Esc to stop",
+    " para falar · Esc para parar",
+    " で話す · Escで停止"
+  ],
+  " para repetir.": [
+    " to repeat.",
+    " para repetir.",
+    " 繰り返す。"
+  ],
+  " · debajo del umbral": [
+    " · below the threshold",
+    " · abaixo do limiar",
+    " · 閾値以下"
+  ],
+  " · saturación: baja la ganancia del micrófono": [
+    " · clipping: lower the microphone gain",
+    " · saturação: reduza o ganho do microfone",
+    " · 音割れ：マイクのゲインを下げてね"
+  ],
+  " · supera el umbral": [
+    " · exceeds the threshold",
+    " · supera o limiar",
+    " · 閾値を越える"
+  ],
+  "01 // Entrada de audio": [
+    "01 // Audio input",
+    "01 // Entrada de áudio",
+    "01 // 音声入力"
+  ],
+  "1. Abre el gestor de extensiones de Opera GX.\n2. Activa Modo desarrollador y elige Cargar extensión descomprimida.\n3. Selecciona la carpeta que abre el botón de abajo.\n4. Recarga YouTube e inicia un vídeo. Después puedes usar otra pestaña.\n\nLa extensión solo accede a YouTube y a la conexión local con Capri.\nNo lee otras páginas, contraseñas ni archivos.": [
+    "1. Open the Opera GX extensions manager.\n2. Enable Developer Mode and choose Load unpacked extension.\n3. Select the folder that the button below opens.\n4. Reload YouTube and start a video. Then you can use another tab.\n\nThe extension only accesses YouTube and the local connection with Capri.\nIt does not read other pages, passwords, or files.",
+    "1. Abre o gerenciador de extensões do Opera GX.\n2. Ative o modo desenvolvedor e escolha Carregar extensão descompactada.\n3. Selecione a pasta que o botão abaixo abre.\n4. Recarregue o YouTube e inicie um vídeo. Depois você pode usar outra aba.\n\nA extensão apenas acessa o YouTube e a conexão local com Capri.\nNão lê outras páginas, senhas nem arquivos.",
+    "1. Opera GXの拡張機能マネージャーを開きます。\n2. 開発者モードを有効にし、展開された拡張機能を読み込みます。\n3. 下のボタンで開くフォルダを選択します。\n4. YouTubeを再読み込みし、動画を再生してください。その後、別のタブを使用できます。\n\nこの拡張機能はYouTubeおよびCapriとのローカル接続にのみアクセスします。\n他のページ、パスワード、ファイルは読み取りません。"
+  ],
+  "A tu manera": [
+    "In your own way",
+    "A sua maneira",
+    "あなたの方法で"
+  ],
+  "ACTIVO": [
+    "ACTIVE",
+    "ATIVO",
+    "適用中"
+  ],
+  "AJUSTES": [
+    "SETTINGS",
+    "CONFIGURAÇÕES",
+    "設定"
+  ],
+  "AJUSTES DEL CONSTRUCTO": [
+    "CONSTRUCT SETTINGS",
+    "AJUSTES DO CONSTRUCTO",
+    "電脳体の設定"
+  ],
+  "ASPECTOS": [
+    "APPEARANCE",
+    "APARÊNCIA",
+    "外観"
+  ],
+  "Abre Ollama para ver los modelos instalados.": [
+    "Open Ollama to view installed models.",
+    "Abra Ollama para ver os modelos instalados.",
+    "Ollamaを開き、インストールされたモデルを確認してください。"
+  ],
+  "Abre el archivo «Abrir Capri.pyw» actualizado para preparar Whisper.": [
+    "Open the updated «Abrir Capri.pyw» file to set up Whisper.",
+    "Abra o arquivo «Abrir Capri.pyw» atualizado para preparar o Whisper.",
+    "更新した「Abrir Capri.pyw」を開いてWhisperを準備してね。"
+  ],
+  "Abrir carpeta de extensión": [
+    "Open extension folder",
+    "Abrir pasta da extensão",
+    "拡張機能フォルダーを開く"
+  ],
+  "Abrir gestor de Opera": [
+    "Open Opera extension manager",
+    "Abrir gerenciador do Opera",
+    "Operaの拡張機能管理を開く"
+  ],
+  "Activación por voz no disponible": [
+    "Voice activation not available",
+    "Ativação por voz não disponível",
+    "音声アクティベーションは利用できません"
+  ],
+  "Activar IA local": [
+    "Activate local AI",
+    "Ativar IA local",
+    "ローカルAIを有効にする"
+  ],
+  "Activar al decir «Capri» (escucha local)": [
+    "Activate by saying \"Capri\" (local listening)",
+    "Ativar ao dizer \"Capri\" (escuta local)",
+    "「Capri」と言うことで有効にする（ローカルリスニング）"
+  ],
+  "Activar control ampliado del computador": [
+    "Activate expanded computer control",
+    "Ativar controle ampliado do computador",
+    "拡張されたコンピュータ制御を有効にする"
+  ],
+  "Activar voz": [
+    "Activate voice",
+    "Ativar voz",
+    "声を有効にする"
+  ],
+  "Actualizar": [
+    "Update",
+    "Atualizar",
+    "更新"
+  ],
+  "Ajustes": [
+    "Settings",
+    "Configurações",
+    "設定"
+  ],
+  "Asomarse": [
+    "Peek out",
+    "Espiar",
+    "顔を出す"
+  ],
+  "Aspecto": [
+    "Appearance",
+    "Aparência",
+    "外観"
+  ],
+  "Aspectos": [
+    "Appearance",
+    "Aparência",
+    "外観"
+  ],
+  "Atrápame": [
+    "Catch me",
+    "Pegue-me",
+    "つかまえて"
+  ],
+  "Atrápame tres veces, choom. Haz clic sobre mí cuando aterrice.": [
+    "Catch me three times, choom. Click me when I land.",
+    "Me pegue três vezes, choom. Clique em mim quando eu pousar.",
+    "3回つかまえてね、チューム。着地したら私をクリックして。"
+  ],
+  "Buscando micrófonos…": [
+    "Looking for microphones…",
+    "Procurando microfones…",
+    "マイクを探しているよ…"
+  ],
+  "Buscando modelos instalados en Ollama…": [
+    "Looking for models installed in Ollama…",
+    "Procurando modelos instalados no Ollama…",
+    "Ollamaにインストールされたモデルを探しているよ…"
+  ],
+  "CAMBIAR": [
+    "CHANGE",
+    "ALTERAR",
+    "変更"
+  ],
+  "CAPRI": [
+    "CAPRI",
+    "CAPRI",
+    "CAPRI"
+  ],
+  "CAPRI // ": [
+    "CAPRI // ",
+    "CAPRI // ",
+    "CAPRI // "
+  ],
+  "CAPRI // ENLACE PERSONAL": [
+    "CAPRI // PERSONAL LINK",
+    "CAPRI // LINK PESSOAL",
+    "CAPRI // パーソナルリンク"
+  ],
+  "CERRAR": [
+    "CLOSE",
+    "FECHAR",
+    "閉じる"
+  ],
+  "CON CONTROL AMPLIADO": [
+    "WITH ENHANCED CONTROL",
+    "COM CONTROLE AMPLIADO",
+    "拡張操作でできること"
+  ],
+  "CONECTANDO": [
+    "CONNECTING",
+    "CONECTANDO",
+    "接続中"
+  ],
+  "CONFIGURACIÓN": [
+    "SETTINGS",
+    "CONFIGURAÇÕES",
+    "設定"
+  ],
+  "CONVERSACIÓN": [
+    "CONVERSATION",
+    "CONVERSA",
+    "会話"
+  ],
+  "Cambia menús, ajustes, avisos, respuestas y voz. Se conserva tu perfil de voz en español.": [
+    "Changes menus, settings, notices, replies and voice. Your Spanish voice profile is preserved.",
+    "Altera menus, configurações, avisos, respostas e voz. Seu perfil de voz em espanhol é preservado.",
+    "メニュー、設定、通知、返答と音声に適用されます。スペイン語の音声プロフィールは保持されます。"
+  ],
+  "Cancel": [
+    "Cancel",
+    "Cancelar",
+    "キャンセル"
+  ],
+  "Capri": [
+    "Capri",
+    "Capri",
+    "Capri"
+  ],
+  "Capri // Aspectos": [
+    "Capri // Appearance",
+    "Capri // Aparência",
+    "Capri // 外観"
+  ],
+  "Capri clásica · Dalia": [
+    "Classic Capri · Dalia",
+    "Capri clássica · Dalia",
+    "クラシックCapri · Dalia"
+  ],
+  "Capri está respondiendo…": [
+    "Capri is replying…",
+    "Capri está respondendo…",
+    "カプリが返答中…"
+  ],
+  "Capri latina · experimental": [
+    "Latin Capri · experimental",
+    "Capri latina · experimental",
+    "ラテン系Capri · 試験版"
+  ],
+  "Capri ya está abierta. Busca su imagen flotante.": [
+    "Capri is already open. Look for her floating image.",
+    "Capri já está aberta. Procure a imagem flutuante dela.",
+    "カプリはすでに起動しているよ。浮かんでいる姿を探してね。"
+  ],
+  "Capri · Ajustes": [
+    "Capri · Settings",
+    "Capri · Configurações",
+    "Capri · 設定"
+  ],
+  "Capri · Conversación": [
+    "Capri · Conversation",
+    "Capri · Conversa",
+    "Capri · 会話"
+  ],
+  "Capri · Enlace": [
+    "Capri · Link",
+    "Capri · Conexão",
+    "Capri · 接続"
+  ],
+  "Captura cancelada.": [
+    "Recording cancelled.",
+    "Gravação cancelada.",
+    "録音をキャンセルしたよ。"
+  ],
+  "Cerrar": [
+    "Close",
+    "Fechar",
+    "閉じる"
+  ],
+  "Cerrar Capri": [
+    "Close Capri",
+    "Fechar Capri",
+    "カプリを終了"
+  ],
+  "Chat": [
+    "Chat",
+    "Chat",
+    "チャット"
+  ],
+  "Chilena · Catalina": [
+    "Chilean · Catalina",
+    "Chilena · Catalina",
+    "チリの声 · Catalina"
+  ],
+  "Conectada con YouTube; puedes usar otra pestaña.": [
+    "Connected to YouTube; you can use another tab.",
+    "Conectada ao YouTube; você pode usar outra aba.",
+    "YouTubeに接続したよ。別のタブを使っても大丈夫。"
+  ],
+  "Conectar YouTube con Opera": [
+    "Connect YouTube with Opera",
+    "Conectar YouTube ao Opera",
+    "YouTubeをOperaに接続"
+  ],
+  "Conversación libre": [
+    "Free conversation",
+    "Conversa livre",
+    "自由に会話"
+  ],
+  "Conversación, voz, música y sitios web.": [
+    "Conversation, voice, music, and websites.",
+    "Conversação, voz, música e sites web.",
+    "会話、声、音楽、ウェブサイト。"
+  ],
+  "DI CAPRI": [
+    "SAY CAPRI",
+    "DIGA CAPRI",
+    "カプリと話しかける"
+  ],
+  "DI «CAPRI»": [
+    "SAY “CAPRI”",
+    "DIGA “CAPRI”",
+    "「カプリ」と話しかける"
+  ],
+  "DI «CAPRI»  //  ": [
+    "SAY “CAPRI”  //  ",
+    "DIGA “CAPRI”  //  ",
+    "「カプリ」と話しかける  //  "
+  ],
+  "Decide qué puede hacer Capri en tu computador.": [
+    "Choose what Capri can do on your computer.",
+    "Escolha o que Capri pode fazer no seu computador.",
+    "カプリがコンピューターでできることを選んでね。"
+  ],
+  "Detener prueba": [
+    "Stop test",
+    "Parar teste",
+    "テストを停止"
+  ],
+  "Detenida": [
+    "Stopped",
+    "Parada",
+    "停止中"
+  ],
+  "Di qué quieres hacer": [
+    "Tell me what you want to do",
+    "Diga o que você quer fazer",
+    "何をしたいか教えてね"
+  ],
+  "Di «Capri» o escribe…": [
+    "Say «Capri» or type…",
+    "Diga «Capri» ou escreva…",
+    "「カプリ」と話しかけるか、入力してね…"
+  ],
+  "Di «Capri» o pulsa ": [
+    "Say «Capri» or press ",
+    "Diga «Capri» ou pressione ",
+    "「カプリ」と話しかけるか、次のキーを押してね： "
+  ],
+  "Di «Capri» para hablar o escribe una transmisión.": [
+    "Say «Capri» to talk or type a transmission.",
+    "Diga «Capri» para falar ou escreva uma transmissão.",
+    "「カプリ」と話しかけるか、メッセージを入力してね。"
+  ],
+  "ELIGE": [
+    "CHOOSE",
+    "ESCOLHER",
+    "選択"
+  ],
+  "ELIGE TU FRECUENCIA": [
+    "CHOOSE YOUR FREQUENCY",
+    "ESCOLHA SUA FREQUÊNCIA",
+    "周波数を選んでね"
+  ],
+  "EN LÍNEA": [
+    "ONLINE",
+    "ONLINE",
+    "オンライン"
+  ],
+  "ENLACE ABIERTO": [
+    "LINK OPEN",
+    "CONEXÃO ABERTA",
+    "接続中"
+  ],
+  "ENLACE ESTABLECIDO": [
+    "LINK ESTABLISHED",
+    "LINK ESTABELECIDO",
+    "リンクが確立されました"
+  ],
+  "ENLACE PERSONAL": [
+    "PERSONAL LINK",
+    "LINK PESSOAL",
+    "パーソナルリンク"
+  ],
+  "ESCUCHA": [
+    "LISTENING",
+    "OUVINDO",
+    "聞き取り中"
+  ],
+  "El micrófono dejó de entregar audio.": [
+    "The microphone stopped delivering audio.",
+    "O microfone deixou de entregar áudio.",
+    "マイクが音声を送信できなくなりました。"
+  ],
+  "El micrófono elegido no está disponible. Conéctalo o selecciona otro en Ajustes.": [
+    "The selected microphone is unavailable. Connect it or select another in Settings.",
+    "O microfone escolhido está indisponível. Conecte-o ou selecione outro nas Configurações.",
+    "選択したマイクが使えないよ。接続するか、設定で別のマイクを選んでね。"
+  ],
+  "El micrófono guardado no está conectado. Selecciona otro o actualiza la lista.": [
+    "The saved microphone is disconnected. Select another or refresh the list.",
+    "O microfone salvo não está conectado. Selecione outro ou atualize a lista.",
+    "保存したマイクが接続されていないよ。別のマイクを選ぶか、一覧を更新してね。"
+  ],
+  "El micrófono se reconoce en tu PC. La voz natural es una interpretación sintética, no la actriz de la serie; envía solo las respuestas a Microsoft. Si la desactivas se usa Windows.": [
+    "Speech recognition runs on your PC. The natural voice is synthetic, not the series' actress; only replies are sent to Microsoft. Turn it off to use Windows voices.",
+    "O reconhecimento de voz é feito no seu PC. A voz natural é sintética, não é a atriz da série; apenas as respostas são enviadas à Microsoft. Desative-a para usar as vozes do Windows.",
+    "音声認識はPC内で行うよ。自然音声は合成音声で、作品の声優ではないよ。返答だけをMicrosoftに送信するよ。無効にするとWindowsの音声を使うよ。"
+  ],
+  "El modelo local está tardando más de lo previsto.": [
+    "The local model is taking longer than expected.",
+    "O modelo local está levando mais do que previsto.",
+    "ローカルモデルが予想以上に時間がかかります。"
+  ],
+  "El umbral se ajusta automáticamente a tu voz.": [
+    "The threshold adjusts automatically to your voice.",
+    "O limiar se ajusta automaticamente à sua voz.",
+    "しきい値は声に合わせて自動調整されます。"
+  ],
+  "Elige tu entrada, comprueba el nivel y ajusta el reconocimiento local.": [
+    "Select your input, check the level, and adjust local recognition.",
+    "Selecione sua entrada, verifique o nível e ajuste o reconhecimento local.",
+    "入力を選択し、レベルを確認し、ローカル認識を調整してください。"
+  ],
+  "Elige tu entrada. Se conserva para las siguientes capturas.": [
+    "Choose your microphone. It will be used for future recordings.",
+    "Escolha seu microfone. Ele será usado nas próximas gravações.",
+    "マイクを選んでね。次の録音でも同じマイクを使うよ。"
+  ],
+  "Elige un modelo instalado. Se usa para conversar y entender peticiones.": [
+    "Choose an installed model. It is used for chatting and understanding requests.",
+    "Escolha um modelo instalado. É usado para conversar e entender pedidos.",
+    "インストール済みのモデルを選択してください。チャットや要請の理解に使用されます。"
+  ],
+  "Emma multilingüe · español": [
+    "Multilingual Emma · Spanish",
+    "Emma multilíngue · espanhol",
+    "多言語Emma · スペイン語"
+  ],
+  "Enviar": [
+    "Send",
+    "Enviar",
+    "送信"
+  ],
+  "Escribe a Capri…": [
+    "Write to Capri…",
+    "Escreva para Capri…",
+    "カプリにメッセージ…"
+  ],
+  "Escribe un mensaje…": [
+    "Type a message…",
+    "Escreva uma mensagem…",
+    "メッセージを入力…"
+  ],
+  "Escribir": [
+    "Write",
+    "Escrever",
+    "書く"
+  ],
+  "Escritorio": [
+    "Desktop",
+    "Área de trabalho",
+    "デスクトップ"
+  ],
+  "Escucha y compara perfiles sin cambiar tu voz actual hasta elegir uno.": [
+    "Listen and compare profiles. Your current voice stays unchanged until you choose one.",
+    "Ouça e compare os perfis. Sua voz atual é mantida até você escolher outro.",
+    "選ぶまでは今の声を変えずに、音声プロフィールを聴き比べられるよ。"
+  ],
+  "Escuchar prueba": [
+    "Listen to sample",
+    "Ouvir amostra",
+    "サンプルを再生"
+  ],
+  "Esperando la extensión y una pestaña de YouTube…": [
+    "Waiting for the extension and a YouTube tab...",
+    "Aguardando a extensão e uma aba do YouTube...",
+    "YouTube拡張機能とタブの読み込み中…"
+  ],
+  "Estados de boca y expresiones del avatar": [
+    "Mouth states and avatar expressions",
+    "Boca e expressões do avatar",
+    "口の状態とアバターの表情"
+  ],
+  "Falta el arte del personaje. Actualiza la instalación.": [
+    "Character artwork is missing. Update the installation.",
+    "A imagem da personagem está faltando. Atualize a instalação.",
+    "キャラクターの画像が見つからないよ。インストールを更新してね。"
+  ],
+  "Falta el reconocimiento en español. Cierra Capri y vuelve a abrir el instalador para completarlo.": [
+    "Spanish recognition missing. Close Capri and reopen the installer to complete it.",
+    "Reconhecimento em espanhol faltando. Feche o Capri e reabra o instalador para completá-lo.",
+    "スペイン語認識が不足しています。Capriを閉じ、インストーラを再起動して完了してください。"
+  ],
+  "Forma de Capri": [
+    "Capri mode",
+    "Modo da Capri",
+    "カプリの表示モード"
+  ],
+  "Forma, tamaño, movimiento y efectos de Capri.": [
+    "Capri appearance, size, movement and effects.",
+    "Aparência, tamanho, movimento e efeitos da Capri.",
+    "カプリの表示、サイズ、動きとエフェクト。"
+  ],
+  "GENERANDO RESPUESTA": [
+    "GENERATING REPLY",
+    "GERANDO RESPOSTA",
+    "返答を生成中"
+  ],
+  "GUARDADO AUTOMÁTICO": [
+    "AUTO SAVE",
+    "SALVAMENTO AUTOMÁTICO",
+    "自動保存"
+  ],
+  "Gestión de archivos y ventanas con tus permisos de Windows.": [
+    "File and window management with your Windows permissions.",
+    "Arquivos e janelas gerenciadas com suas permissões do Windows.",
+    "Windowsの権限でファイルとウィンドウを管理します。"
+  ],
+  "Graba 5 segundos y escucha cómo llega tu voz. No necesitas decir Capri.": [
+    "Record 5 seconds and hear how your voice sounds. You don't need to say Capri.",
+    "Gravar 5 segundos e ouvir como sua voz sai. Não é necessário dizer Capri.",
+    "5秒間を録音し、あなたの声がどう聞こえるかを聞いてください。Capriと話す必要はありません。"
+  ],
+  "Grabando {0}/5 s · {1} dB": [
+    "Recording {0}/5 s · {1} dB",
+    "Gravando {0}/5 s · {1} dB",
+    "録音中 {0}/5 s · {1} dB"
+  ],
+  "Grabar prueba · 5 s": [
+    "Record test · 5 s",
+    "Gravar teste · 5 s",
+    "テスト録音 · 5 s"
+  ],
+  "Guardado: ": [
+    "Saved: ",
+    "Salvo: ",
+    "保存済み: "
+  ],
+  "HABLANDO": [
+    "SPEAKING",
+    "FALANDO",
+    "発話中"
+  ],
+  "Hablar": [
+    "Talk",
+    "Falar",
+    "話す"
+  ],
+  "Hay varios micrófonos con ese nombre. Selecciona el que quieres usar en Ajustes.": [
+    "There are several microphones with that name. Select the one you want to use in Settings.",
+    "Vários microfones têm esse nome. Escolha o que você quer usar nas Configurações.",
+    "その名前を持つマイクロフォンが複数あります。設定で使用するものを選んでください。"
+  ],
+  "Haz clic y pulsa una tecla o combinación. Esc cancela.": [
+    "Click and press a key or combination. Esc cancels.",
+    "Clique e pressione uma tecla ou combinação. Esc cancela.",
+    "クリックしてキーまたは組み合わせを押してください。Escでキャンセル。"
+  ],
+  "Hielo": [
+    "Ice",
+    "Gelo",
+    "氷"
+  ],
+  "Hoy esa puerta no quiso abrirse. Me quedo aquí contigo.": [
+    "That door wouldn't open today. I'll stay here with you.",
+    "Hoje aquela porta não quis abrir. Vou ficar aqui com você.",
+    "今日は開かなかったね。ここで一緒にいるよ。"
+  ],
+  "IA local desactivada": [
+    "Local AI disabled",
+    "IA local desativada",
+    "ローカルAIが無効です"
+  ],
+  "IA y servicios": [
+    "AI and Services",
+    "IA e serviços",
+    "AI とサービス"
+  ],
+  "Idioma de Capri": [
+    "Capri language",
+    "Idioma da Capri",
+    "カプリの言語"
+  ],
+  "Interferencias breves de imagen y texto": [
+    "Brief image and text glitches",
+    "Glitches breves de imagem e texto",
+    "画像と文字の短いグリッチ"
+  ],
+  "Intro visual al abrir Capri": [
+    "Show intro when Capri starts",
+    "Mostrar intro ao iniciar Capri",
+    "起動時にイントロを表示"
+  ],
+  "Izquierda: capta voz más baja. Derecha: exige hablar más fuerte.\nLa línea marca el umbral manual. Pasarlo no garantiza reconocer las palabras.\nLa prueba se escucha sin este filtro y se borra al cerrar Ajustes.": [
+    "Left: detects quieter voices. Right: requires a louder voice.\nThe line marks the manual threshold. Crossing it does not guarantee correct word recognition.\nThe sample plays without this filter and is deleted when you close Settings.",
+    "Esquerda: capta vozes mais baixas. Direita: exige uma voz mais alta.\nA linha indica o limiar manual. Superá-lo não garante reconhecer as palavras.\nA amostra é ouvida sem esse filtro e apagada ao fechar as Configurações.",
+    "左：小さな声も拾う。右：大きな声が必要。\n線は手動のしきい値だよ。超えても言葉を認識できるとは限らないよ。\nサンプルはこのフィルターなしで再生し、設定を閉じると削除するよ。"
+  ],
+  "Juegos": [
+    "Games",
+    "Jogos",
+    "ゲーム"
+  ],
+  "Juegos ligeros: solo eventos visuales o aperturas básicas autorizadas.": [
+    "Light games: visual effects or basic actions you have permitted.",
+    "Jogos leves: efeitos visuais ou ações básicas que você permitiu.",
+    "軽い遊び：視覚効果と、許可した基本操作だけだよ。"
+  ],
+  "La IA está tardando. Puedes detenerla.": [
+    "The AI is taking too long. You can stop it.",
+    "A IA está demorando. Você pode interrompê-la.",
+    "AIが長時間かかります。停止できます。"
+  ],
+  "Las acciones sensibles piden confirmación. Los borrados van a la Papelera.": [
+    "Sensitive actions require confirmation. Deletions go to the Trash.",
+    "Ações sensíveis exigem confirmação. Exclusões vão para a Lixeira.",
+    "敏感な操作は確認を必要とします。削除はゴミ箱に移動します。"
+  ],
+  "Las conversaciones y traducciones de resultados detallados usan IA local. El reconocimiento de voz mantiene su configuración.": [
+    "Conversations and translations of detailed results use local AI. Speech recognition keeps its settings.",
+    "Conversas e traduções de resultados detalhados usam IA local. O reconhecimento de voz mantém suas configurações.",
+    "会話と詳細な結果の翻訳にはローカルAIを使います。音声認識の設定は変更されません。"
+  ],
+  "Latina suave · Dalia": [
+    "Soft Latin · Dalia",
+    "Latina suave · Dalia",
+    "柔らかなラテン系の声 · Dalia"
+  ],
+  "Lista para ti": [
+    "Ready for you",
+    "Pronta para você",
+    "準備できたよ"
+  ],
+  "Listo, choom. Me porto bien. Por ahora.": [
+    "All right, choom. I'll behave. For now.",
+    "Tudo bem, choom. Vou me comportar. Por enquanto.",
+    "わかった、チューム。おとなしくしてるよ。今のところはね。"
+  ],
+  "Listo. Velocidad de voz: {0} veces.": [
+    "Done. Voice speed: {0} times.",
+    "Pronto. Velocidade da voz: {0} vezes.",
+    "話す速さを{0}倍にしたよ。"
+  ],
+  "Me pillaste, choom. Esta ronda es tuya.": [
+    "You caught me, choom. This round is yours.",
+    "Você me pegou, choom. Essa rodada é sua.",
+    "つかまっちゃった、チューム。このラウンドはあなたの勝ち。"
+  ],
+  "Micrófono": [
+    "Microphone",
+    "Microfone",
+    "マイク"
+  ],
+  "Micrófono cambiado. Graba otra prueba.": [
+    "Microphone changed. Record another test.",
+    "Microfone alterado. Grave outro teste.",
+    "マイクが変更されました。別のテストを記録してください。"
+  ],
+  "Micrófono elegido": [
+    "Microphone selected",
+    "Microfone selecionado",
+    "マイクが選択されました"
+  ],
+  "Micrófono no disponible": [
+    "Microphone unavailable",
+    "Microfone indisponível",
+    "マイクが利用できません"
+  ],
+  "Modelo local, navegador y música.": [
+    "Local model, browser and music.",
+    "Modelo local, navegador e música.",
+    "ローカルモデル、ブラウザと音楽。"
+  ],
+  "Modo pantalla": [
+    "Screen mode",
+    "Modo tela",
+    "スクリーンモード"
+  ],
+  "Modo personaje": [
+    "Character Mode",
+    "Modo personagem",
+    "キャラモード"
+  ],
+  "Mostrar diálogos progresivos junto a Capri": [
+    "Show progressive dialogue next to Capri",
+    "Mostrar diálogos progressivos ao lado da Capri",
+    "カプリの横に返答を順次表示"
+  ],
+  "Más": [
+    "More",
+    "Mais",
+    "もっと"
+  ],
+  "NUEVA TRANSMISIÓN // ESCRIBE AQUÍ": [
+    "NEW TRANSMISSION // TYPE HERE",
+    "NOVA TRANSMISSÃO // ESCREVA AQUI",
+    "新しい通信 // ここに入力"
+  ],
+  "Neón": [
+    "Neon",
+    "Neon",
+    "ネオン"
+  ],
+  "No aparecen entradas de audio. Conecta un micrófono y pulsa Actualizar.": [
+    "No audio entries appear. Connect a microphone and press Update.",
+    "Nenhuma entrada de áudio aparece. Conecte um microfone e clique em Atualizar.",
+    "音入力が表示されません。マイクを接続し、更新を押してください。"
+  ],
+  "No disponible: ": [
+    "Not available: ",
+    "Não disponível: ",
+    "利用不可: "
+  ],
+  "No entendí la frase. Acércate al micrófono y pulsa ": [
+    "I didn't understand. Move closer to the microphone and press ",
+    "Não entendi. Aproxime-se do microfone e pressione ",
+    "聞き取れなかったよ。マイクに近づいて、次のキーを押してね： "
+  ],
+  "No escuché una orden. Di «Capri» otra vez.": [
+    "I didn't hear a command. Say «Capri» again.",
+    "Não ouvi um comando. Diga «Capri» novamente.",
+    "指示が聞こえなかったよ。もう一度「カプリ」と話しかけてね。"
+  ],
+  "No estoy segura de la frase. Revísala y pulsa Enviar.": [
+    "I'm not sure I understood. Review the text and press Send.",
+    "Não tenho certeza se entendi. Revise o texto e pressione Enviar.",
+    "聞き取りに自信がないよ。文字を確認して「送信」を押してね。"
+  ],
+  "No llegó audio del micrófono.": [
+    "No audio arrived from the microphone.",
+    "Não recebi áudio do microfone.",
+    "マイクから音声が届かなかったよ。"
+  ],
+  "No pude completar la orden": [
+    "I could not complete the request",
+    "Não consegui concluir o pedido",
+    "リクエストを完了できなかったよ"
+  ],
+  "No pude completar la prueba: ": [
+    "I could not complete the test: ",
+    "Não consegui concluir o teste: ",
+    "テストを完了できなかったよ： "
+  ],
+  "No pude guardar la elección. Revisa los permisos de la carpeta de Capri.": [
+    "I could not save your selection. Check the permissions of the Capri folder.",
+    "Não consegui salvar sua escolha. Verifique as permissões da pasta da Capri.",
+    "選択を保存できなかったよ。Capriフォルダーの権限を確認してね。"
+  ],
+  "No pude mantener la escucha de «Capri». Puedes usar Hablar. ": [
+    "I could not keep listening for «Capri». You can use Talk. ",
+    "Não consegui manter a escuta de «Capri». Você pode usar Falar. ",
+    "「カプリ」の待ち受けを続けられなかったよ。「話す」ボタンを使ってね。 "
+  ],
+  "No pude obtener la lista. Conecta el micrófono y pulsa Actualizar.": [
+    "Could not retrieve the list. Connect the microphone and press Update.",
+    "Não consegui recuperar a lista. Conecte o microfone e clique em Atualizar.",
+    "音声リストを取得できませんでした。マイクを接続し、更新を押してください。"
+  ],
+  "No pude reproducir la voz de Windows.": [
+    "I could not play the Windows voice.",
+    "Não consegui reproduzir a voz do Windows.",
+    "Windowsの音声を再生できなかったよ。"
+  ],
+  "No pude usar el micrófono. ": [
+    "I could not use the microphone. ",
+    "Não consegui usar o microfone. ",
+    "マイクを使えなかったよ。 "
+  ],
+  "No se guarda el audio ni el historial del chat.\nArrastra la imagen para mover a Capri. Clic para chatear.\nTecla configurable en Voz · Esc: detener voz.": [
+    "Audio and chat history are not saved.\nDrag Capri to move her. Click to chat.\nSet the talk key in Voice · Esc: stop speaking.",
+    "O áudio e o histórico de conversa não são salvos.\nArraste Capri para movê-la. Clique para conversar.\nConfigure a tecla em Voz · Esc: parar a fala.",
+    "音声と会話履歴は保存しないよ。\nドラッグで移動、クリックで会話。\n音声設定でキーを変更できるよ。Escで発話を停止。"
+  ],
+  "No se pudo ajustar el volumen de Capri.": [
+    "I could not adjust Capri's volume.",
+    "Não consegui ajustar o volume da Capri.",
+    "カプリの音量を調整できなかったよ。"
+  ],
+  "No se pudo inicializar el audio de Windows: ": [
+    "Windows audio could not start: ",
+    "Não foi possível iniciar o áudio do Windows: ",
+    "Windowsの音声を開始できなかったよ： "
+  ],
+  "No se pudo iniciar la voz natural.": [
+    "The natural voice could not start.",
+    "Não foi possível iniciar a voz natural.",
+    "自然音声を開始できなかったよ。"
+  ],
+  "No se pudo reproducir la voz natural.": [
+    "The natural voice could not play.",
+    "Não foi possível reproduzir a voz natural.",
+    "自然音声を再生できなかったよ。"
+  ],
+  "No te escuché. Pulsa ": [
+    "I didn't hear you. Press ",
+    "Não ouvi você. Pressione ",
+    "聞こえなかったよ。次のキーを押してね： "
+  ],
+  "OK": [
+    "OK",
+    "OK",
+    "OK"
+  ],
+  "Ollama ejecuta la IA en tu equipo, sin clave ni pago por uso. La activación descarga un modelo de aproximadamente 2 GB.": [
+    "Ollama runs AI on your computer, without an API key or usage fees. Activation downloads a model of about 2 GB.",
+    "O Ollama executa a IA no seu computador, sem chave de API nem cobrança por uso. A ativação baixa um modelo de cerca de 2 GB.",
+    "OllamaはPC内でAIを動かすよ。APIキーや利用料金は不要。初回の有効化で約2GBのモデルをダウンロードするよ。"
+  ],
+  "Opera GX": [
+    "Opera GX",
+    "Opera GX",
+    "Opera GX"
+  ],
+  "Oyendo: ": [
+    "Hearing: ",
+    "Ouvindo: ",
+    "聞き取り中： "
+  ],
+  "PENSANDO": [
+    "THINKING",
+    "PENSANDO",
+    "考える"
+  ],
+  "PREPARANDO": [
+    "PREPARING",
+    "PREPARANDO",
+    "準備中"
+  ],
+  "PREPARANDO VOZ": [
+    "PREPARING VOICE",
+    "PREPARANDO VOZ",
+    "音声を準備中"
+  ],
+  "PROCESANDO": [
+    "PROCESSING",
+    "PROCESSANDO",
+    "処理中"
+  ],
+  "Pantalla personal": [
+    "Personal screen",
+    "Tela pessoal",
+    "パーソナル画面"
+  ],
+  "Para responder antes: Whisper Base. Small prioriza precisión.": [
+    "To respond earlier: Whisper Base. Small prioritizes precision.",
+    "Para responder antes: Whisper Base. Small prioriza precisão.",
+    "ための応答を早める：Whisper Base. Small は正確性を優先します。"
+  ],
+  "Pausar viajes": [
+    "Pause teleporting",
+    "Pausar teletransportes",
+    "テレポートを一時停止"
+  ],
+  "Pega su enlace de Spotify. Puede seguir siendo privada:": [
+    "Paste its Spotify link. It can remain private:",
+    "Cole o link do Spotify. A playlist pode continuar privada:",
+    "Spotifyのリンクを貼り付けてね。非公開のままで大丈夫："
+  ],
+  "Permisos": [
+    "Permissions",
+    "Permissões",
+    "権限"
+  ],
+  "Permitir que el juego abra una pestaña o Documentos": [
+    "Allow the game to open a tab or Documents",
+    "Permitir que o jogo abra uma aba ou Documentos",
+    "ゲームがタブまたはドキュメントを開くことを許可"
+  ],
+  "Personaje en el escritorio": [
+    "Desktop character",
+    "Personagem na área de trabalho",
+    "デスクトップキャラクター"
+  ],
+  "Playlist de Spotify": [
+    "Spotify playlist",
+    "Playlist do Spotify",
+    "Spotifyプレイリスト"
+  ],
+  "Preciso necesita descargar un modelo local de 148 MB.": [
+    "Precise recognition needs a 148 MB local model download.",
+    "O reconhecimento preciso precisa baixar um modelo local de 148 MB.",
+    "高精度認識には148MBのローカルモデルのダウンロードが必要だよ。"
+  ],
+  "Predeterminado de Windows": [
+    "Windows default",
+    "Padrão do Windows",
+    "Windowsの既定"
+  ],
+  "Preparando activación…": [
+    "Preparing activation...",
+    "Preparando ativação...",
+    "準備中：アクティベーション..."
+  ],
+  "Preparando el micrófono…": [
+    "Preparing microphone...",
+    "Preparando microfone...",
+    "準備中：マイク..."
+  ],
+  "Preparando imagen de Capri": [
+    "Preparing Capri image...",
+    "Preparando imagem de Capri",
+    "準備中：Capriの画像..."
+  ],
+  "Preparando voz…": [
+    "Preparing voice...",
+    "Preparando voz...",
+    "準備中：声..."
+  ],
+  "Preparar Capri.pyw": [
+    "Preparar Capri.pyw",
+    "Preparar Capri.pyw",
+    "Preparar Capri.pyw"
+  ],
+  "Preparar reconocimiento preciso": [
+    "Set up precise recognition",
+    "Preparar reconhecimento preciso",
+    "高精度認識を準備"
+  ],
+  "Procesando tu instrucción…": [
+    "Processing your instruction…",
+    "Processando sua instrução…",
+    "処理中…"
+  ],
+  "Prueba de micrófono": [
+    "Microphone test",
+    "Teste de microfone",
+    "マイクテスト"
+  ],
+  "Prueba detenida.": [
+    "Test stopped.",
+    "Teste interrompido.",
+    "テストを終了しました。"
+  ],
+  "Prueba lista. Pulsa Escuchar prueba.": [
+    "Sample ready. Press Listen to sample.",
+    "Amostra pronta. Pressione Ouvir amostra.",
+    "サンプルの準備ができたよ。「サンプルを再生」を押してね。"
+  ],
+  "Pulsa la tecla o combinación…": [
+    "Press the key or combination…",
+    "Aperte a tecla ou combinação…",
+    "キーまたは組み合わせを押してください…"
+  ],
+  "RECIBIENDO": [
+    "RECEIVING",
+    "RECEBENDO",
+    "受信中"
+  ],
+  "REGISTRO // TRANSMISIONES": [
+    "LOG // TRANSMISSIONS",
+    "REGISTRO // TRANSMISSÕES",
+    "ログ // 通信履歴"
+  ],
+  "REVISA EL DICTADO": [
+    "REVIEW TRANSCRIPT",
+    "REVISAR TRANSCRIÇÃO",
+    "文字起こしを確認"
+  ],
+  "REVISAR": [
+    "REVIEW",
+    "REVISAR",
+    "確認"
+  ],
+  "Reanudar viajes": [
+    "Resume teleporting",
+    "Retomar teletransportes",
+    "テレポートを再開"
+  ],
+  "Reanudé la reproducción que estaba puesta en Spotify.": [
+    "I resumed the playback that was set on Spotify.",
+    "Retomei a reprodução que estava no Spotify.",
+    "Spotifyで再生していた曲を再開したよ。"
+  ],
+  "Reconocimiento de voz": [
+    "Voice recognition",
+    "Reconhecimento de voz",
+    "声の認識"
+  ],
+  "Repetir intro": [
+    "Replay intro",
+    "Repetir intro",
+    "イントロを再生"
+  ],
+  "Reproduciendo la prueba…": [
+    "Playing the sample…",
+    "Reproduzindo a amostra…",
+    "サンプルを再生中…"
+  ],
+  "Responder en voz alta": [
+    "Reply aloud",
+    "Responder em voz alta",
+    "声で返答する"
+  ],
+  "Revisa lo que entendí": [
+    "Review what I heard",
+    "Confira o que entendi",
+    "聞き取った内容を確認"
+  ],
+  "Rojo": [
+    "Red",
+    "Vermelho",
+    "赤"
+  ],
+  "Rápido · Vosk español": [
+    "Fast · Spanish Vosk",
+    "Rápido · Vosk em espanhol",
+    "高速 · スペイン語Vosk"
+  ],
+  "SIEMPRE DISPONIBLE": [
+    "ALWAYS AVAILABLE",
+    "SEMPRE DISPONÍVEL",
+    "常に利用可能"
+  ],
+  "SIN SOMBRA": [
+    "NO SHADOW",
+    "SEM SOMBRA",
+    "影なし"
+  ],
+  "SINTONIZANDO": [
+    "TUNING IN",
+    "SINTONIZANDO",
+    "音声を準備中"
+  ],
+  "Se aplica a la siguiente respuesta. 0% silencia a Capri.": [
+    "Applies to the next reply. 0% mutes Capri.",
+    "Aplica-se à próxima resposta. 0% silencia a Capri.",
+    "次の返答から適用するよ。0%でカプリをミュートするよ。"
+  ],
+  "Selecciona de nuevo tu micrófono en Ajustes.": [
+    "Select your microphone again in Settings.",
+    "Selecione novamente seu microfone nas Configurações.",
+    "設定でマイクを再度選択してください。"
+  ],
+  "Seleccionado: ": [
+    "Selected: ",
+    "Selecionado: ",
+    "選択済み: "
+  ],
+  "Silenciar voz": [
+    "Mute voice",
+    "Silenciar voz",
+    "音声をミュート"
+  ],
+  "Sin prueba · el micrófono se abre al pulsar Grabar.": [
+    "No test · the microphone opens when you press Record.",
+    "Sem teste · o microfone abre ao pressionar Gravar.",
+    "テストなし · マイクが「録音」を押すと開きます。"
+  ],
+  "Sin sombra": [
+    "No shadow",
+    "Sem sombra",
+    "影なし"
+  ],
+  "Small usa más memoria y puede tardar más. Base sigue disponible como respaldo.": [
+    "Small uses more memory and may be slower. Base remains available as a fallback.",
+    "Small usa mais memória e pode ser mais lento. Base continua disponível como alternativa.",
+    "Smallはメモリを多く使い、時間がかかる場合があるよ。代わりにBaseも使えるよ。"
+  ],
+  "Sombras del constructo · aplicación instantánea": [
+    "Construct shadows · instant preview",
+    "Sombras do constructo · aplicação instantânea",
+    "電脳体の影 · すぐに適用"
+  ],
+  "TE ESCUCHO": [
+    "LISTENING",
+    "OUVINDO",
+    "聞いているよ"
+  ],
+  "TRANSMISIÓN": [
+    "TRANSMISSION",
+    "TRANSMISSÃO",
+    "通信"
+  ],
+  "Tamaño": [
+    "Size",
+    "Tamanho",
+    "サイズ"
+  ],
+  "Tamaño de Capri: {0}%": [
+    "Capri size: {0}%",
+    "Tamanho da Capri: {0}%",
+    "カプリのサイズ：{0}%"
+  ],
+  "Te escucho. Habla y haz una pausa al terminar.": [
+    "I'm listening. Speak and pause when you finish.",
+    "Estou ouvindo. Fale e faça uma pausa ao terminar.",
+    "聞いているよ。話し終わったら少し間を空けてね。"
+  ],
+  "Te escucho…": [
+    "I'm listening…",
+    "Estou ouvindo…",
+    "聞いているよ…"
+  ],
+  "Tecla para hablar": [
+    "Push-to-talk key",
+    "Tecla para falar",
+    "音声入力キー"
+  ],
+  "Teletransportarse, explorar ventanas y sujetarse": [
+    "Teleport, explore windows and hang on",
+    "Teletransportar, explorar janelas e se segurar",
+    "テレポート、ウィンドウ探索、つかまり動作"
+  ],
+  "Terminando de escuchar…": [
+    "Finishing listening…",
+    "Finalizando a escuta…",
+    "音声入力を終了中…"
+  ],
+  "Travesura": [
+    "Prank",
+    "Travessura",
+    "いたずら"
+  ],
+  "Travesuras suaves y apariciones ocasionales": [
+    "Gentle pranks and occasional appearances",
+    "Travessuras leves e aparições ocasionais",
+    "軽いいたずらと時々の登場"
+  ],
+  "TÚ CONFIRMAS": [
+    "YOU CONFIRM",
+    "VOCÊ CONFIRMA",
+    "確定するのはあなた"
+  ],
+  "Umbral automático (recomendado)": [
+    "Automatic threshold (recommended)",
+    "Limiar automático (recomendado)",
+    "自動閾値（推奨）"
+  ],
+  "Umbral manual · dB": [
+    "Manual threshold · dB",
+    "Limiar manual · dB",
+    "手動閾値 · dB"
+  ],
+  "Un momento, estoy respondiendo…": [
+    "A moment, I'm responding…",
+    "Um momento, estou respondendo…",
+    "一瞬、応答しています…"
+  ],
+  "Usando Vosk. Abre «Abrir Capri» para preparar el reconocimiento preciso.": [
+    "Using Vosk. Open «Abrir Capri» to prepare precise recognition.",
+    "Usando Vosk. Abra «Abrir Capri» para preparar o reconhecimento preciso.",
+    "Voskを使用中。『Abrir Capri』を開いて正確な認識を準備してください。"
+  ],
+  "VOLVER": [
+    "BACK",
+    "VOLTAR",
+    "戻る"
+  ],
+  "VOLVER AL ESCRITORIO": [
+    "BACK TO DESKTOP",
+    "VOLTAR À ÁREA DE TRABALHO",
+    "デスクトップに戻る"
+  ],
+  "VOZ": [
+    "VOICE",
+    "VOZ",
+    "音声"
+  ],
+  "Velocidad de voz: {0}×": [
+    "Voice speed: {0}×",
+    "Velocidade da voz: {0}×",
+    "声の速度: {0}×"
+  ],
+  "Ver aspectos de Capri": [
+    "View Capri's appearance",
+    "Ver aparência da Capri",
+    "カプリの外観を見る"
+  ],
+  "Vinculada. Puedes decir «Capri, pon mi playlist ": [
+    "Linked. You can say «Capri, play my playlist ",
+    "Vinculada. Você pode dizer «Capri, toque minha playlist ",
+    "リンクしたよ。「カプリ、プレイリストを再生して： "
+  ],
+  "Vincular playlist de Spotify": [
+    "Link Spotify playlist",
+    "Vincular playlist do Spotify",
+    "Spotifyプレイリストをリンク"
+  ],
+  "Violeta": [
+    "Purple",
+    "Violeta",
+    "紫色"
+  ],
+  "Vivaz · Ximena": [
+    "Lively · Ximena",
+    "Animada · Ximena",
+    "元気な声 · Ximena"
+  ],
+  "Volumen de Capri: {0}%": [
+    "Capri volume: {0}%",
+    "Volume da Capri: {0}%",
+    "カプリの音量：{0}%"
+  ],
+  "Volver": [
+    "Back",
+    "Voltar",
+    "戻る"
+  ],
+  "Voz": [
+    "Voice",
+    "Voz",
+    "音声"
+  ],
+  "Voz de Capri": [
+    "Capri's voice",
+    "Voz da Capri",
+    "カプリの声"
+  ],
+  "Voz natural por internet": [
+    "Natural online voice",
+    "Voz natural pela internet",
+    "オンライン自然音声"
+  ],
+  "Whisper · español y nombres en inglés": [
+    "Whisper · Spanish and English names",
+    "Whisper · espanhol e nomes em inglês",
+    "Whisper · スペイン語と英語の名前"
+  ],
+  "Windows no permitió abrir el micrófono elegido. Selecciónalo de nuevo en Ajustes y vuelve a probar. El detalle quedó en diagnostico-microfono.json.": [
+    "Windows could not open the selected microphone. Select it again in Settings and retry. Details are in diagnostico-microfono.json.",
+    "O Windows não conseguiu abrir o microfone escolhido. Selecione-o novamente nas Configurações e tente outra vez. Os detalhes estão em diagnostico-microfono.json.",
+    "Windowsで選択したマイクを開けなかったよ。設定で選び直して、もう一度試してね。詳細はdiagnostico-microfono.jsonにあるよ。"
+  ],
+  "Windows no pudo inicializar el audio en este hilo.": [
+    "Windows could not initialize audio on this thread.",
+    "Windows não conseguiu inicializar o áudio nessa thread.",
+    "Windows はこのスレッドで音声を初期化できませんでした。"
+  ],
+  "¿Con qué nombre quieres pedir esta playlist?": [
+    "What name do you want to give this playlist?",
+    "Qual nome você quer dar para esta playlist?",
+    "このプレイリストにどんな名前をつけるのですか？"
+  ],
+  "● GUARDADO AUTOMÁTICO": [
+    "● AUTO SAVE",
+    "● SALVAMENTO AUTOMÁTICO",
+    "● 自動保存"
+  ]
+}

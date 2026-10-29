@@ -2,6 +2,7 @@
 import random
 import time
 import tkinter as tk
+from idiomas import Lienzo as CanvasUI
 import os
 from tkinter import font as tkfont
 from fuentes import FAMILIA
@@ -16,13 +17,14 @@ class Dialogo:
         self.estado='ENLACE ABIERTO';self.entrada=None;self.control_entrada=None;self.manual=False;self.alto_canvas=108;self.sincronizada=False
         self.menu=None;self.fin_escritura=False;self.retener=lambda:False
         self.personaje=lambda:False;self.ruta_retrato=None;self.retrato=None;self.punta=80;self.estilo_personaje=None
+        self.idioma=lambda:'es'
 
     def crear(self):
         if self.ventana is not None and self.ventana.winfo_exists():return
         p=self.ventana=tk.Toplevel(self.raiz);p.title('Capri · Enlace');p.overrideredirect(True);p.attributes('-topmost',True)
         p.configure(bg=TRANS)
         if os.name=='nt':p.wm_attributes('-transparentcolor',TRANS)
-        self.canvas=tk.Canvas(p,width=364,height=self.alto_canvas,bg=TRANS,highlightthickness=0)
+        self.canvas=CanvasUI(p,width=364,height=self.alto_canvas,bg=TRANS,highlightthickness=0)
         self.canvas.pack(fill='both',expand=True)
         self.fuente_pregunta=tkfont.Font(root=p,family=FAMILIA,size=9)
         self.fuente_cuerpo=tkfont.Font(root=p,family=FAMILIA,size=12)
@@ -95,10 +97,13 @@ class Dialogo:
 
     def dibujar(self):
         c=self.canvas;c.delete('all');ancho=max(280,int(float(c.cget('width'))));modo=self.personaje()
+        from idiomas import fuente,texto
+        self.fuente_cuerpo.configure(family=fuente(self.idioma()))
+        self.fuente_pregunta.configure(family=fuente(self.idioma()))
         if modo!=self.estilo_personaje:self.fuente_cuerpo.configure(weight='bold' if modo else 'normal');self.estilo_personaje=modo
         izquierda=104 if modo else 29;arriba=54 if modo else 76;limite=ancho-izquierda-(25 if modo else 33)
         pregunta=' '.join(self.usuario.split())
-        pregunta=('TÚ > '+pregunta) if pregunta else 'ENLACE PERSONAL'
+        pregunta=(texto('tu',self.idioma())+' > '+pregunta) if pregunta else 'ENLACE PERSONAL'
         if self.fuente_pregunta.measure(pregunta)>limite:
             while pregunta and self.fuente_pregunta.measure(pregunta+'…')>limite:pregunta=pregunta[:-1]
             pregunta+='…'
@@ -117,7 +122,10 @@ class Dialogo:
             lineas=lineas[-6:];lineas[0]='…'+lineas[0]
             while self.fuente_cuerpo.measure(lineas[0])>limite:lineas[0]='…'+lineas[0][2:]
         cuerpo=c.create_text(izquierda,arriba,text='\n'.join(lineas),anchor='nw',fill='#edf0fa',font=self.fuente_cuerpo,tags='cuerpo')
-        caja=c.bbox(cuerpo);alto=max(128 if modo else 108,(caja[3] if caja else 86)+28)
+        caja=c.bbox(cuerpo)
+        # El borde inferior del globo está 24px por encima de la punta.
+        # Reservar además 20px reales entre el texto y ese borde.
+        alto=max(144 if modo else 120,(caja[3] if caja else 86)+(46 if modo else 32))
         self.alto_canvas=alto;c.configure(height=alto)
         if modo:
             punta=max(30,min(ancho-35,self.punta))
@@ -131,6 +139,8 @@ class Dialogo:
             c.create_text(104,29,text='CAPRI',anchor='w',fill='#e8def9',font=(FAMILIA,11,'bold'))
             c.create_rectangle(ancho-125,17,ancho-23,37,fill='#89243f',outline='')
             etiqueta={'GENERANDO RESPUESTA':'PENSANDO','PREPARANDO VOZ':'PREPARANDO','ENLACE ABIERTO':'EN LÍNEA','REVISA EL DICTADO':'REVISAR'}.get(self.estado,self.estado)
+            from idiomas import ui
+            etiqueta=ui(etiqueta)
             while self.fuente_pregunta.measure(etiqueta)>94:etiqueta=etiqueta[:-2]+'…'
             c.create_text(ancho-74,27,text=etiqueta,fill='#efe5fa',font=(FAMILIA,8,'bold'),tags='estado_globo')
             if not self.visible:

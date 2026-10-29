@@ -1,6 +1,7 @@
 """Menú circular del personaje, con acciones existentes y navegación por teclado."""
 import math
 import tkinter as tk
+from idiomas import Lienzo as CanvasUI
 from fuentes import FAMILIA
 
 def sector(x,y,centro,radio,cantidad):
@@ -53,7 +54,7 @@ class MenuRadial:
             espacio=max(py-16,root.winfo_screenheight()-py-ph-16,px-16,root.winfo_screenwidth()-px-pw-16)
             self.tamano=min(self.tamano,root.winfo_screenwidth()-12,max(180,espacio))
             self.centro=self.tamano/2;self.radio=self.centro-12
-        self.canvas=tk.Canvas(self.ventana,width=self.tamano,height=self.tamano,bg='#010203',highlightthickness=0)
+        self.canvas=CanvasUI(self.ventana,width=self.tamano,height=self.tamano,bg='#010203',highlightthickness=0)
         self.canvas.pack();self.pila=[];self.opciones=opciones;self.seleccion=-1;self.terminar=terminar
         x=max(6,min(round(x-self.centro),root.winfo_screenwidth()-self.tamano-6))
         y=max(6,min(round(y-self.centro),root.winfo_screenheight()-self.tamano-6))

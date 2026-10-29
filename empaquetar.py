@@ -8,6 +8,8 @@ ARCHIVOS.append('assets/capri-saludo-v1.png')
 ARCHIVOS.append('PROMPT_SALUDO.md')
 ARCHIVOS.append('menu_radial.py')
 ARCHIVOS.append('ajustes_ui.py')
+ARCHIVOS.append('idiomas.py')
+ARCHIVOS.append('traducciones.json')
 ARCHIVOS.append('REFERENCIAS_VOZ.md')
 ARCHIVOS.extend(['despedida.py','assets/capri-base-hd-v1.png','PROMPT_HD.md'])
 

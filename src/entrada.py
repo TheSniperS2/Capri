@@ -1,18 +1,20 @@
 """Entrada permanente debajo del avatar, con señal de audio integrada."""
 import math
 import tkinter as tk
+from idiomas import Lienzo as CanvasUI
+from idiomas import ui,idioma_actual
 from fuentes import FAMILIA
 
 TRANS='#010203'
 
-class Entrada(tk.Canvas):
+class Entrada(CanvasUI):
     def __init__(self,padre,enviar,menu):
         super().__init__(padre,width=360,height=46,bg=TRANS,highlightthickness=0)
         self.enviar=enviar;self.menu=menu;self.placeholder=True;self.activa=False;self.hablando=False;self.nivel=0
         self.texto_placeholder='Di «Capri» o escribe…';self.foco_cambio=None;self.antes_foco=None;self.activacion=True
         self.entrada=tk.Entry(self,bg='#170c12',fg='#768b96',insertbackground='#ff9eaf',relief='flat',
                               highlightthickness=0,font=(FAMILIA,12))
-        self.entrada.insert(0,self.texto_placeholder)
+        self.entrada.insert(0,ui(self.texto_placeholder))
         self.ventana=self.create_window(35,23,window=self.entrada,anchor='w')
         self.entrada.bind('<FocusIn>',self.foco);self.entrada.bind('<FocusOut>',self.desfoco)
         self.entrada.bind('<Return>',lambda e:self.enviar_actual())
@@ -25,7 +27,7 @@ class Entrada(tk.Canvas):
 
     def desfoco(self,e=None):
         if not self.entrada.get():
-            self.placeholder=True;self.entrada.configure(fg='#768b96');self.entrada.insert(0,self.texto_placeholder)
+            self.placeholder=True;self.entrada.configure(fg='#768b96');self.entrada.insert(0,ui(self.texto_placeholder))
         if self.foco_cambio:self.foco_cambio(False)
 
     def poner(self,texto):
@@ -56,10 +58,15 @@ class Entrada(tk.Canvas):
         nuevo='Te escucho…' if escuchando else ('Di «Capri» o escribe…' if self.activacion else 'Escribe a Capri…')
         if nuevo!=self.texto_placeholder:
             self.texto_placeholder=nuevo
-            if self.placeholder:self.entrada.delete(0,'end');self.entrada.insert(0,nuevo)
+            if self.placeholder:self.entrada.delete(0,'end');self.entrada.insert(0,ui(nuevo))
         self.dibujar()
 
     def dibujar(self):
+        if self.placeholder and self.entrada.get()!=ui(self.texto_placeholder):
+            self.entrada.delete(0,'end');self.entrada.insert(0,ui(self.texto_placeholder))
+        actual=idioma_actual()
+        if getattr(self,'_idioma_fuente',None)!=actual:
+            self.entrada.configure(font=('Yu Gothic UI' if actual=='ja' else FAMILIA,12));self._idioma_fuente=actual
         w=max(200,self.winfo_width(),int(self.cget('width')));self.delete('marco')
         color='#ff9eaf' if self.activa else ('#edce67' if self.hablando else '#9d3b52')
         self.create_polygon(15,4,w-9,4,w-4,10,w-4,34,w-15,42,5,42,5,14,fill='#170c12',outline=color,tags='marco')

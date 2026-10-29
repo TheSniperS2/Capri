@@ -1,10 +1,21 @@
 """Panel de enlace y catálogo visual del personaje."""
 import tkinter as tk
+from idiomas import Lienzo as CanvasUI
 from tkinter import ttk
 from PIL import Image,ImageTk
 from fuentes import FAMILIA
 
 FONDO='#10090d';TARJETA='#211018';TEXTO='#fff0f3';SUAVE='#bb929f';ACENTO='#ff4267';VERDE='#ffb1c2'
+
+def separar_bordes(ventana,margen=32):
+    """Respeta la barra de tareas y deja aire alrededor de las ventanas auxiliares."""
+    from companera import area_trabajo
+    ventana.update_idletasks()
+    l,t,r,b=area_trabajo()
+    w,h=ventana.winfo_width(),ventana.winfo_height()
+    x=max(l+margen,min(ventana.winfo_x(),r-w-margen))
+    y=max(t+margen,min(ventana.winfo_y(),b-h-margen))
+    ventana.geometry(f'+{x}+{y}')
 
 class VentanaCyber:
     """Marco angular, arrastrable y sin la decoración estándar de Windows."""
@@ -13,13 +24,14 @@ class VentanaCyber:
         self.ventana=ventana;self.titulo=titulo;self.cerrar=cerrar or ventana.destroy;self.drag=None;self.resize=None
         ventana.overrideredirect(True);ventana.configure(bg='#010203');ventana.attributes('-topmost',True)
         if os.name=='nt':ventana.attributes('-transparentcolor','#010203')
-        self.canvas=tk.Canvas(ventana,bg='#010203',highlightthickness=0);self.canvas.pack(fill='both',expand=True)
+        self.canvas=CanvasUI(ventana,bg='#010203',highlightthickness=0);self.canvas.pack(fill='both',expand=True)
         self.cuerpo=tk.Frame(self.canvas,bg=FONDO)
         self.item=self.canvas.create_window(14,50,window=self.cuerpo,anchor='nw')
         self.canvas.bind('<Configure>',self.dibujar)
         self.canvas.bind('<ButtonPress-1>',self.iniciar);self.canvas.bind('<B1-Motion>',self.mover)
         ventana.bind('<Escape>',lambda e:self.cerrar(),add='+')
         self.dibujar()
+        separar_bordes(ventana)
 
     def dibujar(self,e=None):
         c=self.canvas;w=max(100,c.winfo_width());h=max(100,c.winfo_height());c.delete('chrome')
@@ -72,7 +84,7 @@ class PanelAjustes:
         estilo.map('TCheckbutton',background=[('active',TARJETA)],foreground=[('active',VERDE)])
         estilo.configure('Capri.Vertical.TScrollbar',background='#7b293e',troughcolor=FONDO,
                          arrowcolor=ACENTO,bordercolor=FONDO)
-        cabecera=tk.Canvas(ventana,height=72,bg=FONDO,highlightthickness=0)
+        cabecera=CanvasUI(ventana,height=72,bg=FONDO,highlightthickness=0)
         cabecera.pack(fill='x')
         def pintar_cabecera(e):
             cabecera.delete('all');w=e.width
@@ -83,22 +95,23 @@ class PanelAjustes:
         cabecera.bind('<Configure>',pintar_cabecera)
         self.titulo=tk.StringVar();self.detalle=tk.StringVar()
         cuerpo=tk.Frame(ventana,bg=FONDO);cuerpo.pack(fill='both',expand=True)
-        self.lateral=tk.Frame(cuerpo,bg='#190d13',width=172);self.lateral.pack(side='left',fill='y',padx=(12,0),pady=(12,0))
+        self.lateral=tk.Frame(cuerpo,bg='#190d13',width=172);self.lateral.pack(side='left',fill='y',padx=(12,0),pady=12)
         self.lateral.pack_propagate(False)
         tk.Label(self.lateral,text='CONFIGURACIÓN',bg='#190d13',fg=VERDE,font=(FAMILIA,10,'bold')).pack(anchor='w',padx=16,pady=(16,12))
         self.contenedor=tk.Frame(cuerpo,bg=FONDO);self.contenedor.pack(side='left',fill='both',expand=True,padx=16,pady=12)
         tk.Label(self.contenedor,textvariable=self.titulo,bg=FONDO,fg=TEXTO,font=(FAMILIA,18,'bold')).pack(anchor='w')
         tk.Label(self.contenedor,textvariable=self.detalle,bg=FONDO,fg=SUAVE,font=(FAMILIA,9),wraplength=490,justify='left').pack(anchor='w',pady=(4,12))
         self.zona=tk.Frame(self.contenedor,bg=FONDO);self.zona.pack(fill='both',expand=True)
-        pie=tk.Frame(ventana,bg='#190d13');pie.pack(fill='x')
-        tk.Label(pie,text='● GUARDADO AUTOMÁTICO',bg='#190d13',fg=VERDE,font=(FAMILIA,9)).pack(side='left',padx=22,pady=14)
+        pie=tk.Frame(ventana,bg=FONDO);pie.pack(fill='x',padx=12,pady=(0,6))
+        tk.Frame(pie,bg='#542333',height=1).pack(fill='x',pady=(0,8))
+        tk.Label(pie,text='● GUARDADO AUTOMÁTICO',bg=FONDO,fg=VERDE,font=(FAMILIA,9)).pack(side='left',padx=10,pady=10)
         BotonCyber(pie,text='VOLVER AL ESCRITORIO',command=ventana.winfo_toplevel().destroy,bg='#4b1427',fg=TEXTO,
                   activebackground=ACENTO,relief='flat',font=(FAMILIA,9,'bold'),padx=15,pady=8).pack(side='right',padx=16,pady=8)
         ventana.winfo_toplevel().bind('<Map>',lambda e:self.conectar_rueda(e.widget),add='+')
 
     def seccion(self,nombre,descripcion):
         exterior=tk.Frame(self.zona,bg=FONDO)
-        lienzo=tk.Canvas(exterior,bg=FONDO,highlightthickness=0)
+        lienzo=CanvasUI(exterior,bg=FONDO,highlightthickness=0)
         barra=BarraCyber(exterior,lienzo.yview)
         lienzo.configure(yscrollcommand=barra.set);lienzo.pack(side='left',fill='both',expand=True)
         interior=tk.Frame(lienzo,bg=FONDO,padx=8,pady=8)
@@ -121,6 +134,8 @@ class PanelAjustes:
         self.actual=nombre;self.vistas[nombre][0].pack(fill='both',expand=True)
         self.botones[nombre].configure(bg='#431424',fg=VERDE)
         self.titulo.set(nombre);self.detalle.set(self.vistas[nombre][2])
+        from idiomas import localizar_widgets
+        localizar_widgets(self.ventana.winfo_toplevel())
         self.vistas[nombre][1].yview_moveto(0)
         self.ventana._root().after_idle(lambda:self.refrescar(nombre) if self.ventana.winfo_exists() else None)
 
@@ -146,7 +161,7 @@ class PanelAjustes:
             self.vistas[self.actual][1].yview_scroll(-int(e.delta/120),'units')
         return 'break'
 
-class TarjetaAspecto(tk.Canvas):
+class TarjetaAspecto(CanvasUI):
     def __init__(self,padre,foto,nombre,accion):
         super().__init__(padre,bg=FONDO,highlightthickness=0,width=178,height=218,takefocus=True)
         self.foto=foto;self.nombre=nombre;self.accion=accion;self.activa=False
@@ -195,9 +210,9 @@ class GaleriaAspectos:
     def aplicar(self,clave):
         self.elegir(clave);self.seleccion=clave;self.marcar()
 
-class BarraCyber(tk.Canvas):
+class BarraCyber(CanvasUI):
     def __init__(self,padre,command):
-        super().__init__(padre,width=10,bg=FONDO,highlightthickness=0)
+        super().__init__(padre,width=14,bg=padre.cget('bg'),highlightthickness=0)
         self.command=command;self.primero=0.;self.ultimo=1.;self.arrastre=None
         self.bind('<Configure>',lambda e:self.dibujar());self.bind('<Button-1>',self.iniciar)
         self.bind('<B1-Motion>',self.mover)
@@ -206,11 +221,14 @@ class BarraCyber(tk.Canvas):
         self.primero=float(primero);self.ultimo=float(ultimo);self.dibujar()
 
     def dibujar(self):
-        self.delete('all');h=max(1,self.winfo_height())
-        self.create_line(5,4,5,h-4,fill='#34131f',width=2)
-        a=self.primero*h;b=max(a+28,self.ultimo*h)
-        if b>h:a-=b-h;b=h
-        self.create_polygon(3,a,8,a,8,b-3,5,b,2,b,2,a+3,fill='#c44766',outline='')
+        self.delete('all');h=max(1,self.winfo_height());w=max(10,self.winfo_width())
+        if self.ultimo-self.primero>=.999:return
+        self.create_rectangle(w/2-1,6,w/2+1,h-6,fill='#3b202a',outline='')
+        pista=max(1,h-12);a=6+self.primero*pista;b=min(h-6,max(a+30,6+self.ultimo*pista))
+        a=max(6,min(a,b-30))
+        self.create_rectangle(w/2-3,a,w/2+3,b,fill='#c04c69',outline='')
+        medio=(a+b)/2
+        for dy in (-3,0,3):self.create_line(w/2-2,medio+dy,w/2+2,medio+dy,fill='#f49bb0')
 
     def iniciar(self,e):
         h=max(1,self.winfo_height());rango=self.ultimo-self.primero
@@ -222,11 +240,11 @@ class BarraCyber(tk.Canvas):
             y,antes=self.arrastre;valor=antes+(e.y-y)/max(1,self.winfo_height())
             self.command('moveto',max(0,min(1-(self.ultimo-self.primero),valor)))
 
-class InterruptorCyber(tk.Canvas):
+class InterruptorCyber(CanvasUI):
     def __init__(self,padre,text='',variable=None,command=None,**kw):
         for k in ('fg','selectcolor','activebackground','activeforeground','font'):kw.pop(k,None)
         kw.pop('bg',None)
-        super().__init__(padre,height=42,bg=FONDO,highlightthickness=0,takefocus=True,**kw)
+        super().__init__(padre,height=42,bg=padre.cget('bg'),highlightthickness=0,takefocus=True,**kw)
         self.texto=text;self.variable=variable or tk.BooleanVar(value=False);self.command=command
         self.bind('<Configure>',lambda e:self.dibujar());self.bind('<Button-1>',lambda e:self.invoke())
         self.bind('<space>',lambda e:self.invoke());self.bind('<Return>',lambda e:self.invoke())
@@ -243,11 +261,11 @@ class InterruptorCyber(tk.Canvas):
         x=25 if on else 13;self.create_rectangle(x-4,y-5,x+4,y+5,fill=VERDE if on else '#9b7881',outline='')
         self.create_text(48,y,text=self.texto,anchor='w',width=max(80,w-54),fill=TEXTO,font=(FAMILIA,10))
 
-class EscalaCyber(tk.Canvas):
+class EscalaCyber(CanvasUI):
     def __init__(self,padre,from_=0,to=100,resolution=1,command=None,label='',showvalue=True,**kw):
         for k in ('fg','troughcolor','orient','activebackground','highlightthickness'):kw.pop(k,None)
         kw.pop('bg',None)
-        super().__init__(padre,height=60 if label else (46 if showvalue else 34),bg=FONDO,highlightthickness=0,takefocus=True,**kw)
+        super().__init__(padre,height=64 if label else (46 if showvalue else 34),bg=padre.cget('bg'),highlightthickness=0,takefocus=True,**kw)
         self.minimo=float(from_);self.maximo=float(to);self.paso=float(resolution);self.valor=self.minimo
         self.etiqueta=label;self.mostrar_valor=showvalue;self.estado='normal';self.comando_tcl=''
         if command:self.configure(command=command)
@@ -282,15 +300,17 @@ class EscalaCyber(tk.Canvas):
         if self.estado!='disabled':self.set(self.valor+d*self.paso);self.emitir()
 
     def dibujar(self):
-        self.delete('all');w=max(100,self.winfo_width());h=max(30,self.winfo_height());y=h-14
-        x=12+(w-24)*(self.valor-self.minimo)/max(.001,self.maximo-self.minimo)
+        self.delete('all');w=max(100,self.winfo_width());h=max(30,self.winfo_height());y=h-18
+        x=14+(w-28)*(self.valor-self.minimo)/max(.001,self.maximo-self.minimo)
         color=ACENTO if self.estado!='disabled' else '#68424d'
         if self.etiqueta:self.create_text(12,10,text=self.etiqueta,anchor='w',fill=SUAVE,font=(FAMILIA,9))
         if self.mostrar_valor:self.create_text(w-12,10,text=f'{self.get():g}',anchor='e',fill=VERDE,font=(FAMILIA,10,'bold'))
-        self.create_line(12,y,w-12,y,fill='#4d2633',width=3);self.create_line(12,y,x,y,fill=color,width=3)
-        self.create_polygon(x-5,y-8,x+5,y-8,x+8,y-5,x+8,y+5,x+5,y+8,x-5,y+8,x-8,y+5,x-8,y-5,fill='#e96a89' if self.estado!='disabled' else '#76515c',outline='')
+        self.create_line(14,y,w-14,y,fill='#5d3040',width=2);self.create_line(14,y,x,y,fill=color,width=2)
+        for k in range(5):
+            xx=14+(w-28)*k/4;self.create_line(xx,y+6,xx,y+9,fill='#69404c')
+        self.create_rectangle(x-4,y-7,x+4,y+7,fill=VERDE if self.estado!='disabled' else '#76515c',outline=color)
 
-class SelectorCyber(tk.Canvas):
+class SelectorCyber(CanvasUI):
     def __init__(self,padre,values=(),state='readonly',font=None,**kw):
         kw.pop('style',None)
         super().__init__(padre,height=44,bg=FONDO,highlightthickness=0,takefocus=True,**kw)
@@ -336,31 +356,55 @@ class SelectorCyber(tk.Canvas):
     def abrir(self):
         if self.estado=='disabled' or not self.valores:return
         if self.popup and self.popup.winfo_exists():return
-        p=self.popup=tk.Toplevel(self);p.overrideredirect(True);p.attributes('-topmost',True);p.configure(bg='#8b2948')
-        lista=tk.Listbox(p,bg=TARJETA,fg=TEXTO,selectbackground='#65233a',selectforeground=TEXTO,relief='flat',bd=0,
-                         highlightthickness=0,font=(FAMILIA,11),height=min(7,len(self.valores)),activestyle='none',exportselection=False)
-        for v in self.valores:lista.insert('end',v)
-        if len(self.valores)>7:
-            barra=BarraCyber(p,lista.yview);barra.pack(side='right',fill='y',padx=2,pady=2)
+        from companera import area_trabajo
+        import os
+        l,t,r,b=area_trabajo();w=max(160,self.winfo_width());filas=min(8,len(self.valores));alto=38
+        h=filas*alto+16;x=max(l+8,min(r-w-8,self.winfo_rootx()));y=self.winfo_rooty()+46
+        if y+h>b-8:y=max(t+8,self.winfo_rooty()-h-2)
+        p=self.popup=tk.Toplevel(self);p.overrideredirect(True);p.attributes('-topmost',True);p.configure(bg='#010203')
+        if os.name=='nt':p.attributes('-transparentcolor','#010203')
+        p.geometry(f'{w}x{h}+{x}+{y}')
+        borde=CanvasUI(p,width=w,height=h,bg='#010203',highlightthickness=0);borde.pack()
+        borde.create_polygon(8,1,w-10,1,w-1,10,w-1,h-9,w-9,h-1,1,h-1,1,8,fill=TARJETA,outline='#9e3b56')
+        lista=self.popup_lista=CanvasUI(borde,bg=TARJETA,highlightthickness=0,width=w-32,height=filas*alto)
+        borde.create_window(10,8,window=lista,anchor='nw');lista.configure(scrollregion=(0,0,w-32,len(self.valores)*alto))
+        self.popup_filas=filas;self.popup_activo=max(0,self.current())
+        fondos=[]
+        for i,v in enumerate(self.valores):
+            yy=i*alto
+            fondos.append(lista.create_rectangle(0,yy,w-32,yy+alto,fill=TARJETA,outline=''))
+            if i==self.current():lista.create_rectangle(1,yy+10,4,yy+28,fill=ACENTO,outline='')
+            lista.create_text(15,yy+alto/2,text=v,anchor='w',fill=TEXTO,font=(FAMILIA,10))
+            if i<len(self.valores)-1:lista.create_line(14,yy+alto-1,w-46,yy+alto-1,fill='#361c27')
+        if len(self.valores)>filas:
+            barra=BarraCyber(borde,lista.yview);barra.configure(bg=TARJETA);borde.create_window(w-18,8,window=barra,anchor='nw',height=filas*alto)
             lista.configure(yscrollcommand=barra.set)
-        lista.pack(side='left',fill='both',expand=True,padx=2,pady=2)
-        if self.current()>=0:lista.selection_set(self.current());lista.see(self.current())
-        w=self.winfo_width();h=min(7,len(self.valores))*25+8
-        x=max(0,min(self.winfo_screenwidth()-w,self.winfo_rootx()));y=self.winfo_rooty()+44
-        if y+h>self.winfo_screenheight():y=self.winfo_rooty()-h
-        p.geometry(f'{w}x{h}+{x}+{max(0,y)}')
+        # Todas las listas cortas empiezan arriba: el elemento seleccionado no oculta los anteriores.
+        lista.yview_moveto(0)
         def cerrar():
             if p.winfo_exists():p.grab_release();p.destroy()
             self.popup=None
         def elegir(e=None):
-            indices=lista.curselection()
-            if indices:self.current(indices[0]);cerrar();self.event_generate('<<ComboboxSelected>>')
-        lista.bind('<ButtonRelease-1>',elegir);lista.bind('<Return>',elegir);p.bind('<Escape>',lambda e:cerrar())
+            indice=self.popup_activo if e is None else int(lista.canvasy(e.y)//alto)
+            if 0<=indice<len(self.valores):self.current(indice);cerrar();self.event_generate('<<ComboboxSelected>>')
+        def resaltar(indice):
+            self.popup_activo=max(0,min(len(self.valores)-1,indice))
+            for i,item in enumerate(fondos):lista.itemconfigure(item,fill='#4d1b2d' if i==self.popup_activo else TARJETA)
+        def teclado(paso):
+            resaltar(self.popup_activo+paso)
+            if self.popup_activo*alto<lista.canvasy(0):lista.yview_moveto(self.popup_activo/len(self.valores))
+            elif (self.popup_activo+1)*alto>lista.canvasy(filas*alto):lista.yview_moveto((self.popup_activo-filas+1)/len(self.valores))
+            return 'break'
+        resaltar(self.popup_activo)
+        lista.bind('<Motion>',lambda e:resaltar(int(lista.canvasy(e.y)//alto)))
+        lista.bind('<MouseWheel>',lambda e:(lista.yview_scroll(-int(e.delta/120),'units'),'break')[-1])
+        lista.bind('<ButtonRelease-1>',elegir);lista.bind('<Return>',lambda e:elegir());p.bind('<Escape>',lambda e:cerrar())
+        lista.bind('<Down>',lambda e:teclado(1));lista.bind('<Up>',lambda e:teclado(-1))
         def fuera(e):
             if p.winfo_exists() and not (p.winfo_rootx()<=e.x_root<p.winfo_rootx()+w and p.winfo_rooty()<=e.y_root<p.winfo_rooty()+h):cerrar()
         p.bind('<ButtonPress-1>',fuera);p.grab_set();lista.focus_set()
 
-class CapturadorTecla(tk.Canvas):
+class CapturadorTecla(CanvasUI):
     def __init__(self,padre,valor,comenzar,terminar):
         super().__init__(padre,height=54,bg=FONDO,highlightthickness=0,takefocus=True)
         self.valor=valor;self.comenzar=comenzar;self.terminar=terminar;self.capturando=False
@@ -397,14 +441,15 @@ class CapturadorTecla(tk.Canvas):
         self.create_text(16,27,text='Pulsa la tecla o combinación…' if self.capturando else self.valor,anchor='w',fill=TEXTO,font=(FAMILIA,11,'bold'))
         if not self.capturando:self.create_text(w-16,27,text='CAMBIAR',anchor='e',fill=VERDE,font=(FAMILIA,9,'bold'))
 
-class BotonCyber(tk.Canvas):
+class BotonCyber(CanvasUI):
     def __init__(self,padre,text='',command=None,bg='#471528',fg=TEXTO,padx=14,pady=8,font=None,**kw):
         from tkinter import font as tkfont
         self.fuente=font or (FAMILIA,10,'bold');self.texto=text;self.command=command
         self.color=bg;self.tinta=fg;self.estado=kw.pop('state','normal');self.hover=False
         for k in ('activebackground','activeforeground','relief','bd','cursor','disabledforeground','highlightthickness'):kw.pop(k,None)
-        ancho=tkfont.Font(root=padre,font=self.fuente).measure(text)+padx*2+12
-        super().__init__(padre,width=ancho,height=20+pady*2,bg=FONDO,highlightthickness=0,takefocus=True,**kw)
+        from idiomas import ui
+        ancho=max(tkfont.Font(root=padre,font=self.fuente).measure(ui(text,k)) for k in ('es','en','pt','ja'))+padx*2+12
+        super().__init__(padre,width=ancho,height=20+pady*2,bg=padre.cget('bg'),highlightthickness=0,takefocus=True,**kw)
         self.bind('<Configure>',lambda e:self.dibujar());self.bind('<Button-1>',lambda e:self.invoke())
         self.bind('<Return>',lambda e:self.invoke());self.bind('<space>',lambda e:self.invoke())
         self.bind('<Enter>',lambda e:self.resaltar(True));self.bind('<Leave>',lambda e:self.resaltar(False))
@@ -431,7 +476,28 @@ class BotonCyber(tk.Canvas):
                             fill='#28151d' if des else self.color,outline=borde)
         self.create_text(w/2,h/2,text=self.texto,fill='#916e79' if des else self.tinta,font=self.fuente)
 
-class TarjetaInfo(tk.Canvas):
+class MarcoTransmision(CanvasUI):
+    """Marco de chat con cabecera, sin fondos rectangulares en los recortes."""
+    def __init__(self,padre,titulo,**kw):
+        super().__init__(padre,bg=padre.cget('bg'),highlightthickness=0,**kw)
+        self.titulo=titulo;self.cuerpo=tk.Frame(self,bg='#180d13')
+        self.item=self.create_window(12,35,window=self.cuerpo,anchor='nw')
+        self.bind('<Configure>',self.dibujar)
+    def retraducir(self):self.dibujar()
+    def dibujar(self,e=None):
+        self.delete('marco');w=max(60,self.winfo_width());h=max(50,self.winfo_height())
+        self.create_polygon(10,1,w-17,1,w-1,17,w-1,h-10,w-10,h-1,1,h-1,1,10,
+                            fill='#180d13',outline='#773047',tags='marco')
+        self.create_line(16,28,w-16,28,fill='#542333',tags='marco')
+        from idiomas import ui,idioma_actual
+        from tkinter import font
+        familia='Yu Gothic UI' if idioma_actual()=='ja' else FAMILIA
+        fuente=font.Font(root=self,font=(familia,9,'bold'));titulo=ui(self.titulo)
+        while titulo and fuente.measure(titulo)>w-36:titulo=titulo[:-2]+'…' if len(titulo)>1 else ''
+        self.create_text(16,15,text=titulo,anchor='w',fill=VERDE,font=fuente,tags='marco')
+        self.itemconfigure(self.item,width=max(1,w-24),height=max(1,h-47));self.tag_lower('marco')
+
+class TarjetaInfo(CanvasUI):
     def __init__(self,padre,titulo,detalle):
         super().__init__(padre,height=72,bg=FONDO,highlightthickness=0)
         self.titulo=titulo;self.detalle=detalle;self.bind('<Configure>',lambda e:self.dibujar())

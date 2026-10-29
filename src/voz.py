@@ -23,7 +23,10 @@ PERFILES_VOZ={
     'multilingue':('Emma multilingüe · español','en-US-EmmaMultilingualNeural','+8Hz'),
 }
 
-def elegir_voz(perfil):
+def elegir_voz(perfil,idioma='es'):
+    from idiomas import IDIOMAS,codigo
+    idioma=codigo(idioma)
+    if idioma!='es':return IDIOMAS[idioma][3],'+8Hz'
     return PERFILES_VOZ.get(perfil,PERFILES_VOZ['capri'])[1:]
 import unicodedata
 import atexit
@@ -291,6 +294,7 @@ class Microfono:
 
 class Voz:
     def __init__(self, estado):
+        self.idioma='es'
         self.estado = estado
         self.cancelar = threading.Event()
         self.proceso = None
@@ -422,6 +426,8 @@ class Voz:
     def _hablar(self, texto, natural, token, cancelar,perfil='capri',velocidad=1.0,volumen=100):
         if os.name != 'nt' or not self._vigente(token,cancelar):
             return
+        from idiomas import codigo
+        idioma=codigo(self.idioma)
         original=texto;texto=texto_para_voz(texto)
         volumen=normalizar_volumen(volumen)
         if not texto or volumen==0:return
@@ -436,7 +442,7 @@ class Voz:
                     with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f: archivo = Path(f.name)
                     eventos=[]
                     async def crear():
-                        nombre,tono=elegir_voz(perfil)
+                        nombre,tono=elegir_voz(perfil,idioma)
                         comunicacion = edge_tts.Communicate(texto,nombre,
                                                           rate=ritmo,pitch=tono,boundary='WordBoundary')
                         async def guardar():
@@ -458,11 +464,17 @@ class Voz:
             with tempfile.NamedTemporaryFile(suffix='.wav',delete=False) as f:archivo=Path(f.name)
             destino=base64.b64encode(str(archivo).encode('utf8')).decode('ascii')
             script = "$ErrorActionPreference='Stop';Add-Type -AssemblyName System.Speech;$v=New-Object System.Speech.Synthesis.SpeechSynthesizer;$v.Volume=100;$v.Rate="+str(rapidez_windows)+";$es=$v.GetInstalledVoices()|Where-Object {$_.VoiceInfo.Culture.Name -like 'es-*'}|Select-Object -First 1;if($es){$v.SelectVoice($es.VoiceInfo.Name)};$v.SetOutputToWaveFile([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('"+destino+"')));$v.Speak([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + codificado + "')));$v.Dispose()"
+            script=script.replace("-like 'es-*'","-like '"+idioma+"-*'")
+            if idioma!='es':script=script.replace(';if($es){$v.SelectVoice($es.VoiceInfo.Name)}',";if(!$es){throw 'No Windows voice installed for selected language'};$v.SelectVoice($es.VoiceInfo.Name)")
             encoded = base64.b64encode(script.encode('utf-16-le')).decode('ascii')
             if self._reproducir_windows(encoded,token,cancelar,emitir=False):
                 activo=self._reproducir_archivo(archivo,token,cancelar,volumen,texto=original)
+            elif not cancelar.is_set():
+                from idiomas import texto as mensaje
+                self._emitir(mensaje('voz_error',idioma),token,cancelar)
         except Exception:
-            self._emitir('No pude reproducir la voz. Puedes seguir usando el chat.',token,cancelar)
+            from idiomas import texto as mensaje
+            self._emitir(mensaje('voz_error',idioma),token,cancelar)
         finally:
             if activo:self._emitir(False,token,cancelar)
             if archivo:

@@ -54,6 +54,28 @@ def con_sombra(imagen,halo):
     fondo.alpha_composite(sombra_glitch(imagen,COLORES_HALO[halo]),(-5,2))
     fondo.alpha_composite(imagen);return fondo
 
+def pose_sujeta(imagen,agarre):
+    """Eleva el brazo del sprite y lleva su mano al mango fijo del anclaje."""
+    w,h=imagen.size;sx=w/210;sy=h/240
+    mascara=Image.new('L',imagen.size)
+    ImageDraw.Draw(mascara).polygon([(x*sx,y*sy) for x,y in
+        ((114,96),(121,104),(105,119),(88,131),(86,151),(44,153),(44,125),(90,113))],fill=255)
+    alfa=imagen.getchannel('A');brazo=imagen.copy()
+    brazo.putalpha(ImageChops.multiply(alfa,mascara))
+    cuerpo=imagen.copy();cuerpo.putalpha(ImageChops.subtract(alfa,brazo.getchannel('A')))
+    hombro=(116*sx,102*sy);mano=(68*sx,134*sy)
+    dx,dy=mano[0]-hombro[0],mano[1]-hombro[1]
+    tx,ty=agarre[0]-hombro[0],agarre[1]-hombro[1]
+    angulo=math.atan2(ty,tx)-math.atan2(dy,dx)
+    escala=max(.5,min(1.6,math.hypot(tx,ty)/math.hypot(dx,dy)))
+    a,b=math.cos(angulo)/escala,math.sin(angulo)/escala;d,e=-b,a
+    ox,oy=hombro
+    brazo=brazo.transform(imagen.size,Image.Transform.AFFINE,
+        (a,b,ox-a*ox-b*oy,d,e,oy-d*ox-e*oy),Image.Resampling.BICUBIC)
+    brazo.putalpha(brazo.getchannel('A').point(lambda v:255 if v>=96 else 0))
+    cuerpo.alpha_composite(brazo)
+    return cuerpo
+
 def boca_personaje(imagen,sentada=False,abierta=False):
     im=imagen.copy();caja=(220,219,238,227) if sentada else (226,190,239,198)
     for y in range(caja[1],caja[3]):
@@ -195,8 +217,8 @@ class Companera:
                 self.estado='sujeta';return
             self.ancla=None;self.proxima_ancla=ahora+5
         if self.y<suelo-self.alto*.3 and ahora>=self.proxima_ancla and random.random()<dt*1.2:
-            self.ancla={'x':self.x+self.ancho*(.88 if self.direccion<0 else .12),
-                        'y':self.y+self.alto*.48,'hasta':ahora+random.uniform(2,4),
+            self.ancla={'x':self.x+self.ancho*(.77 if self.direccion<0 else .23),
+                        'y':self.y+self.alto*.27,'hasta':ahora+random.uniform(3.5,6),
                         'inicio':ahora,'cuerpo_y':self.y}
             self.velocidad_caida=0.;self.estado='sujeta';return
         antes=self.y
@@ -255,40 +277,48 @@ class Companera:
         if self.ancla:
             ax=self.ancla['x']-self.x;ay=self.ancla['y']-self.y
             edad=max(0,ahora-self.ancla['inicio']);lado=-1 if self.direccion<0 else 1;s=self.escala
-            golpe=max(0,1-edad/.16);ax+=lado*18*s*golpe;ay+=18*s*golpe
+            golpe=max(0,1-edad/.20)
             def puntos(lista):return [v for x,y in lista for v in (ax+lado*x*s,ay+y*s)]
-            for dx,dy in ((-14,3),(-6,-17),(8,-13)):
-                c.create_line(ax,ay,ax+dx*s,ay+dy*s,fill='#752539',width=1,tags='ancla_personaje')
-            c.create_polygon(*puntos([(-15,-16),(14,-1),(9,7),(-1,3)]),fill='#f60031',outline='#ffb6c2',tags='ancla_personaje')
-            c.create_polygon(*puntos([(-15,-16),(9,2),(9,7),(-1,3)]),fill='#8e112d',outline='',tags='ancla_personaje')
-            c.create_line(*puntos([(4,10),(17,-2)]),fill='#ff859d',width=max(2,3*s),tags='ancla_personaje')
-            c.create_line(*puntos([(12,5),(22,18)]),fill='#39101b',width=max(3,5*s),tags='ancla_personaje')
-            c.create_line(ax+lado*22*s,ay+18*s,self.ancho*(.77 if self.direccion<0 else .23),self.alto*.59,
-                          fill='#ff7a91',width=2,tags='ancla_personaje')
-            if edad<.22:
-                for i in range(4):
-                    radio=(10+edad*80)*s;a=i*1.7
-                    c.create_line(ax+math.cos(a)*radio,ay+math.sin(a)*radio,ax+math.cos(a)*(radio+4*s),
-                                  ay+math.sin(a)*(radio+4*s),fill='#ffbbc8',tags='ancla_personaje')
+            for rama in (((0,0),(-10,-8),(-22,-7)),((0,0),(-5,12),(-15,21)),
+                         ((0,0),(8,-11),(7,-23)),((0,0),(17,3),(23,12))):
+                c.create_line(*puntos(rama),fill='#160c15',width=max(2,3*s),tags=('ancla_personaje','impacto_ancla'))
+                c.create_line(*puntos(rama),fill='#b04a67',width=1,tags=('ancla_personaje','impacto_ancla'))
+            c.create_polygon(*puntos([(-8,0),(0,-7),(9,1),(0,8)]),fill='#170d17',outline='#ef577c',width=2,tags='ancla_personaje')
+            def hoja(lista):return [(x+golpe*18,y+golpe*20) for x,y in lista]
+            c.create_polygon(*puntos(hoja([(-8,-11),(5,-3),(15,9),(9,14),(1,6)])),fill='#f60031',outline='#ff99b3',tags=('ancla_personaje','estaca_clavada'))
+            c.create_polygon(*puntos(hoja([(-8,-11),(9,6),(9,14),(1,6)])),fill='#8e112d',outline='',tags='ancla_personaje')
+            c.create_line(*puntos([(5,14),(17,4)]),fill='#ffb3c9',width=max(2,3*s),tags='ancla_personaje')
+            c.create_line(*puntos([(11,10),(21,25)]),fill='#26101f',width=max(4,6*s),tags='ancla_personaje')
+            c.create_line(*puntos([(11,10),(21,25)]),fill='#d4406a',width=max(1,2*s),tags='ancla_personaje')
+            if edad<.36:
+                for i in range(6):
+                    radio=(8+edad*62)*s;a=i*math.pi/3+.2
+                    c.create_line(ax+math.cos(a)*radio,ay+math.sin(a)*radio,ax+math.cos(a)*(radio+6*s),
+                                  ay+math.sin(a)*(radio+6*s),fill='#ffdfed',width=2,tags=('ancla_personaje','chispa_ancla'))
         indice=(6 if hablando and boca else 3) if self.estado=='sentada' else 0
         if indice==0:
             if hablando and boca:indice=4
             elif ahora%5.3<.13:indice=5
         fotos=self.espejos if self.direccion<0 else self.fotos
-        giro=round(4*math.sin((ahora-self.ancla['inicio'])*3)) if self.ancla else 0
+        giro=round(-2+2*math.sin((ahora-self.ancla['inicio'])*3))*(1 if self.direccion>=0 else -1) if self.ancla else 0
         if self.ancla:
-            clave_giro=(self.direccion<0,indice,giro)
+            agarre=(ax+lado*14*self.escala,ay+18*self.escala)
+            clave_giro=(self.direccion<0,indice,giro,round(ay))
             if clave_giro not in self.colgadas:
-                base=ImageOps.mirror(self.lienzos[indice]) if self.direccion<0 else self.lienzos[indice]
-                im=base.rotate(giro,Image.Resampling.NEAREST,center=(self.ancho*(.77 if self.direccion<0 else .23),self.alto*.59))
+                objetivo=(self.ancho-agarre[0] if self.direccion<0 else agarre[0],agarre[1])
+                base=pose_sujeta(self.lienzos[indice],objetivo)
+                if self.direccion<0:base=ImageOps.mirror(base)
+                im=base.rotate(giro,Image.Resampling.NEAREST,center=agarre)
                 self.colgadas[clave_giro]=(im,ImageTk.PhotoImage(im))
+                if len(self.colgadas)>64:self.colgadas.pop(next(iter(self.colgadas)))
             cuerpo_colgado,foto_colgada=self.colgadas[clave_giro]
         if halo in COLORES_HALO:
-            clave=(halo,self.direccion<0,indice,giro,bool(self.ancla))
+            clave=(halo,self.direccion<0,indice,giro,round(ay) if self.ancla else None)
             if clave not in self.halos:
                 im=ImageOps.mirror(self.lienzos[indice]) if self.direccion<0 else self.lienzos[indice]
                 if self.ancla:im=cuerpo_colgado
                 self.halos[clave]=ImageTk.PhotoImage(sombra_glitch(im,COLORES_HALO[halo]))
+                if len(self.halos)>96:self.halos.pop(next(iter(self.halos)))
             desplazamiento=7 if glitch and ahora%4.7<.14 else 5
             c.create_image(self.ancho//2-desplazamiento,self.alto//2+2,image=self.halos[clave],tags='sombra_personaje')
         self.imagen=fotos[indice]
@@ -297,6 +327,10 @@ class Companera:
             variantes=self.glitches_espejo if self.direccion<0 else self.glitches
             self.imagen=variantes[indice][int(ahora*35)%2]
         c.create_image(self.ancho//2,self.alto//2,image=self.imagen,tags='personaje')
+        if self.ancla:
+            for i in range(3):
+                c.create_line(*puntos([(11+i*2,13+i*3),(17+i*2,10+i*3)]),fill='#150b1a',width=max(3,4*s),tags=('ancla_personaje','agarre_personaje'))
+                c.create_line(*puntos([(11+i*2,13+i*3),(17+i*2,10+i*3)]),fill='#ff477e',width=max(1,s),tags=('ancla_personaje','agarre_personaje'))
 
     def volver_al_borde(self,ahora):
         l,t,r,b=area_trabajo();x=l+8 if self.x<(l+r)/2 else r-self.ancho-8

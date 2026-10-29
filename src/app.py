@@ -12,11 +12,14 @@ import time
 import urllib.error
 import re
 import tkinter as tk
+from idiomas import Lienzo as CanvasUI
 from tkinter import ttk, messagebox, simpledialog
 from PIL import Image, ImageTk, ImageOps
 from core import IA, interpretar, ejecutar, HIDDEN
 from intenciones import Interprete,requiere_contexto
 from voz import Microfono, Voz, Atajo, listar_microfonos,normalizar_velocidad,normalizar_volumen
+from idiomas import codigo as codigo_idioma,texto as texto_idioma,conocida as traduccion_conocida
+from idiomas import activar as activar_idioma,localizar_widgets,ui
 
 BASE = Path(__file__).resolve().parent
 BG = '#10090d'
@@ -99,10 +102,14 @@ class Capri:
                              historial=self.abrir_chat,detener=self.interrumpir,glitch=lambda:self.cfg.get('efecto_glitch',True))
         self.dialogo.retener=lambda:bool(self.control_pc.pendiente and time.monotonic()<self.control_pc.pendiente.vence)
         self.dialogo.personaje=self.es_personaje;self.dialogo.ruta_retrato=icono
+        self.dialogo.idioma=lambda:codigo_idioma(self.cfg.get('idioma'))
         self.historial=[];self.respuesta_borrador=''
         self.subtitulo=tk.StringVar(value=self.cfg.get('tecla_hablar','F8')+' para hablar · Esc para detener')
         self.estado='Preparando activación…' if hotkeys and self.cfg.get('activacion_voz') else self.cfg.get('tecla_hablar','F8')+' para hablar'
         self.voz = Voz(lambda v: self.eventos.put(('voz', (self.voz.generacion,v))))
+        self.cfg.setdefault('idioma','es')
+        activar_idioma(self.cfg['idioma'])
+        self.ia.idioma=self.voz.idioma=codigo_idioma(self.cfg['idioma'])
         self.fase = 0
         self.drag = None
         self.fotos = []
@@ -118,7 +125,7 @@ class Capri:
         self.avatar=Avatar(ruta_base)
         from companera import Companera
         self.companera=Companera(ruta_base.with_name('capri-personaje-v1.png'))
-        self.canvas = tk.Canvas(self.root, bg=TRANS, width=360, height=292, highlightthickness=0)
+        self.canvas = CanvasUI(self.root, bg=TRANS, width=360, height=292, highlightthickness=0)
         self.canvas.pack(fill='both', expand=True)
         self.canvas.bind('<ButtonPress-1>', self._inicio_arrastre)
         self.canvas.bind('<B1-Motion>', self._arrastrar)
@@ -535,7 +542,7 @@ class Capri:
             ventana=self.indicador_voz=tk.Toplevel(self.root,bg=TRANS)
             ventana.overrideredirect(True);ventana.attributes('-topmost',True)
             if os.name=='nt':ventana.attributes('-transparentcolor',TRANS)
-            self.indicador_canvas=tk.Canvas(ventana,width=172,height=30,bg=TRANS,highlightthickness=0)
+            self.indicador_canvas=CanvasUI(ventana,width=172,height=30,bg=TRANS,highlightthickness=0)
             self.indicador_canvas.pack()
         x=max(0,min(self.root.winfo_screenwidth()-172,self.root.winfo_x()+(self.root.winfo_width()-172)//2))
         y=max(0,self.root.winfo_y()-34)
@@ -610,28 +617,50 @@ class Capri:
         p.minsize(420,490)
         x = max(0,self.root.winfo_x()-485); y = max(0,min(self.root.winfo_y()-140,self.root.winfo_screenheight()-690))
         p.geometry(f'+{x}+{y}')
-        from ajustes_ui import VentanaCyber
+        from ajustes_ui import VentanaCyber,MarcoTransmision,BarraCyber
         self.marco_chat=VentanaCyber(p,'CONVERSACIÓN');contenido=self.marco_chat.cuerpo
         cabeza = tk.Frame(contenido,bg=BG); cabeza.pack(fill='x',padx=20,pady=(18,8))
         tk.Label(cabeza,text='CAPRI',bg=BG,fg=FG,font=('Chakra Petch',20,'bold')).pack(side='left')
         self.boton(cabeza,'Ajustes',self.configurar).pack(side='right')
         tk.Label(contenido,text='Di «Capri» para hablar o escribe una transmisión.',bg=BG,fg=MUTED,font=('Chakra Petch',10)).pack(anchor='w',padx=21,pady=(0,12))
-        self.chat = tk.Text(contenido,height=8,bg=CARD,fg=FG,relief='flat',borderwidth=0,wrap='word',font=('Chakra Petch',11),padx=17,pady=15,state='disabled')
-        self.chat.pack(fill='both',expand=True,padx=18)
+        from idiomas import fuente
+        self.marco_historial=MarcoTransmision(contenido,'REGISTRO // TRANSMISIONES',height=240)
+        self.marco_historial.pack(fill='both',expand=True,padx=12)
+        self.chat = tk.Text(self.marco_historial.cuerpo,height=8,bg='#180d13',fg=FG,relief='flat',borderwidth=0,highlightthickness=0,wrap='word',font=(fuente(self.cfg.get('idioma')),11),padx=5,pady=8,spacing1=0,spacing3=0,selectbackground='#6a2038',selectforeground=FG,state='disabled')
+        barra_chat=BarraCyber(self.marco_historial.cuerpo,self.chat.yview)
+        self.chat.configure(yscrollcommand=barra_chat.set);barra_chat.pack(side='right',fill='y',padx=(6,0))
+        self.chat.pack(side='left',fill='both',expand=True)
         self.chat.tag_configure('yo',foreground=GREEN,font=('Chakra Petch',10,'bold'))
         self.chat.tag_configure('capri',foreground=RED,font=('Chakra Petch',10,'bold'))
+        for rol in ('yo','capri'):self.chat.tag_configure(rol,spacing1=8,spacing3=4)
+        self.chat.tag_configure('mensaje',spacing3=14)
         self.chat.tag_configure('aviso',foreground=MUTED)
+        self.chat.bind('<Configure>',lambda e:self.chat.yview_moveto(1))
         self.pintar_historial()
         tk.Label(contenido,textvariable=self.subtitulo,bg=BG,fg=MUTED,wraplength=430,font=('Chakra Petch',9)).pack(fill='x',padx=20,pady=9)
-        caja = tk.Frame(contenido,bg=BG); caja.pack(fill='x',padx=18,pady=(0,10))
-        self.entrada = tk.Entry(caja,bg=CARD,fg=FG,insertbackground=GREEN,relief='flat',font=('Chakra Petch',11))
-        self.entrada.pack(side='left',fill='both',expand=True,ipady=10)
+        self.marco_entrada=MarcoTransmision(contenido,'NUEVA TRANSMISIÓN // ESCRIBE AQUÍ',height=94)
+        self.marco_entrada.pack(fill='x',padx=12,pady=(0,8))
+        caja=self.marco_entrada.cuerpo
+        self.entrada = tk.Entry(caja,bg='#180d13',fg=FG,insertbackground=GREEN,relief='flat',borderwidth=0,highlightthickness=0,font=(fuente(self.cfg.get('idioma')),11),selectbackground='#6a2038',selectforeground=FG)
+        self.entrada.pack(side='left',fill='x',expand=True,padx=(2,10),pady=8)
+        self.entrada.configure(highlightthickness=1,highlightbackground='#59303e',highlightcolor=RED)
+        self.placeholder_entrada=tk.Label(caja,text='Escribe un mensaje…',bg='#180d13',fg=MUTED,anchor='w',font=(fuente(self.cfg.get('idioma')),11))
+        def entrar(e=None):
+            self.placeholder_entrada.place_forget()
+        def salir(e=None):
+            if not self.entrada.get():self.placeholder_entrada.place(in_=self.entrada,x=6,rely=.5,anchor='w',width=max(1,self.entrada.winfo_width()-12))
+        self.entrada.bind('<Configure>',lambda e:self.placeholder_entrada.place_configure(width=max(1,e.width-12)) if self.placeholder_entrada.winfo_manager()=='place' else None)
+        self.placeholder_entrada.bind('<Button-1>',lambda e:self.entrada.focus_set())
+        self.entrada.bind('<FocusIn>',entrar);self.entrada.bind('<FocusOut>',salir)
+        salir()
         self.entrada.bind('<Return>',lambda e:self.enviar_entrada())
         self.boton(caja,'Enviar',self.enviar_entrada,RED).pack(side='left',padx=(7,0))
         pie = tk.Frame(contenido,bg=BG); pie.pack(fill='x',padx=18,pady=(0,16))
         tk.Label(pie,text='DI «CAPRI»  //  '+self.cfg.get('tecla_hablar','F8')+' PARA HABLAR',bg=BG,fg=GREEN,font=('Chakra Petch',9,'bold')).pack(side='left')
+        localizar_widgets(self.root,True)
 
     def poner_chat(self, autor, texto,mostrar=True):
+        if autor=='Capri':texto=ui(texto,self.cfg.get('idioma'))
         if autor=='Capri' and mostrar:self.dialogo.mostrar(texto)
         self.historial.append((autor,texto))
         self.pintar_historial()
@@ -643,12 +672,13 @@ class Capri:
         for i,(autor,texto) in enumerate(self.historial):
             if autor=='Capri' and i==len(self.historial)-1 and self.voz_ticket==self.peticion:
                 texto=self.dialogo.visible
-            self.chat.insert('end',autor.upper()+'\n','yo' if autor=='Tú' else 'capri')
-            self.chat.insert('end',texto+'\n\n')
+            if not texto.strip():texto=texto_idioma('preparando',self.cfg.get('idioma'))
+            self.chat.insert('end',(texto_idioma('tu',self.cfg.get('idioma')) if autor=='Tú' else autor.upper())+' //\n','yo' if autor=='Tú' else 'capri')
+            self.chat.insert('end',texto+'\n','mensaje')
         if self.stream_ticket is not None:
             self.chat.insert('end','CAPRI\n','capri')
-            self.chat.insert('end','Preparando respuesta…' if self.puede_narrar() else self.respuesta_borrador)
-        self.chat.configure(state='disabled'); self.chat.see('end')
+            self.chat.insert('end',texto_idioma('preparando',self.cfg.get('idioma')) if self.puede_narrar() or not self.respuesta_borrador else self.respuesta_borrador)
+        self.chat.configure(state='disabled'); self.chat.yview_moveto(1)
 
     def mostrar_respuesta_parcial(self,ticket,texto):
         if self.puede_narrar():self.dialogo.preparar_voz(texto,estado='GENERANDO RESPUESTA')
@@ -698,6 +728,8 @@ class Capri:
             nuevo=1.0 if orden.valor=='normal' else normalizar_velocidad(actual+(.15 if orden.valor=='subir' else -.15))
             self.guardar('velocidad_voz',round(nuevo,2))
             respuesta=f'Listo. Velocidad de voz: {nuevo:.2f} veces.'
+            idioma=codigo_idioma(self.cfg.get('idioma'))
+            if idioma!='es':respuesta={'en':f'Voice speed: {nuevo:.2f} times.','pt':f'Velocidade da voz: {nuevo:.2f} vezes.','ja':f'話す速さを{nuevo:.2f}倍にしたよ。'}[idioma]
             self.poner_chat('Capri',respuesta,mostrar=not self.puede_narrar())
             if self.puede_narrar():self.narrar_respuesta(self.peticion,respuesta,final=True)
             return
@@ -706,6 +738,7 @@ class Capri:
         ticket = self.peticion
         self.respuesta_stop=threading.Event()
         cancelar=self.respuesta_stop
+        idioma=codigo_idioma(self.cfg.get('idioma'))
         if self.panel: self.subtitulo.set('Procesando tu instrucción…')
         def trabajar():
             try:
@@ -718,7 +751,7 @@ class Capri:
                         from core import Orden
                         previo=Orden(pendiente_previo.accion,str(pendiente_previo.ruta or '')) if pendiente_previo else None
                         self.eventos.put(('contexto',(ticket,texto,previo,confirmada,False)))
-                        self.eventos.put(('respuesta',(ticket,confirmada)))
+                        self.eventos.put(('respuesta',(ticket,self.localizar_respuesta(confirmada,idioma,cancelar))))
                     return
                 if self.cfg.get('ia') and requiere_contexto(resuelta):
                     if self.cfg.get('control_ampliado'):
@@ -740,21 +773,37 @@ class Capri:
                     try:
                         self.ia.contexto_acciones=self.interprete.contexto()['turnos']
                         self.ia.control_ampliado=bool(self.cfg.get('control_ampliado'))
+                        self.ia.idioma=idioma
                         respuesta = self.ia.conversar(texto,self.cfg.get('modelo') or None,
                                     al_texto=lambda t:self.eventos.put(('respuesta_parcial',(ticket,t))),cancelar=cancelar,
                                     origen=origen)
                     except InterruptedError:return
                     except (TimeoutError,urllib.error.URLError):
-                        self.eventos.put(('error',(ticket,'No pude obtener la respuesta del modelo local. Comprueba que Ollama esté abierto y vuelve a intentarlo.')));return
+                        self.eventos.put(('error',(ticket,texto_idioma('ia_error',idioma))));return
                     except Exception as e:
-                        self.eventos.put(('error',(ticket,'La IA local no pudo responder. '+str(e)[:180])));return
+                        self.eventos.put(('error',(ticket,texto_idioma('ia_error',idioma)+' '+str(e)[:180])));return
                 self.eventos.put(('contexto',(ticket,texto,resuelta,respuesta,bool(pregunta))))
+                if resuelta or pregunta:respuesta=self.localizar_respuesta(respuesta,idioma,cancelar)
+                if cancelar.is_set():return
                 self.eventos.put(('respuesta',(ticket,respuesta)))
             except InterruptedError:return
             except Exception as e:
-                self.eventos.put(('error',(ticket,'No pude completar la orden. '+str(e)[:230])))
+                self.eventos.put(('error',(ticket,texto_idioma('accion_error',idioma)+' '+str(e)[:230])))
         threading.Thread(target=trabajar,daemon=True).start()
         self.root.after(95000,lambda:self._limite_respuesta(ticket))
+
+    def localizar_respuesta(self,respuesta,idioma,cancelar=None):
+        conocida=traduccion_conocida(respuesta,idioma)
+        if conocida is not None:return conocida
+        localizada=ui(respuesta,idioma)
+        if localizada!=respuesta:return localizada
+        try:
+            if not self.cfg.get('ia'):raise RuntimeError('IA local desactivada')
+            return self.ia.traducir(respuesta,idioma,self.cfg.get('modelo') or None,cancelar)
+        except InterruptedError:raise
+        except Exception:
+            # Conservar el resultado verdadero si el modelo no puede traducirlo.
+            return texto_idioma('sin_traduccion',idioma)+'\n'+texto_idioma('original',idioma)+'\n'+respuesta
 
     def _limite_respuesta(self,ticket):
         if self.ocupada and self.peticion == ticket:
@@ -953,6 +1002,7 @@ class Capri:
                     if actual:self.modelo_combo.set(actual)
                     self.modelo_estado.set(error or 'Elige un modelo instalado. Se usa para conversar y entender peticiones.')
         self.mantener_activacion()
+        localizar_widgets(self.root)
         self.root.after(60,self.poll)
 
     def recibir_dictado(self,texto):
@@ -995,6 +1045,15 @@ class Capri:
         voz=ui.seccion('Voz','Escucha y compara perfiles sin cambiar tu voz actual hasta elegir uno.')
         ia=ui.seccion('IA y servicios','Modelo local, navegador y música.')
         permisos=ui.seccion('Permisos','Decide qué puede hacer Capri en tu computador.')
+        from idiomas import IDIOMAS
+        tk.Label(voz,text='Idioma de Capri',bg=BG,fg=GREEN,font=('Chakra Petch',12,'bold')).pack(anchor='w')
+        self.idioma_combo=SelectorCyber(voz,values=[v[0] for v in IDIOMAS.values()])
+        self.idioma_combo.current(list(IDIOMAS).index(codigo_idioma(self.cfg.get('idioma'))))
+        self.idioma_combo.pack(fill='x',pady=(6,6))
+        self.idioma_combo.bind('<<ComboboxSelected>>',lambda e:self.guardar('idioma',list(IDIOMAS)[self.idioma_combo.current()]))
+        for ayuda in ('Cambia menús, ajustes, avisos, respuestas y voz. Se conserva tu perfil de voz en español.',
+                      'Las conversaciones y traducciones de resultados detallados usan IA local. El reconocimiento de voz mantiene su configuración.'):
+            tk.Label(voz,text=ayuda,bg=BG,fg=MUTED,font=('Chakra Petch',9),wraplength=460,justify='left').pack(anchor='w',pady=(0,7))
         f=escritorio
         tk.Label(f,text='Forma de Capri',bg=BG,fg=GREEN,font=('Chakra Petch',12,'bold')).pack(anchor='w')
         forma=SelectorCyber(f,state='readonly',values=['Pantalla personal','Personaje en el escritorio'],font=('Chakra Petch',10))
@@ -1064,7 +1123,7 @@ class Capri:
         if not disponible(BASE/'modelos',elegido):
             tk.Label(f,text='Preciso necesita descargar un modelo local de 148 MB.',wraplength=460,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',9)).pack(anchor='w')
             self.boton(f,'Preparar reconocimiento preciso',self.preparar_reconocimiento).pack(anchor='w',pady=(5,12))
-        for key,texto in [('activacion_voz','Activar al decir «Capri» (escucha local)'),('voz','Responder en voz alta'),('voz_natural','Voz española natural por internet'),('dialogos_escritorio','Mostrar diálogos progresivos junto a Capri'),('animaciones','Estados de boca y expresiones del avatar'),('efecto_glitch','Interferencias breves de imagen y texto'),('intro_inicio','Intro visual al abrir Capri')]:
+        for key,texto in [('activacion_voz','Activar al decir «Capri» (escucha local)'),('voz','Responder en voz alta'),('voz_natural','Voz natural por internet'),('dialogos_escritorio','Mostrar diálogos progresivos junto a Capri'),('animaciones','Estados de boca y expresiones del avatar'),('efecto_glitch','Interferencias breves de imagen y texto'),('intro_inicio','Intro visual al abrir Capri')]:
             var=tk.BooleanVar(value=bool(self.cfg.get(key)))
             destino=micro if key=='activacion_voz' else (voz if key in ('voz','voz_natural') else escritorio)
             InterruptorCyber(destino,text=texto,variable=var,command=lambda k=key,v=var:self.guardar(k,v.get()),bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,activeforeground=FG,font=('Chakra Petch',11)).pack(anchor='w',pady=5)
@@ -1089,7 +1148,7 @@ class Capri:
         self.perfil_voz_combo.current(perfiles.index(self.cfg.get('voz_perfil')) if self.cfg.get('voz_perfil') in perfiles else 0)
         self.perfil_voz_combo.bind('<<ComboboxSelected>>',lambda e:self.guardar('voz_perfil',perfiles[self.perfil_voz_combo.current()]))
         self.perfil_voz_combo.pack(fill='x',pady=(6,5))
-        self.boton(f,'Escuchar prueba',lambda:self.voz.hablar('Soy Capri. Enlace listo, choom. ¿Qué hacemos hoy?',True,
+        self.boton(f,'Escuchar prueba',lambda:self.voz.hablar(texto_idioma('prueba',self.cfg.get('idioma')),True,
                     perfil=self.cfg.get('voz_perfil','capri'),velocidad=self.cfg.get('velocidad_voz',1),volumen=self.cfg.get('volumen_voz',100))).pack(anchor='w')
         velocidad=normalizar_velocidad(self.cfg.get('velocidad_voz',1.0))
         texto_velocidad=tk.StringVar(value=f'Velocidad de voz: {velocidad:.2f}×')
@@ -1120,6 +1179,7 @@ class Capri:
         tk.Label(f,text='No se guarda el audio ni el historial del chat.\nArrastra la imagen para mover a Capri. Clic para chatear.\nTecla configurable en Voz · Esc: detener voz.',wraplength=420,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',10)).pack(anchor='w',pady=20)
         for widget in (self.micro_combo,self.whisper_combo,self.perfil_voz_combo,self.modelo_combo,motor,forma):widget.configure(style='Capri.TCombobox')
         ui.conectar_rueda()
+        localizar_widgets(self.root,True)
         self.cargar_microfonos()
 
     def cargar_microfonos(self):
@@ -1180,12 +1240,13 @@ class Capri:
     def preparar_reconocimiento(self):
         lanzador=BASE/'Preparar Capri.pyw'
         if not lanzador.exists():
-            messagebox.showinfo('Capri','Abre el archivo «Abrir Capri.pyw» actualizado para preparar Whisper.');return
+            messagebox.showinfo('Capri',ui('Abre el archivo «Abrir Capri.pyw» actualizado para preparar Whisper.'));return
         pythonw=Path(sys.executable).with_name('pythonw.exe')
         subprocess.Popen([str(pythonw if pythonw.exists() else sys.executable),str(lanzador)],creationflags=HIDDEN)
         self.cerrar()
 
     def guardar(self,k,v):
+        if k=='idioma':v=codigo_idioma(v)
         if k=='tecla_hablar':
             from voz import atajo_valido
             if not atajo_valido(v):return
@@ -1205,6 +1266,20 @@ class Capri:
         except (OSError,ValueError):persistido=dict(self.cfg)
         persistido[k]=v
         archivo.write_text(json.dumps(persistido,ensure_ascii=False,indent=2),encoding='utf8')
+        if k=='idioma':
+            self.interrumpir()
+            activar_idioma(v)
+            self.ia.idioma=self.voz.idioma=v
+            if self.ajustes and self.ajustes.winfo_exists() and hasattr(self,'idioma_combo'):
+                from idiomas import IDIOMAS
+                self.idioma_combo.current(list(IDIOMAS).index(v))
+            if hasattr(self,'caches_morfosis'):self.caches_morfosis.clear()
+            if self.panel and self.panel.winfo_exists():
+                from idiomas import fuente
+                for campo in (self.chat,self.entrada):campo.configure(font=(fuente(v),11))
+                for rol in ('yo','capri'):self.chat.tag_configure(rol,font=('Yu Gothic UI' if v=='ja' else 'Chakra Petch',10,'bold'))
+                self.pintar_historial()
+            localizar_widgets(self.root,True)
         if k=='tecla_hablar' and self.atajo:
             self.atajo.cerrar()
             self.atajo=Atajo(lambda:self.eventos.put(('micro',None)),lambda t:self.eventos.put(('aviso',t)),v)
@@ -1241,14 +1316,14 @@ class Capri:
         threading.Thread(target=self.preparar_ia,daemon=True).start()
 
     def vincular_playlist(self):
-        nombre=simpledialog.askstring('Playlist de Spotify','¿Con qué nombre quieres pedir esta playlist?',parent=self.ajustes)
+        nombre=simpledialog.askstring(ui('Playlist de Spotify'),ui('¿Con qué nombre quieres pedir esta playlist?'),parent=self.ajustes)
         if not nombre:return
-        enlace=simpledialog.askstring('Playlist de Spotify','Pega su enlace de Spotify. Puede seguir siendo privada:',parent=self.ajustes)
+        enlace=simpledialog.askstring(ui('Playlist de Spotify'),ui('Pega su enlace de Spotify. Puede seguir siendo privada:'),parent=self.ajustes)
         if not enlace:return
         from playlists import vincular
         try:vincular(nombre,enlace,BASE)
-        except (OSError,ValueError) as e:messagebox.showerror('Playlist de Spotify',str(e),parent=self.ajustes);return
-        messagebox.showinfo('Playlist de Spotify','Vinculada. Puedes decir «Capri, pon mi playlist '+nombre+'».',parent=self.ajustes)
+        except (OSError,ValueError) as e:messagebox.showerror(ui('Playlist de Spotify'),ui(str(e)),parent=self.ajustes);return
+        messagebox.showinfo(ui('Playlist de Spotify'),ui('Vinculada. Puedes decir «Capri, pon mi playlist '+nombre+'».'),parent=self.ajustes)
 
     def conectar_opera(self):
         from puente_opera import iniciar
@@ -1268,7 +1343,7 @@ class Capri:
         def gestor():
             from core import abrir_opera
             try:abrir_opera(pagina='opera://extensions')
-            except OSError as e:messagebox.showerror('Opera GX',str(e),parent=ventana)
+            except OSError as e:messagebox.showerror('Opera GX',ui(str(e)),parent=ventana)
         tk.Button(fila,text='Abrir gestor de Opera',command=gestor).pack(side='left',padx=6)
         tk.Button(fila,text='Abrir carpeta de extensión',command=lambda:os.startfile(str(carpeta))).pack(side='left',padx=6)
         estado=tk.StringVar()
