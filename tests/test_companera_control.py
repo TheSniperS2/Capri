@@ -75,7 +75,7 @@ class ModoPersonaje(PruebasTk):
     def capri(self):
         with tempfile.TemporaryDirectory() as d,patch.object(app,'BASE',Path(d)),patch.object(app.Voz,'parar'):
             assets=Path(d)/'assets';assets.mkdir();origen=Path(__file__).resolve().parents[1]/'assets'
-            for n in ('capri-base-v2.png','capri-bocas-v2.png','capri-personaje-v1.png','capri-caminar-v1.png'):shutil.copy2(origen/n,assets/n)
+            for n in ('capri-base-v2.png','capri-bocas-v2.png','capri-personaje-v1.png','capri-caminar-v1.png','capri-saludo-v1.png'):shutil.copy2(origen/n,assets/n)
             c=app.Capri(hotkeys=False);c.root.withdraw();c.cfg['voz']=False
             try:yield c,Path(d)
             finally:c.cerrar()
@@ -83,14 +83,15 @@ class ModoPersonaje(PruebasTk):
     def test_modos_excluyentes_entrada_al_pedir_y_permiso_desactivado(self):
         with self.capri() as (c,p),patch('companera.visibles',return_value=[]):
             self.assertFalse(c.cfg['control_ampliado']);c.guardar('modo_visual','personaje');c.animar()
-            self.assertIsNotNone(c.transito);c.transito['inicio']-=2;c.animar()
+            self.assertIsNotNone(c.transito);c.transito['inicio']-=c.transito['duracion']+.1;c.animar()
             self.assertTrue(c.canvas.find_withtag('personaje'));self.assertFalse(c.entrada_compacta.winfo_manager())
-            self.assertEqual(len(c.canvas.find_all()),1)
+            self.assertEqual(len(c.canvas.find_withtag('personaje')),1)
+            self.assertTrue(all(c.canvas.type(i)=='image' for i in c.canvas.find_all()))
             c.entrada_compacta.dar_foco();self.assertFalse(c.entrada_compacta.winfo_manager());self.assertTrue(c.ventana_entrada.winfo_exists())
             c.guardar('control_ampliado',True);f=p/'foto.png';f.write_bytes(b'prueba')
             c.control_pc.ejecutar('archivo_borrar',str(f));self.assertIsNotNone(c.control_pc.pendiente)
             c.guardar('control_ampliado',False);self.assertIsNone(c.control_pc.pendiente);self.assertTrue(f.exists())
-            c.guardar('modo_visual','pantalla');self.assertIsNotNone(c.transito);c.transito['inicio']-=2;c.animar();self.assertFalse(c.canvas.find_withtag('personaje'))
+            c.guardar('modo_visual','pantalla');self.assertIsNotNone(c.transito);c.transito['inicio']-=c.transito['duracion']+.1;c.animar();self.assertFalse(c.canvas.find_withtag('personaje'))
             self.assertEqual(c.entrada_compacta.winfo_manager(),'pack')
             self.assertEqual(json.loads((p/'ajustes.json').read_text())['modo_visual'],'pantalla')
 
@@ -104,9 +105,12 @@ class ModoPersonaje(PruebasTk):
             self.assertEqual(p.soporte,7)
             movida=dict(ventana,rect=(250,450,950,750))
             with patch('companera.visibles',return_value=[movida]):p.tick(pausa=True,ahora=p.ultimo+1)
-            self.assertLess(p.x,250);self.assertGreaterEqual(p.x+p.ancho*.5,250);self.assertAlmostEqual(p.y,450-p.alto*.64)
-            with patch('companera.visibles',return_value=[]):p.tick(ahora=p.ultimo+1)
-            self.assertIsNone(p.soporte);self.assertIsNotNone(p.salto);self.assertEqual(p.salto['id'],0)
+            self.assertIsNotNone(p.salto);self.assertEqual(p.salto['id'],7)
+            self.assertAlmostEqual(p.salto['destino'][1],450-p.alto*.64)
+            p.soporte=7;p.salto=None
+            y=p.y;p.proxima_accion=p.ultimo+100
+            with patch('companera.visibles',return_value=[]),patch('companera.random.random',return_value=1):p.tick(ahora=p.ultimo+1)
+            self.assertIsNone(p.soporte);self.assertIsNone(p.salto);self.assertGreater(p.y,y)
 
     def test_confirmacion_en_chat_no_reconsulta_modelo_y_no_borra_antes(self):
         with self.capri() as (c,p):

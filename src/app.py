@@ -19,12 +19,12 @@ from intenciones import Interprete,requiere_contexto
 from voz import Microfono, Voz, Atajo, listar_microfonos,normalizar_velocidad,normalizar_volumen
 
 BASE = Path(__file__).resolve().parent
-BG = '#0b0c13'
-CARD = '#151720'
+BG = '#10090d'
+CARD = '#211018'
 FG = '#f6eff1'
-MUTED = '#9d98ab'
+MUTED = '#bb929f'
 RED = '#ff4267'
-GREEN = '#84dfdc'
+GREEN = '#ffb0c3'
 TRANS = '#010203'
 
 def limitar_escala(valor):
@@ -38,7 +38,9 @@ class Capri:
         cargar(BASE)
         self.root = tk.Tk()
         self.root.title('Capri')
-        try:self.root.iconbitmap(default=str(BASE/'capri.ico'))
+        icono=BASE/'capri.ico'
+        if not icono.is_file():icono=BASE.parent/'assets/capri.ico'
+        try:self.root.iconbitmap(default=str(icono))
         except tk.TclError:pass
         self.root.configure(bg=TRANS)
         self.root.overrideredirect(True)
@@ -47,6 +49,7 @@ class Capri:
         self.root.geometry(f'360x338+{max(0,self.root.winfo_screenwidth()-384)}+{max(0,self.root.winfo_screenheight()-408)}')
         self.eventos = queue.Queue()
         self.cerrado = False
+        self.saliendo=False;self.animacion_cierre=bool(hotkeys)
         self.estado = 'Lista para ti'
         self.nivel = 0
         self.hablando = False
@@ -78,7 +81,7 @@ class Capri:
         self.cfg = {'voz': True, 'voz_natural': True, 'modelo': '', 'ia': False, 'microfono': None,
                     'reconocimiento':'mixto','modelo_whisper':'base','voz_perfil':'capri','velocidad_voz':1.0,'volumen_voz':100,'activacion_voz':True,'dialogos_escritorio':True,'animaciones':True,'efecto_glitch':True,'escala_avatar':1.0,'intro_inicio':True}
         try:
-            self.cfg.update(json.loads((BASE/'ajustes.json').read_text(encoding='utf8')))
+            self.cfg.update(json.loads((BASE/'ajustes.json').read_text(encoding='utf-8-sig')))
         except (OSError, ValueError): pass
         self.cfg.setdefault('modo_visual','pantalla');self.cfg.setdefault('pasear_personaje',True);self.cfg.setdefault('control_ampliado',False)
         from control_pc import ControlPC
@@ -95,9 +98,10 @@ class Capri:
         self.dialogo=Dialogo(self.root,lambda:self.cfg.get('dialogos_escritorio',True),enviar=self.enviar,
                              historial=self.abrir_chat,detener=self.interrumpir,glitch=lambda:self.cfg.get('efecto_glitch',True))
         self.dialogo.retener=lambda:bool(self.control_pc.pendiente and time.monotonic()<self.control_pc.pendiente.vence)
+        self.dialogo.personaje=self.es_personaje;self.dialogo.ruta_retrato=icono
         self.historial=[];self.respuesta_borrador=''
-        self.subtitulo=tk.StringVar(value='F8 para hablar · Esc para detener')
-        self.estado='Preparando activación…' if hotkeys and self.cfg.get('activacion_voz') else 'F8 para hablar'
+        self.subtitulo=tk.StringVar(value=self.cfg.get('tecla_hablar','F8')+' para hablar · Esc para detener')
+        self.estado='Preparando activación…' if hotkeys and self.cfg.get('activacion_voz') else self.cfg.get('tecla_hablar','F8')+' para hablar'
         self.voz = Voz(lambda v: self.eventos.put(('voz', (self.voz.generacion,v))))
         self.fase = 0
         self.drag = None
@@ -130,8 +134,9 @@ class Capri:
         self.dialogo.entrada=self.entrada_compacta.entrada;self.dialogo.control_entrada=self.entrada_compacta;self.dialogo.menu=self.menu
         self.aplicar_escala(inicial=True)
         if self.intro_activa:self.iniciar_intro()
-        self.atajo = Atajo(lambda: self.eventos.put(('micro', None)), lambda t: self.eventos.put(('aviso', t))) if hotkeys else None
+        self.atajo = Atajo(lambda: self.eventos.put(('micro', None)), lambda t: self.eventos.put(('aviso', t)),self.cfg.get('tecla_hablar','F8')) if hotkeys else None
         self.root.bind('<Escape>', lambda e:self.interrumpir())
+        self.root.protocol('WM_DELETE_WINDOW',self.cerrar)
         self.root.protocol('WM_DELETE_WINDOW', self.cerrar)
         self.root.after(60, self.poll)
         self.root.after(30, self.animar)
@@ -147,9 +152,9 @@ class Capri:
         except Exception:pass
 
     def boton(self, padre, texto, accion, color=None):
-        return tk.Button(padre, text=texto, command=accion, bg=color or '#242632', fg='#110c14' if color else FG,
-                         activebackground=GREEN if color else '#353746', activeforeground='#110c14' if color else FG,
-                         relief='flat', bd=0, padx=11, pady=9, cursor='hand2', font=('Chakra Petch', 10, 'bold'))
+        from ajustes_ui import BotonCyber
+        return BotonCyber(padre,text=texto,command=accion,bg=color or '#471528',fg='#160b11' if color else FG,
+                          padx=13,pady=9,font=('Chakra Petch',10,'bold'))
 
     def _cargar_arte(self):
         self.fotos = []
@@ -162,7 +167,8 @@ class Capri:
             except (OSError, ValueError): pass
 
     def _inicio_arrastre(self, e):
-        if self.es_personaje() and not self.intro_activa:self.companera.salto=None;self.companera.soporte=None
+        if self.es_personaje() and not self.intro_activa:
+            self.companera.salto=None;self.companera.soporte=None;self.companera.ancla=None
         self.drag = (e.x_root, e.y_root, self.root.winfo_x(), self.root.winfo_y(), time.monotonic())
 
     def _arrastrar(self, e):
@@ -184,31 +190,34 @@ class Capri:
         self.drag = None
 
     def menu(self, evento):
-        menu = tk.Menu(self.root, tearoff=False, bg=CARD, fg=FG,font=('Chakra Petch',11))
-        menu.add_command(label='Hablar · F8', command=self.hablar)
-        menu.add_command(label='Interrumpir · Esc', command=self.interrumpir)
-        menu.add_command(label='Transformar en pantalla' if self.es_personaje() else 'Transformar en personaje',
-                         command=lambda:self.guardar('modo_visual','pantalla' if self.es_personaje() else 'personaje'))
-        if self.es_personaje():
-            menu.add_command(label='Pausar paseo' if self.cfg.get('pasear_personaje',True) else 'Reanudar paseo',
-                             command=lambda:self.guardar('pasear_personaje',not self.cfg.get('pasear_personaje',True)))
-            jugar=tk.Menu(menu,tearoff=False,font=('Chakra Petch',11))
-            jugar.add_command(label='Jugar a atrápame',command=self.comenzar_juego)
-            jugar.add_command(label='Asomarse por una esquina',command=lambda:self.hacer_travesura('asomar'))
-            jugar.add_command(label='Travesura ahora',command=lambda:self.hacer_travesura())
-            menu.add_cascade(label='Jugar con Capri',menu=jugar)
-        menu.add_command(label='Escribir junto a Capri', command=self.dialogo.abrir)
-        menu.add_command(label='Historial de conversación', command=self.abrir_chat)
-        menu.add_command(label='Ajustes', command=self.configurar)
-        menu.add_command(label='Conectar YouTube con Opera',command=self.conectar_opera)
-        tamaño=tk.Menu(menu,tearoff=False,font=('Chakra Petch',11))
-        for porcentaje in (75,100,125,150):
-            tamaño.add_command(label=f'{porcentaje}%',command=lambda p=porcentaje:self.guardar('escala_avatar',p/100))
-        menu.add_cascade(label='Tamaño de Capri',menu=tamaño)
-        menu.add_command(label='Repetir intro',command=self.iniciar_intro)
-        menu.add_separator()
-        menu.add_command(label='Cerrar Capri', command=self.cerrar)
-        menu.tk_popup(evento.x_root, evento.y_root)
+        return self.abrir_menu_radial(evento)
+
+    def cerrar_radial(self):
+        radial=getattr(self,'radial',None)
+        if radial:radial.cerrar()
+
+    def abrir_menu_radial(self,e):
+        from menu_radial import MenuRadial
+        self.cerrar_radial()
+        estilos=[(nombre,lambda valor=valor:self.guardar('halo_personaje',valor)) for nombre,valor in
+                 [('Violeta','violeta'),('Neón','neon'),('Hielo','hielo'),('Rojo','rojo'),('Sin sombra','ninguno')]]
+        tamanos=[(f'{n}%',lambda n=n:self.guardar('escala_avatar',n/100)) for n in (75,100,125,150)]
+        juegos=[('Atrápame',self.comenzar_juego),('Asomarse',lambda:self.hacer_travesura('asomar')),('Travesura',self.hacer_travesura)]
+        voz=[('Hablar',self.hablar),('Activar voz' if not self.cfg.get('voz') else 'Silenciar voz',lambda:self.guardar('voz',not self.cfg.get('voz')))]
+        mas=[('Escribir',self.dialogo.abrir),('Repetir intro',self.iniciar_intro),('YouTube',self.conectar_opera),
+             ('Reanudar viajes' if not self.cfg.get('pasear_personaje',True) else 'Pausar viajes',lambda:self.guardar('pasear_personaje',not self.cfg.get('pasear_personaje',True))),('Cerrar Capri',self.cerrar)]
+        opciones=[('Ajustes',self.configurar),('Chat',self.abrir_chat),('Juegos' if self.es_personaje() else 'Escribir',juegos if self.es_personaje() else self.dialogo.abrir),('Aspecto',self.abrir_aspectos),
+                  ('Modo pantalla' if self.es_personaje() else 'Modo personaje',lambda:self.guardar('modo_visual','pantalla' if self.es_personaje() else 'personaje')),('Tamaño',tamanos),('Voz',voz),('Más',mas)]
+        self.radial=MenuRadial(self.root,e.x_root,e.y_root,opciones,terminar=lambda:setattr(self,'radial',None),
+                               personaje=(self.root.winfo_x(),self.root.winfo_y(),self.companera.ancho if self.es_personaje() else self.root.winfo_width(),self.companera.alto if self.es_personaje() else self.root.winfo_height()))
+
+    def abrir_aspectos(self):
+        from ajustes_ui import GaleriaAspectos
+        galeria=getattr(self,'galeria_aspectos',None)
+        if galeria and galeria.ventana.winfo_exists():galeria.ventana.lift();return
+        if not getattr(self.companera,'lienzos',None):self.companera.redimensionar(self.escala_avatar)
+        self.galeria_aspectos=GaleriaAspectos(self.root,self.companera.lienzos[0],self.cfg.get('halo_personaje','violeta'),
+                                            lambda valor:self.guardar('halo_personaje',valor))
 
     def rueda_tamano(self,e):
         self.guardar('escala_avatar',round(self.escala_avatar+(.1 if e.delta>0 else -.1),2))
@@ -265,7 +274,7 @@ class Capri:
         p=self.companera
         if self.asomo and time.monotonic()>=self.asomo['hasta'] and not self.transito and not self.escuchando and not self.ocupada:
             destino=self.asomo['volver'];self.asomo=None;self.salto_juego(destino);return
-        if mover:p.tick(pausa=bool(self.asomo or self.drag or self.escuchando or self.hablando or self.ocupada or self.dialogo.editando or self.control_pc.pendiente),
+        if mover:p.tick(pausa=bool(getattr(self,'radial',None) or self.asomo or self.drag or self.escuchando or self.hablando or self.ocupada or self.dialogo.editando or self.control_pc.pendiente),
                         pasear=self.cfg.get('pasear_personaje',True))
         if mover and p.salto:
             salto=p.salto;p.salto=None;self.iniciar_transito('salto',salto=salto);self.dibujar_transito();return
@@ -275,9 +284,10 @@ class Capri:
         geometria=f'{ancho}x{p.alto+extra}+{max(0,round(p.x))}+{max(0,round(p.y))}'
         if geometria!=getattr(self,'geometria_personaje',None):
             self.root.geometry(geometria);self.geometria_personaje=geometria
-        p.dibujar(self.canvas,self.hablando,self.boca_activa)
+        p.dibujar(self.canvas,self.hablando,self.boca_activa,glitch=self.cfg.get('efecto_glitch',True) and self.cfg.get('animaciones',True),halo=self.cfg.get('halo_personaje','violeta'))
 
     def interrumpir(self):
+        if self.saliendo:self.cerrar_inmediato();return
         if self.transito:self.finalizar_transito()
         self.control_pc.cancelar();self.parar()
         self.juego.atrapame=False;self.juego.proxima=time.monotonic()+100
@@ -287,7 +297,7 @@ class Capri:
             self.ocultar_entrada_personaje();self.entrada_compacta.pack_forget()
 
     def juego_ocupada(self):
-        return bool(self.transito or self.intro_activa or self.asomo or self.ocupada or self.escuchando or self.hablando or self.voz_ticket is not None or self.drag or self.dialogo.editando or self.control_pc.pendiente or (self.ajustes and self.ajustes.winfo_exists()))
+        return bool(getattr(self,'radial',None) or self.transito or self.intro_activa or self.asomo or self.ocupada or self.escuchando or self.hablando or self.voz_ticket is not None or self.drag or self.dialogo.editando or self.control_pc.pendiente or (self.ajustes and self.ajustes.winfo_exists()))
 
     def decir_juego(self,texto):
         self.dialogo.usuario='';self.poner_chat('Capri',texto,mostrar=not self.puede_narrar())
@@ -331,9 +341,11 @@ class Capri:
         else:self.salto_juego()
 
     def iniciar_transito(self,tipo,anterior=None,salto=None):
+        self.cerrar_radial()
         if self.transito:self.finalizar_transito()
         self.finalizar_intro();self.ocultar_entrada_personaje();self.dialogo.ocultar()
         s=limitar_escala(self.cfg.get('escala_avatar',1));p=self.companera
+        p.ancla=None;p.velocidad_caida=0.
         if p.escala!=s or not p.fotos:p.redimensionar(s)
         origen_personaje=(anterior=='personaje') or tipo=='salto'
         if origen_personaje:
@@ -341,8 +353,9 @@ class Capri:
             vista=Image.new('RGBA',(320,210));copia=p.originales[0].copy();copia.thumbnail((145,210),Image.Resampling.LANCZOS)
             vista.alpha_composite(copia,((320-copia.width)//2,(210-copia.height)//2))
         else:
-            inicio=(self.root.winfo_x()+180*s,self.root.winfo_y()+160*s);vista=self.avatar.vistas[0]
+            inicio=(self.root.winfo_x()+180*s,self.root.winfo_y()+146*s);vista=self.avatar.vistas[0]
         sw=self.root.winfo_screenwidth();sh=self.root.winfo_screenheight()
+        presentacion=tipo!='salto' and self.es_personaje()
         if tipo=='salto':
             fin=(salto['destino'][0]+p.ancho/2,salto['destino'][1]+p.alto/2)
             izquierda=salto.get('lado')=='izquierda' or (not salto.get('lado') and salto['destino'][0]<salto['x'])
@@ -352,25 +365,57 @@ class Capri:
             from ventanas import area_trabajo
             l,t,r,b=area_trabajo();fin=(r-p.ancho/2-25,b-p.alto/2);imagen=(p.espejos if p.direccion<0 else p.fotos)[0]
         else:
-            fin=(sw-180*s-24,sh-132*s-116);imagen=self.avatar.fotos[0]
+            fin=(sw-180*s-24,sh-146*s-116);imagen=self.avatar.fotos[0]
         x=max(0,math.floor(min(inicio[0],fin[0])-310*s));y=max(0,math.floor(min(inicio[1],fin[1])-170*s))
         w=min(sw-x,math.ceil(max(inicio[0],fin[0])+300*s-x));h=min(sh-y,math.ceil(max(inicio[1],fin[1])+170*s-y))
+        x=y=0;w=sw;h=sh
         from intro import Fragmentos
         self.transito={'inicio':time.monotonic(),'duracion':.85 if tipo=='salto' else 1.1,'tipo':tipo,'salto':salto,'escala':s,
                       'ruta':(((inicio[0]-x)/s,(inicio[1]-y)/s),((fin[0]-x)/s,(fin[1]-y)/s)),
-                      'fragmentos':Fragmentos(vista,s),'imagen':imagen,'fin':fin}
+                      'fragmentos':None,'imagen':imagen,'fin':fin}
+        if tipo=='salto':
+            from intro import TrasladoTeselas
+            from PIL import ImageTk
+            origen=ImageTk.getimage(getattr(p,'imagen',None) or p.fotos[0])
+            destino=ImageTk.getimage(imagen)
+            from companera import con_sombra
+            origen=con_sombra(origen,self.cfg.get('halo_personaje','violeta'))
+            destino=con_sombra(destino,self.cfg.get('halo_personaje','violeta'))
+            self.transito['teselas']=TrasladoTeselas(origen,destino,inicio,fin)
+        if tipo!='salto':
+            from intro import Transformacion
+            from PIL import ImageOps
+            saludo=self.preparar_saludo(sw,sh)
+            cuerpo=p.lienzos[0]
+            if p.direccion<0:cuerpo=ImageOps.mirror(cuerpo)
+            from companera import con_sombra
+            cuerpo=con_sombra(cuerpo,self.cfg.get('halo_personaje','violeta'))
+            clave_cache=(sw,sh,s,p.direccion<0,not presentacion,self.cfg.get('halo_personaje','violeta'))
+            if not hasattr(self,'caches_morfosis'):self.caches_morfosis={}
+            fotos_cache=self.caches_morfosis.get(clave_cache)
+            cantidad=85 if presentacion else 31
+            if fotos_cache is not None and (len(fotos_cache)!=cantidad or not all(fotos_cache)):fotos_cache=None
+            morfosis=Transformacion(getattr(self.avatar,'vista_maestra',self.avatar.vistas[0]),saludo.original if saludo.original is not None else self.avatar.vistas[0],cuerpo,
+                                   inicio if presentacion else fin,fin if presentacion else inicio,sw,sh,s,inversa=not presentacion,fotos=fotos_cache,directa=not presentacion)
+            self.cache_morfosis=(clave_cache,morfosis.fotos)
+            self.caches_morfosis[clave_cache]=morfosis.fotos
+            while len(self.caches_morfosis)>2:self.caches_morfosis.pop(next(iter(self.caches_morfosis)))
+            self.transito.update(duracion=2.7 if presentacion else .7,morfosis=morfosis)
         self.ocultar_reubicacion_intro();self.entrada_compacta.pack_forget()
-        self.canvas.configure(width=w,height=h);self.root.geometry(f'{w}x{h}+{x}+{y}');self.pasar_clics_intro(True)
+        self.canvas.configure(width=w,height=h);self.root.geometry(f'{w}x{h}+{x}+{y}');self.root.update_idletasks();self.pasar_clics_intro(True)
+        self.transito['inicio']=time.monotonic()
 
     def finalizar_transito(self):
         t=self.transito
         if not t:return
+        if t.get('morfosis'):t['morfosis'].detener()
         self.transito=None;self.ocultar_reubicacion_intro();self.pasar_clics_intro(False)
         if t['tipo']=='salto':
             salto=t['salto'];p=self.companera;p.x,p.y=salto['destino'];p.soporte=salto['id'] or None
             p.soporte_dx=p.x-salto.get('izquierda',p.x);p.soporte_lado=salto.get('lado')
             p.direccion=-1 if p.soporte_lado=='izquierda' or (not p.soporte_lado and p.x<salto['x']) else 1;p.quieta_hasta=time.monotonic()+random.uniform(5,9)
             p.estado='sentada' if p.soporte else 'quieta';p.ultimo=time.monotonic()
+            p.gracia_fisica=0.;p.proxima_accion=p.ultimo+random.uniform(6,11)
             self.aplicar_escala(inicial=False)
         else:
             self.entrada_compacta.pack(fill='x');self.aplicar_escala(inicial=True)
@@ -388,9 +433,23 @@ class Capri:
         progreso=(time.monotonic()-t['inicio'])/t['duracion']
         if progreso>=1:self.finalizar_transito();return False
         from intro import dibujar_viaje,VIAJE
-        c=self.canvas;c.delete('all')
+        c=self.canvas
+        if t.get('morfosis'):
+            t['morfosis'].dibujar(c,progreso);self.restaurar_reubicacion();return True
+        c.delete('all')
+        if t.get('teselas'):
+            t['teselas'].dibujar(c,progreso);self.restaurar_reubicacion();return True
         dibujar_viaje(c,VIAJE+(1-VIAJE)*progreso,*t['ruta'],imagen=t['imagen'],fragmentos=t['fragmentos'])
         c.scale('all',0,0,t['escala'],t['escala']);self.restaurar_reubicacion();return True
+
+    def preparar_saludo(self,ancho,alto):
+        from intro import Saludo
+        ruta=BASE/'assets/capri-saludo-v1.png'
+        if not ruta.exists():ruta=BASE.parent/'assets/capri-saludo-v1.png'
+        clave=(ancho,alto)
+        if getattr(self,'saludo_clave',None)!=clave:
+            self.saludo=Saludo(ruta,ancho,alto,solo_fuente=True);self.saludo_clave=clave
+        return self.saludo
 
     def iniciar_intro(self):
         if self.transito:self.finalizar_transito()
@@ -398,13 +457,14 @@ class Capri:
         self.ocultar_reubicacion_intro()
         self.intro_activa=True;self.inicio_intro=time.monotonic();self.dialogo.ocultar()
         self.entrada_compacta.pack_forget();self.intro_en_viaje=False
-        self.escala_avatar=min(1.65,max(1.25,limitar_escala(self.cfg.get('escala_avatar',1))*1.35))
+        self.escala_avatar=min(self.root.winfo_screenwidth()*.82/360,self.root.winfo_screenheight()*.82/292)
         self.avatar.redimensionar(self.escala_avatar)
         self.preparar_fragmentos_intro()
         w=round(360*self.escala_avatar);h=round(292*self.escala_avatar)
         self.intro_centro=((self.root.winfo_screenwidth()-w)//2,(self.root.winfo_screenheight()-h)//2)
         self.canvas.configure(width=w,height=h)
         self.root.geometry(f'{w}x{h}+{self.intro_centro[0]}+{self.intro_centro[1]}')
+        self.root.update_idletasks();self.pasar_clics_intro(True);self.inicio_intro=time.monotonic()
 
     def finalizar_intro(self):
         if not self.intro_activa:return
@@ -437,7 +497,8 @@ class Capri:
             poner.argtypes=[wintypes.HWND,ctypes.c_int,ctypes.c_ssize_t];poner.restype=ctypes.c_ssize_t
             hwnd=u.GetParent(self.root.winfo_id()) or self.root.winfo_id()
             if activar:
-                self.intro_estilo=obtener(hwnd,-20);poner(hwnd,-20,self.intro_estilo|0x20)
+                if not hasattr(self,'intro_estilo'):self.intro_estilo=obtener(hwnd,-20)
+                poner(hwnd,-20,obtener(hwnd,-20)|0x20)
             elif hasattr(self,'intro_estilo'):
                 poner(hwnd,-20,self.intro_estilo);del self.intro_estilo
         except (AttributeError,OSError):pass
@@ -463,10 +524,38 @@ class Capri:
             self.canvas.configure(width=w,height=h);self.root.geometry(f'{w}x{h}+{x}+{y}')
             self.pasar_clics_intro(True)
 
+    def actualizar_indicador_voz(self):
+        visible=(self.es_personaje() and self.escuchando and not self.intro_activa
+                 and not self.transito and not self.saliendo and not self.cerrado)
+        ventana=getattr(self,'indicador_voz',None)
+        if not visible:
+            if ventana is not None:ventana.withdraw()
+            return
+        if ventana is None:
+            ventana=self.indicador_voz=tk.Toplevel(self.root,bg=TRANS)
+            ventana.overrideredirect(True);ventana.attributes('-topmost',True)
+            if os.name=='nt':ventana.attributes('-transparentcolor',TRANS)
+            self.indicador_canvas=tk.Canvas(ventana,width=172,height=30,bg=TRANS,highlightthickness=0)
+            self.indicador_canvas.pack()
+        x=max(0,min(self.root.winfo_screenwidth()-172,self.root.winfo_x()+(self.root.winfo_width()-172)//2))
+        y=max(0,self.root.winfo_y()-34)
+        ventana.geometry(f'172x30+{x}+{y}');ventana.deiconify()
+        c=self.indicador_canvas;c.delete('all')
+        c.create_polygon(7,1,165,1,171,7,171,23,165,29,7,29,1,23,1,7,
+                         fill='#120d20',outline='#66e3df')
+        c.create_text(12,15,anchor='w',text='TE ESCUCHO',fill='#b9fff1',font=('Chakra Petch',9,'bold'))
+        nivel=max(0,min(1,self.nivel))
+        for i,factor in enumerate((.5,.8,1,.8,.5)):
+            h=3+round(17*nivel*factor)
+            c.create_rectangle(122+i*8,15-h/2,126+i*8,15+h/2,fill='#72ffd1',outline='',tags='nivel_escucha')
+
     def animar(self):
-        if self.cerrado: return
-        if self.transito and self.dibujar_transito():self.root.after(16,self.animar);return
-        from intro import DURACION
+        if self.cerrado or self.saliendo: return
+        self.entrada_compacta.activacion=bool(self.cfg.get('activacion_voz'))
+        inicio_frame=time.perf_counter();self.actualizar_indicador_voz()
+        if self.transito and self.dibujar_transito():
+            self.root.after(max(1,round(16.667-(time.perf_counter()-inicio_frame)*1000)),self.animar);return
+        from intro import DURACION,VIAJE
         progreso=(time.monotonic()-self.inicio_intro)/DURACION
         if self.intro_activa:
             if progreso>=1:self.finalizar_intro()
@@ -486,9 +575,9 @@ class Capri:
                 self.root.update_idletasks();self.root.attributes('-alpha',self.intro_alpha);del self.intro_alpha
             self.root.after(16,self.animar);return
         animaciones=self.cfg.get('animaciones',True)
-        color=GREEN if self.escuchando else ('#f2d959' if self.hablando or self.ocupada or self.voz_ticket is not None or (self.activacion_permitida and self.cfg.get('activacion_voz') and not self.activacion_lista) else '#7abfc5')
+        color=GREEN if self.escuchando else ('#ffc2b5' if self.hablando or self.ocupada or self.voz_ticket is not None or (self.activacion_permitida and self.cfg.get('activacion_voz') and not self.activacion_lista) else '#ed6684')
         from avatar import dibujar_marco
-        fase='ESCUCHA' if self.escuchando else ('VOZ' if self.hablando else ('SINTONIZANDO' if self.voz_ticket is not None else ('RECIBIENDO' if self.ocupada else ('CONECTANDO' if self.activacion_permitida and self.cfg.get('activacion_voz') and not self.activacion_lista else 'ENLACE ACTIVO'))))
+        fase='ESCUCHA' if self.escuchando else ('VOZ' if self.hablando else ('SINTONIZANDO' if self.voz_ticket is not None else ('RECIBIENDO' if self.ocupada else ('CONECTANDO' if self.activacion_permitida and self.cfg.get('activacion_voz') and not self.activacion_lista else ('DI CAPRI' if self.cfg.get('activacion_voz') else self.cfg.get('tecla_hablar','F8'))))))
         dibujar_marco(c,self.fase if animaciones else 0,color,fase,self.nivel,self.avatar.glitch_activo if animaciones else False,self.escala_avatar)
         if self.avatar.fotos:
             self.imagen_ref=self.avatar.imagen(self.hablando and self.boca_activa,glitch=self.cfg.get('efecto_glitch',True)) if animaciones else self.avatar.fotos[0]
@@ -503,7 +592,7 @@ class Capri:
             from intro import dibujar
             imagen_intro=self.imagen_ref
             if self.avatar.glitches and .36<progreso<.76:imagen_intro=self.avatar.glitches[0][int(progreso*24)%2]
-            if self.es_personaje() and progreso>.58 and self.companera.fotos:
+            if self.es_personaje() and progreso>=VIAJE and self.companera.fotos:
                 imagen_intro=(self.companera.espejos if self.companera.direccion<0 else self.companera.fotos)[0]
             dibujar(c,progreso,imagen_intro,self.escala_avatar,getattr(self,'intro_ruta',None),self.fragmentos_intro)
         if self.escala_avatar!=1:c.scale('all',0,0,self.escala_avatar,self.escala_avatar)
@@ -521,29 +610,26 @@ class Capri:
         p.minsize(420,490)
         x = max(0,self.root.winfo_x()-485); y = max(0,min(self.root.winfo_y()-140,self.root.winfo_screenheight()-690))
         p.geometry(f'+{x}+{y}')
-        cabeza = tk.Frame(p,bg=BG); cabeza.pack(fill='x',padx=20,pady=(18,8))
+        from ajustes_ui import VentanaCyber
+        self.marco_chat=VentanaCyber(p,'CONVERSACIÓN');contenido=self.marco_chat.cuerpo
+        cabeza = tk.Frame(contenido,bg=BG); cabeza.pack(fill='x',padx=20,pady=(18,8))
         tk.Label(cabeza,text='CAPRI',bg=BG,fg=FG,font=('Chakra Petch',20,'bold')).pack(side='left')
         self.boton(cabeza,'Ajustes',self.configurar).pack(side='right')
-        tk.Label(p,text='Tu voz, tus instrucciones.',bg=BG,fg=MUTED,font=('Chakra Petch',10)).pack(anchor='w',padx=21,pady=(0,12))
-        self.chat = tk.Text(p,bg=CARD,fg=FG,relief='flat',borderwidth=0,wrap='word',font=('Chakra Petch',11),padx=17,pady=15,state='disabled')
+        tk.Label(contenido,text='Di «Capri» para hablar o escribe una transmisión.',bg=BG,fg=MUTED,font=('Chakra Petch',10)).pack(anchor='w',padx=21,pady=(0,12))
+        self.chat = tk.Text(contenido,height=8,bg=CARD,fg=FG,relief='flat',borderwidth=0,wrap='word',font=('Chakra Petch',11),padx=17,pady=15,state='disabled')
         self.chat.pack(fill='both',expand=True,padx=18)
         self.chat.tag_configure('yo',foreground=GREEN,font=('Chakra Petch',10,'bold'))
         self.chat.tag_configure('capri',foreground=RED,font=('Chakra Petch',10,'bold'))
         self.chat.tag_configure('aviso',foreground=MUTED)
         self.pintar_historial()
-        tk.Label(p,textvariable=self.subtitulo,bg=BG,fg=MUTED,wraplength=430,font=('Chakra Petch',9)).pack(fill='x',padx=20,pady=9)
-        caja = tk.Frame(p,bg=BG); caja.pack(fill='x',padx=18,pady=(0,10))
+        tk.Label(contenido,textvariable=self.subtitulo,bg=BG,fg=MUTED,wraplength=430,font=('Chakra Petch',9)).pack(fill='x',padx=20,pady=9)
+        caja = tk.Frame(contenido,bg=BG); caja.pack(fill='x',padx=18,pady=(0,10))
         self.entrada = tk.Entry(caja,bg=CARD,fg=FG,insertbackground=GREEN,relief='flat',font=('Chakra Petch',11))
         self.entrada.pack(side='left',fill='both',expand=True,ipady=10)
         self.entrada.bind('<Return>',lambda e:self.enviar_entrada())
         self.boton(caja,'Enviar',self.enviar_entrada,RED).pack(side='left',padx=(7,0))
-        pie = tk.Frame(p,bg=BG); pie.pack(fill='x',padx=18,pady=(0,16))
-        self.boton(pie,'● Hablar · F8',self.hablar,RED).pack(side='left')
-        self.boton(pie,'Detener',self.parar).pack(side='left',padx=7)
-        self.boton(pie,'Salir',self.cerrar).pack(side='right')
-        p.bind('<Escape>',lambda e:self.interrumpir())
-        p.protocol('WM_DELETE_WINDOW',p.withdraw)
-        self.entrada.focus_set()
+        pie = tk.Frame(contenido,bg=BG); pie.pack(fill='x',padx=18,pady=(0,16))
+        tk.Label(pie,text='DI «CAPRI»  //  '+self.cfg.get('tecla_hablar','F8')+' PARA HABLAR',bg=BG,fg=GREEN,font=('Chakra Petch',9,'bold')).pack(side='left')
 
     def poner_chat(self, autor, texto,mostrar=True):
         if autor=='Capri' and mostrar:self.dialogo.mostrar(texto)
@@ -709,6 +795,7 @@ class Capri:
             self.capturando_activacion=False;self.escuchando=False
 
     def mantener_activacion(self):
+        if self.saliendo:return
         if not self.activacion_permitida or not self.cfg.get('activacion_voz') or self.cerrado:return
         # Evitar que su propia voz active otra conversación. F8 siempre interrumpe.
         if self.escuchando or self.hablando or (self.ajustes and self.ajustes.winfo_exists()):return
@@ -732,6 +819,7 @@ class Capri:
         self.activacion_hilo.start()
 
     def parar(self,preservar_activacion=False):
+        self.cerrar_radial()
         if self.transito:self.finalizar_transito()
         self.finalizar_intro()
         self.dialogo.ocultar()
@@ -754,10 +842,13 @@ class Capri:
         for _ in range(150):
             try:tipo,valor=self.eventos.get_nowait()
             except queue.Empty:break
+            if self.saliendo:
+                if tipo=='micro':self.cerrar_inmediato();return
+                continue
             if tipo=='activacion_lista':
                 if valor!=self.activacion_ticket:continue
                 self.activacion_lista=True
-                if not self.ocupada and not self.hablando and self.voz_ticket is None:self.estado='Di «Capri» o pulsa F8'
+                if not self.ocupada and not self.hablando and self.voz_ticket is None:self.estado='Di «Capri» o pulsa '+self.cfg.get('tecla_hablar','F8')
                 self.precalentar_ia()
             elif tipo=='nombre_detectado':
                 if valor!=self.activacion_ticket:continue
@@ -779,7 +870,7 @@ class Capri:
                 elif texto is not None:
                     self.estado='No escuché una orden. Di «Capri» otra vez.'
                 else:
-                    self.estado='Di «Capri» o pulsa F8'
+                    self.estado='Di «Capri» o pulsa '+self.cfg.get('tecla_hablar','F8')
             elif tipo=='activacion_nivel':
                 ticket,nivel=valor
                 if ticket==self.activacion_ticket and self.capturando_activacion:self.nivel=nivel
@@ -827,8 +918,8 @@ class Capri:
                 elif tipo=='transcripcion' and valor:
                     self.recibir_dictado(valor)
                 else:
-                    self.estado='No te escuché. Pulsa F8 para repetir.' if not valor else 'Micrófono no disponible'
-                    self.poner_chat('Capri',valor or 'No entendí la frase. Acércate al micrófono y vuelve a pulsar F8.')
+                    self.estado='No te escuché. Pulsa '+self.cfg.get('tecla_hablar','F8')+' para repetir.' if not valor else 'Micrófono no disponible'
+                    self.poner_chat('Capri',valor or 'No entendí la frase. Acércate al micrófono y pulsa '+self.cfg.get('tecla_hablar','F8')+'.')
             elif tipo=='respuesta_parcial':
                 ticket,texto=valor
                 if ticket!=self.peticion:continue
@@ -846,7 +937,7 @@ class Capri:
                     self.stream_ticket=None;self.respuesta_borrador=''
                 con_voz=tipo=='respuesta' and self.puede_narrar()
                 self.poner_chat('Capri',valor,mostrar=not con_voz)
-                self.subtitulo.set('F8 para hablar · Esc para detener')
+                self.subtitulo.set(self.cfg.get('tecla_hablar','F8')+' para hablar · Esc para detener')
                 if con_voz:
                     self.narrar_respuesta(ticket,valor,final=True)
             elif tipo=='aviso':self.estado=valor[:37]
@@ -894,43 +985,56 @@ class Capri:
         if self.ajustes and self.ajustes.winfo_exists():self.ajustes.lift();return
         p=self.ajustes=tk.Toplevel(self.root);p.title('Capri · Ajustes');p.configure(bg=BG)
         p.bind('<Escape>',lambda e:self.interrumpir())
-        p.geometry('540x'+str(min(700,max(480,self.root.winfo_screenheight()-100))))
-        contenido=tk.Canvas(p,bg=BG,highlightthickness=0)
-        barra=ttk.Scrollbar(p,orient='vertical',command=contenido.yview)
-        contenido.configure(yscrollcommand=barra.set)
-        barra.pack(side='right',fill='y');contenido.pack(side='left',fill='both',expand=True)
-        f=tk.Frame(contenido,bg=BG,padx=24,pady=22)
-        ventana=contenido.create_window(0,0,window=f,anchor='nw')
+        p.geometry('800x'+str(min(760,max(560,self.root.winfo_screenheight()-100))));p.minsize(720,560)
+        from ajustes_ui import PanelAjustes,SelectorCyber,InterruptorCyber,EscalaCyber,CapturadorTecla
+        from ajustes_ui import VentanaCyber
+        self.marco_ajustes=VentanaCyber(p,'AJUSTES')
+        self.panel_ajustes=ui=PanelAjustes(self.marco_ajustes.cuerpo)
+        escritorio=ui.seccion('Escritorio','Forma, tamaño, movimiento y efectos de Capri.')
+        micro=ui.seccion('Micrófono','Elige tu entrada, comprueba el nivel y ajusta el reconocimiento local.')
+        voz=ui.seccion('Voz','Escucha y compara perfiles sin cambiar tu voz actual hasta elegir uno.')
+        ia=ui.seccion('IA y servicios','Modelo local, navegador y música.')
+        permisos=ui.seccion('Permisos','Decide qué puede hacer Capri en tu computador.')
+        f=escritorio
         tk.Label(f,text='Forma de Capri',bg=BG,fg=GREEN,font=('Chakra Petch',12,'bold')).pack(anchor='w')
-        forma=ttk.Combobox(f,state='readonly',values=['Pantalla personal','Personaje en el escritorio'],font=('Chakra Petch',10))
+        forma=SelectorCyber(f,state='readonly',values=['Pantalla personal','Personaje en el escritorio'],font=('Chakra Petch',10))
         forma.current(1 if self.es_personaje() else 0);forma.pack(fill='x',pady=(6,8))
         forma.bind('<<ComboboxSelected>>',lambda e:self.guardar('modo_visual','personaje' if forma.current() else 'pantalla'))
         paseo=tk.BooleanVar(value=self.cfg.get('pasear_personaje',True))
-        tk.Checkbutton(f,text='Caminar y sentarse en ventanas',variable=paseo,command=lambda:self.guardar('pasear_personaje',paseo.get()),
+        InterruptorCyber(f,text='Teletransportarse, explorar ventanas y sujetarse',variable=paseo,command=lambda:self.guardar('pasear_personaje',paseo.get()),
                        bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,font=('Chakra Petch',10)).pack(anchor='w')
         for clave,etiqueta in (('travesuras','Travesuras suaves y apariciones ocasionales'),('travesuras_apps','Permitir que el juego abra una pestaña o Documentos')):
             var=tk.BooleanVar(value=self.cfg.get(clave,False))
-            tk.Checkbutton(f,text=etiqueta,variable=var,command=lambda k=clave,v=var:self.guardar(k,v.get()),bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,font=('Chakra Petch',10)).pack(anchor='w',pady=2)
+            InterruptorCyber(f,text=etiqueta,variable=var,command=lambda k=clave,v=var:self.guardar(k,v.get()),bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,font=('Chakra Petch',10)).pack(anchor='w',pady=2)
+        self.boton(f,'Ver aspectos de Capri',self.abrir_aspectos).pack(anchor='w',pady=(8,12))
+        f=permisos
         control=tk.BooleanVar(value=self.cfg.get('control_ampliado',False))
-        tk.Checkbutton(f,text='Activar control ampliado del computador',variable=control,command=lambda:self.guardar('control_ampliado',control.get()),
+        InterruptorCyber(f,text='Activar control ampliado del computador',variable=control,command=lambda:self.guardar('control_ampliado',control.get()),
                        bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,font=('Chakra Petch',10)).pack(anchor='w',pady=(8,3))
-        tk.Label(f,text='Archivos y ventanas con tus permisos de Windows. Borrar, mover, renombrar, cerrar ventanas y apagar requieren confirmar el objetivo. Los borrados van a la Papelera. Esc cancela la confirmación.',
-                 wraplength=450,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',9)).pack(anchor='w',pady=(0,16))
-        f.bind('<Configure>',lambda e:contenido.configure(scrollregion=contenido.bbox('all')))
-        contenido.bind('<Configure>',lambda e:contenido.itemconfigure(ventana,width=e.width))
-        p.bind('<MouseWheel>',lambda e:contenido.yview_scroll(-int(e.delta/120),'units'))
+        from ajustes_ui import TarjetaInfo
+        for titulo,detalle in (
+            ('SIEMPRE DISPONIBLE','Conversación, voz, música y sitios web.'),
+            ('CON CONTROL AMPLIADO','Gestión de archivos y ventanas con tus permisos de Windows.'),
+            ('TÚ CONFIRMAS','Las acciones sensibles piden confirmación. Los borrados van a la Papelera.')):
+            TarjetaInfo(f,titulo,detalle).pack(fill='x',pady=6)
+        f=escritorio
         tk.Label(f,text='A tu manera',font=('Chakra Petch',19,'bold'),fg=FG,bg=BG).pack(anchor='w',pady=(0,15))
         texto_tamaño=tk.StringVar(value=f'Tamaño de Capri: {round(self.escala_avatar*100)}%')
         tk.Label(f,textvariable=texto_tamaño,bg=BG,fg=GREEN,font=('Chakra Petch',11,'bold')).pack(anchor='w')
-        escala_tamaño=tk.Scale(f,from_=75,to=160,resolution=5,orient='horizontal',bg=BG,fg=FG,troughcolor=CARD,highlightthickness=0)
+        escala_tamaño=EscalaCyber(f,from_=75,to=160,resolution=5,orient='horizontal',bg=BG,fg=FG,troughcolor=CARD,highlightthickness=0)
         escala_tamaño.set(round(self.escala_avatar*100))
         escala_tamaño.configure(command=lambda v:texto_tamaño.set(f'Tamaño de Capri: {round(float(v))}%'))
         escala_tamaño.bind('<ButtonRelease-1>',lambda e:self.guardar('escala_avatar',escala_tamaño.get()/100))
         escala_tamaño.bind('<KeyRelease>',lambda e:self.guardar('escala_avatar',escala_tamaño.get()/100))
         escala_tamaño.pack(fill='x',pady=(0,12))
-        tk.Label(f,text='Micrófono',bg=BG,fg=GREEN,font=('Chakra Petch',12,'bold')).pack(anchor='w')
+        f=micro
+        tk.Label(voz,text='Tecla para hablar',bg=BG,fg=FG,font=('Chakra Petch',11,'bold')).pack(anchor='w',pady=(0,6))
+        self.captura_tecla=CapturadorTecla(voz,self.cfg.get('tecla_hablar','F8'),self.suspender_atajo,self.terminar_captura_tecla)
+        self.captura_tecla.pack(fill='x',pady=(0,6))
+        tk.Label(voz,text='Haz clic y pulsa una tecla o combinación. Esc cancela.',bg=BG,fg=MUTED,font=('Chakra Petch',9)).pack(anchor='w',pady=(0,12))
+        tk.Label(f,text='01 // Entrada de audio',bg=BG,fg=GREEN,font=('Chakra Petch',12,'bold')).pack(anchor='w')
         fila=tk.Frame(f,bg=BG);fila.pack(fill='x',pady=(7,5))
-        self.micro_combo=ttk.Combobox(fila,state='disabled',font=('Chakra Petch',10))
+        self.micro_combo=SelectorCyber(fila,state='disabled',font=('Chakra Petch',10))
         self.micro_combo.pack(side='left',fill='x',expand=True)
         self.micro_combo.bind('<<ComboboxSelected>>',self.elegir_microfono)
         self.micro_refrescar=self.boton(fila,'Actualizar',self.cargar_microfonos)
@@ -941,13 +1045,13 @@ class Capri:
         self.panel_prueba=PanelPrueba(f,self.micro,self.cfg,self.guardar,antes_grabar=self.parar)
         self.panel_prueba.pack(fill='x',pady=(0,18))
         tk.Label(f,text='Reconocimiento de voz',bg=BG,fg=GREEN,font=('Chakra Petch',12,'bold')).pack(anchor='w')
-        motor=ttk.Combobox(f,state='readonly',values=['Whisper · español y nombres en inglés','Rápido · Vosk español'],font=('Chakra Petch',10))
+        motor=SelectorCyber(f,state='readonly',values=['Whisper · español y nombres en inglés','Rápido · Vosk español'],font=('Chakra Petch',10))
         motor.current(0 if self.cfg.get('reconocimiento','mixto') in ('preciso','mixto') else 1)
         motor.bind('<<ComboboxSelected>>',lambda e:self.guardar('reconocimiento','mixto' if motor.current()==0 else 'rapido'))
         motor.pack(fill='x',pady=(7,12))
         from reconocimiento import disponible,modelos_disponibles,elegir_modelo
         self.whisper_opciones=modelos_disponibles(BASE/'modelos') or ['base']
-        self.whisper_combo=ttk.Combobox(f,state='readonly',values=['Whisper '+m for m in self.whisper_opciones],font=('Chakra Petch',10))
+        self.whisper_combo=SelectorCyber(f,state='readonly',values=['Whisper '+m for m in self.whisper_opciones],font=('Chakra Petch',10))
         elegido=elegir_modelo(BASE/'modelos',self.cfg.get('modelo_whisper','base'))
         self.whisper_combo.current(self.whisper_opciones.index(elegido) if elegido in self.whisper_opciones else 0)
         def elegir_whisper(event=None):
@@ -955,17 +1059,20 @@ class Capri:
             self.guardar('reconocimiento','mixto');motor.current(0)
         self.whisper_combo.bind('<<ComboboxSelected>>',elegir_whisper)
         self.whisper_combo.pack(fill='x',pady=(0,4))
+        tk.Label(f,text='Para responder antes: Whisper Base. Small prioriza precisión.',wraplength=460,bg=BG,fg=MUTED,font=('Chakra Petch',9)).pack(anchor='w',pady=(2,6))
         tk.Label(f,text='Small usa más memoria y puede tardar más. Base sigue disponible como respaldo.',wraplength=460,bg=BG,fg=MUTED,font=('Chakra Petch',9)).pack(anchor='w',pady=(0,10))
         if not disponible(BASE/'modelos',elegido):
             tk.Label(f,text='Preciso necesita descargar un modelo local de 148 MB.',wraplength=460,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',9)).pack(anchor='w')
             self.boton(f,'Preparar reconocimiento preciso',self.preparar_reconocimiento).pack(anchor='w',pady=(5,12))
         for key,texto in [('activacion_voz','Activar al decir «Capri» (escucha local)'),('voz','Responder en voz alta'),('voz_natural','Voz española natural por internet'),('dialogos_escritorio','Mostrar diálogos progresivos junto a Capri'),('animaciones','Estados de boca y expresiones del avatar'),('efecto_glitch','Interferencias breves de imagen y texto'),('intro_inicio','Intro visual al abrir Capri')]:
             var=tk.BooleanVar(value=bool(self.cfg.get(key)))
-            tk.Checkbutton(f,text=texto,variable=var,command=lambda k=key,v=var:self.guardar(k,v.get()),bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,activeforeground=FG,font=('Chakra Petch',11)).pack(anchor='w',pady=5)
+            destino=micro if key=='activacion_voz' else (voz if key in ('voz','voz_natural') else escritorio)
+            InterruptorCyber(destino,text=texto,variable=var,command=lambda k=key,v=var:self.guardar(k,v.get()),bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,activeforeground=FG,font=('Chakra Petch',11)).pack(anchor='w',pady=5)
+        f=voz
         volumen=normalizar_volumen(self.cfg.get('volumen_voz',100))
         texto_volumen=tk.StringVar(value=f'Volumen de Capri: {volumen}%')
         tk.Label(f,textvariable=texto_volumen,bg=BG,fg=FG,font=('Chakra Petch',10)).pack(anchor='w',pady=(10,0))
-        self.escala_volumen=tk.Scale(f,from_=0,to=100,resolution=5,orient='horizontal',showvalue=False,
+        self.escala_volumen=EscalaCyber(f,from_=0,to=100,resolution=5,orient='horizontal',showvalue=False,
                         bg=BG,fg=FG,troughcolor=CARD,highlightthickness=0,activebackground=RED)
         self.escala_volumen.set(volumen)
         def cambiar_volumen(valor):
@@ -975,10 +1082,19 @@ class Capri:
         self.escala_volumen.configure(command=cambiar_volumen)
         self.escala_volumen.pack(fill='x',pady=(0,4))
         tk.Label(f,text='Se aplica a la siguiente respuesta. 0% silencia a Capri.',bg=BG,fg=MUTED,font=('Chakra Petch',9)).pack(anchor='w')
+        from voz import PERFILES_VOZ
+        tk.Label(f,text='Voz de Capri',bg=BG,fg=GREEN,font=('Chakra Petch',12,'bold')).pack(anchor='w',pady=(12,0))
+        perfiles=list(PERFILES_VOZ)
+        self.perfil_voz_combo=SelectorCyber(f,state='readonly',values=[PERFILES_VOZ[k][0] for k in perfiles],font=('Chakra Petch',10))
+        self.perfil_voz_combo.current(perfiles.index(self.cfg.get('voz_perfil')) if self.cfg.get('voz_perfil') in perfiles else 0)
+        self.perfil_voz_combo.bind('<<ComboboxSelected>>',lambda e:self.guardar('voz_perfil',perfiles[self.perfil_voz_combo.current()]))
+        self.perfil_voz_combo.pack(fill='x',pady=(6,5))
+        self.boton(f,'Escuchar prueba',lambda:self.voz.hablar('Soy Capri. Enlace listo, choom. ¿Qué hacemos hoy?',True,
+                    perfil=self.cfg.get('voz_perfil','capri'),velocidad=self.cfg.get('velocidad_voz',1),volumen=self.cfg.get('volumen_voz',100))).pack(anchor='w')
         velocidad=normalizar_velocidad(self.cfg.get('velocidad_voz',1.0))
         texto_velocidad=tk.StringVar(value=f'Velocidad de voz: {velocidad:.2f}×')
         tk.Label(f,textvariable=texto_velocidad,bg=BG,fg=FG,font=('Chakra Petch',10)).pack(anchor='w',pady=(10,0))
-        escala=tk.Scale(f,from_=.8,to=1.8,resolution=.05,orient='horizontal',showvalue=False,
+        escala=EscalaCyber(f,from_=.8,to=1.8,resolution=.05,orient='horizontal',showvalue=False,
                         bg=BG,fg=FG,troughcolor=CARD,highlightthickness=0,activebackground=RED)
         escala.set(velocidad)
         escala.configure(command=lambda v:texto_velocidad.set(f'Velocidad de voz: {float(v):.2f}×'))
@@ -986,8 +1102,9 @@ class Capri:
         escala.bind('<KeyRelease>',lambda e:self.guardar('velocidad_voz',escala.get()))
         escala.pack(fill='x',pady=(0,10))
         tk.Label(f,text='El micrófono se reconoce en tu PC. La voz natural es una interpretación sintética, no la actriz de la serie; envía solo las respuestas a Microsoft. Si la desactivas se usa Windows.',wraplength=420,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',9)).pack(anchor='w',pady=(5,20))
+        f=ia
         tk.Label(f,text='Conversación libre',bg=BG,fg=GREEN,font=('Chakra Petch',12,'bold')).pack(anchor='w')
-        self.modelo_combo=ttk.Combobox(f,state='disabled',font=('Chakra Petch',10))
+        self.modelo_combo=SelectorCyber(f,state='disabled',font=('Chakra Petch',10))
         self.modelo_combo.set(self.cfg.get('modelo',''))
         self.modelo_combo.bind('<<ComboboxSelected>>',lambda e:self.elegir_modelo_ia(self.modelo_combo.get()))
         self.modelo_combo.pack(fill='x',pady=(7,4))
@@ -1000,8 +1117,9 @@ class Capri:
         tk.Label(f,text='Ollama ejecuta la IA en tu equipo, sin clave ni pago por uso. La activación descarga un modelo de aproximadamente 2 GB.',wraplength=420,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',10)).pack(anchor='w',pady=(7,10))
         self.boton(f,'Activar IA local',self.activar_ia,RED).pack(anchor='w')
         self.boton(f,'Vincular playlist de Spotify',self.vincular_playlist).pack(anchor='w',pady=(12,0))
-        tk.Label(f,text='No se guarda el audio ni el historial del chat.\nArrastra la imagen para mover a Capri. Clic para chatear.\nF8: micrófono · Esc: detener voz.',wraplength=420,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',10)).pack(anchor='w',pady=20)
-        self.boton(f,'Listo',p.destroy).pack(anchor='e')
+        tk.Label(f,text='No se guarda el audio ni el historial del chat.\nArrastra la imagen para mover a Capri. Clic para chatear.\nTecla configurable en Voz · Esc: detener voz.',wraplength=420,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',10)).pack(anchor='w',pady=20)
+        for widget in (self.micro_combo,self.whisper_combo,self.perfil_voz_combo,self.modelo_combo,motor,forma):widget.configure(style='Capri.TCombobox')
+        ui.conectar_rueda()
         self.cargar_microfonos()
 
     def cargar_microfonos(self):
@@ -1040,7 +1158,7 @@ class Capri:
         if error:self.micro_estado.set(error)
         elif elegido and not coincidencias:self.micro_estado.set('El micrófono guardado no está conectado. Selecciona otro o actualiza la lista.')
         elif not lista:self.micro_estado.set('No aparecen entradas de audio. Conecta un micrófono y pulsa Actualizar.')
-        else:self.micro_estado.set('Elige el tuyo. La elección se guarda y se usa al pulsar F8.')
+        else:self.micro_estado.set('Elige tu entrada. Se conserva para las siguientes capturas.')
 
     def elegir_microfono(self,event=None):
         indice=self.micro_combo.current()
@@ -1053,7 +1171,7 @@ class Capri:
             self.micro_estado.set('No pude guardar la elección. Revisa los permisos de la carpeta de Capri.');return
         if self.escuchando:self.parar()
         nombre=elegido['nombre'] if elegido else 'Predeterminado de Windows'
-        self.micro_estado.set('Guardado: '+nombre+'. Pulsa F8 para usarlo.')
+        self.micro_estado.set('Guardado: '+nombre+'. Se usará en la siguiente captura.')
 
     def activar_ia(self):
         pythonw=Path(sys.executable).with_name('pythonw.exe')
@@ -1068,6 +1186,9 @@ class Capri:
         self.cerrar()
 
     def guardar(self,k,v):
+        if k=='tecla_hablar':
+            from voz import atajo_valido
+            if not atajo_valido(v):return
         if k=='escala_avatar':v=limitar_escala(v)
         anterior=self.cfg.get(k)
         self.cfg[k]=v
@@ -1077,7 +1198,16 @@ class Capri:
                 self.cfg[k]='pantalla';self.poner_chat('Capri','Falta el arte del personaje. Actualiza la instalación.');return
             if anterior!=v:
                 self.asomo=None;self.juego.atrapame=False;self.iniciar_transito('modo',anterior=anterior)
-        (BASE/'ajustes.json').write_text(json.dumps(self.cfg,ensure_ascii=False,indent=2),encoding='utf8')
+        archivo=BASE/'ajustes.json'
+        try:
+            persistido=json.loads(archivo.read_text(encoding='utf-8-sig'))
+            if not isinstance(persistido,dict):persistido=dict(self.cfg)
+        except (OSError,ValueError):persistido=dict(self.cfg)
+        persistido[k]=v
+        archivo.write_text(json.dumps(persistido,ensure_ascii=False,indent=2),encoding='utf8')
+        if k=='tecla_hablar' and self.atajo:
+            self.atajo.cerrar()
+            self.atajo=Atajo(lambda:self.eventos.put(('micro',None)),lambda t:self.eventos.put(('aviso',t)),v)
         if k=='voz' and not v:
             self.voz.parar();self.voz_ticket=None;self.narracion_activa=False
             if self.dialogo.objetivo:self.dialogo.mostrar(self.dialogo.objetivo)
@@ -1089,6 +1219,18 @@ class Capri:
             self.finalizar_intro();self.aplicar_escala()
         if k in ('activacion_voz','microfono','reconocimiento','modelo_whisper'):
             self.detener_activacion();self.activacion_reintento=0
+
+    def suspender_atajo(self):
+        self.atajo_suspendido=bool(self.atajo)
+        if self.atajo:self.atajo.cerrar();self.atajo=None
+
+    def terminar_captura_tecla(self,tecla):
+        try:
+            if tecla:self.guardar('tecla_hablar',tecla)
+        finally:
+            if getattr(self,'atajo_suspendido',False) and not self.cerrado and not self.saliendo:
+                self.atajo=Atajo(lambda:self.eventos.put(('micro',None)),lambda t:self.eventos.put(('aviso',t)),self.cfg.get('tecla_hablar','F8'))
+            self.atajo_suspendido=False
 
     def elegir_modelo_ia(self,nombre):
         if nombre not in self.modelo_combo.cget('values'):return
@@ -1138,6 +1280,40 @@ class Capri:
         actualizar()
 
     def cerrar(self):
+        if self.animacion_cierre and self.cfg.get('animaciones',True) and not self.saliendo:
+            self.iniciar_despedida();return
+        self.cerrar_inmediato()
+
+    def iniciar_despedida(self):
+        from despedida import Despedida
+        self.saliendo=True;self.cerrar_radial();self.dialogo.ocultar();self.ocultar_entrada_personaje()
+        self.actualizar_indicador_voz()
+        self.respuesta_stop.set();self.micro_stop.set();self.detener_activacion();self.voz.parar()
+        if self.transito and self.transito.get('morfosis'):self.transito['morfosis'].detener()
+        self.transito=None;self.intro_activa=False
+        origen=(self.root.winfo_x()+self.root.winfo_width()/2,self.root.winfo_y()+self.root.winfo_height()/2)
+        imagen=getattr(self.companera,'imagen',None) if self.es_personaje() else self.imagen_ref
+        if imagen is None:
+            fotos=self.companera.fotos if self.es_personaje() else self.avatar.fotos
+            if fotos:imagen=fotos[0]
+        sw=self.root.winfo_screenwidth();sh=self.root.winfo_screenheight()
+        self.salida=Despedida(sw,sh,origen,imagen);self.inicio_salida=time.monotonic()
+        self.ocultar_reubicacion_intro();self.entrada_compacta.pack_forget()
+        self.canvas.configure(width=sw,height=sh);self.root.geometry(f'{sw}x{sh}+0+0');self.pasar_clics_intro(True)
+        self.pintar_despedida()
+
+    def pintar_despedida(self):
+        from despedida import DURACION
+        if self.cerrado:return
+        p=(time.monotonic()-self.inicio_salida)/DURACION
+        if p>=1:self.cerrar_inmediato();return
+        self.salida.dibujar(self.canvas,p);self.restaurar_reubicacion()
+        self.root.after(16,self.pintar_despedida)
+
+    def cerrar_inmediato(self):
+        if self.cerrado:return
+        if self.transito and self.transito.get('morfosis'):self.transito['morfosis'].detener()
+        self.cerrar_radial()
         if self.activacion_permitida:
             from puente_opera import cerrar
             cerrar()
@@ -1160,7 +1336,7 @@ def main():
         k.CreateMutexW.restype=ctypes.c_void_p
         mutex=k.CreateMutexW(None,False,'Local\\CapriDesktopCompanion1')
         if mutex and ctypes.get_last_error()==183:
-            root=tk.Tk();root.withdraw();messagebox.showinfo('Capri','Capri ya está abierta. Busca su imagen flotante o pulsa F8.');root.destroy();return
+            root=tk.Tk();root.withdraw();messagebox.showinfo('Capri','Capri ya está abierta. Busca su imagen flotante.');root.destroy();return
     try:
         app=Capri();app.root.mainloop()
     finally:

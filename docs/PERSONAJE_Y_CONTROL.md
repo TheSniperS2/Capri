@@ -2,11 +2,11 @@
 
 ## Una forma de Capri a la vez
 
-Clic derecho sobre Capri → **Transformar en personaje**. El mismo menú permite volver a **Transformar en pantalla**. También se elige en **Ajustes → Forma de Capri**. Se conserva la elección; la pantalla sigue siendo el modo inicial de instalaciones nuevas.
+Clic derecho sobre Capri → **Transformar en personaje**. En modo personaje aparece un menú circular; **Modo pantalla** permite volver. También se elige en **Ajustes → Forma de Capri**. Se conserva la elección; la pantalla sigue siendo el modo inicial de instalaciones nuevas.
 
-El personaje camina con un ciclo de ocho pasos, aceleración gradual y posición actualizada por tiempo. Para subir a una ventana se convierte en energía roja y reaparece en una esquina del borde superior, con el cuerpo orientado hacia afuera para tapar menos contenido. Puedes arrastrarlo hasta ese borde. Sigue la ventana cuando se mueve; si se minimiza, desaparece o queda tapada, vuelve al escritorio. La detección usa la geometría de las ventanas de Windows, no el contenido de las pestañas del navegador. Necesita espacio suficiente encima de la ventana.
+El personaje conserva su pose de reposo y se desplaza únicamente mediante una descarga roja, sin caminar ni alternar pasos. Para subir a una ventana se convierte en energía roja y reaparece en una esquina del borde superior, con el cuerpo orientado hacia afuera para tapar menos contenido. Puedes arrastrarlo hasta ese borde. Sigue la ventana cuando se mueve; si se minimiza, desaparece o queda tapada, vuelve al escritorio. La detección usa la geometría de las ventanas de Windows, no el contenido de las pestañas del navegador. Necesita espacio suficiente encima de la ventana.
 
-**Pausar paseo** lo deja quieto. F8 y «Capri» siguen funcionando. Haz clic sobre el personaje para abrir una entrada flotante al lado; nunca se añade una barra debajo del cuerpo. Al enviar, pulsar Esc o perder el foco se oculta conservando el texto no enviado. Las respuestas normales desaparecen tres segundos después de terminar la voz o la escritura. Las confirmaciones de operaciones se mantienen mientras esperan tu respuesta, hasta su caducidad. El tamaño habitual también se aplica al personaje. Cambiar entre personaje y pantalla utiliza la misma estela roja del arranque.
+**Pausar desplazamientos** lo deja quieto. F8 y «Capri» siguen funcionando. Haz clic sobre el personaje para abrir una entrada flotante al lado; nunca se añade una barra debajo del cuerpo. Al enviar, pulsar Esc o perder el foco se oculta conservando el texto no enviado. Las respuestas normales desaparecen tres segundos después de terminar la voz o la escritura. Las confirmaciones de operaciones se mantienen mientras esperan tu respuesta, hasta su caducidad. El tamaño habitual también se aplica al personaje. Al transformar, el panel crece y se desplaza al centro, se convierte en la pose de bienvenida y se reduce hasta el personaje. La conversión de personaje a pantalla es directa y breve, sin la pose gigante en el centro. Los rayos acompañan la imagen.
 
 ## Jugar con Capri
 
@@ -70,9 +70,10 @@ Las búsquedas se limitan a las carpetas personales habituales, con un límite d
 
 Atlas: `assets/capri-personaje-v1.png`, RGBA, 1536 × 1024, tres columnas y dos filas. Orden: reposo, paso A, paso B, sentada, hablando y parpadeo. Se recorta y escala dentro de la aplicación; no se sustituye el arte del modo pantalla. La transparencia del atlas conserva la silueta negra y los huecos entre pelo y extremidades.
 
-El ciclo de paseo usa además `assets/capri-caminar-v1.png`, RGBA, 1774 × 887, cuatro columnas y dos filas. Sus ocho poses se preparan y registran en una caché; no se generan imágenes ni se interpola con desenfoque durante el movimiento. El lienzo del personaje mide 210 × 240 antes del zoom, con márgenes transparentes para los pasos largos.
+La caminata está desactivada. Los desplazamientos al suelo, a una ventana y a una nueva esquina se representan mediante el mismo tránsito de rayos. El glitch se recorta a la silueta del personaje y el alfa se vuelve binario para evitar bordes negros del color transparente de Windows.
 
-El [prompt de generación de los ocho pasos](PROMPT_CAMINAR.md) se conserva junto a esta guía. Se usó la herramienta integrada de generación de imágenes.
+Al transformar la pantalla en personaje aparece una [pose de bienvenida](PROMPT_SALUDO.md) grande. La secuencia de pantalla a personaje dura unos 2,7 segundos: primero se centra y crece, después cambia de forma y finalmente se encoge antes de acomodarse en el escritorio. Puede interrumpirse con Esc o F8. El atlas de ocho pasos permanece como recurso histórico, sin cargarse en la animación actual.
+
 
 Se usó la **herramienta integrada de generación de imágenes**, con las capturas de cuerpo completo y pose sentada aportadas por el usuario como referencias. A continuación se conservan los prompts empleados.
 
@@ -87,3 +88,21 @@ Se usó la **herramienta integrada de generación de imágenes**, con las captur
 ## Referencias técnicas
 
 Detección de ventanas: [Windows, ventanas de nivel superior](https://learn.microsoft.com/en-us/windows/win32/winmsg/about-windows). Papelera: [implementación moderna de Send2Trash](https://github.com/arsenetar/send2trash/blob/master/send2trash/win/modern.py) y [opciones de IFileOperation](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-ifileoperation-setoperationflags).
+
+## Menú circular y sombra
+
+Clic derecho sobre el personaje abre ocho sectores: Ajustes, Chat, Juegos, Aspecto, Modo pantalla, Tamaño, Voz y Más. Los sectores con opciones abren otro círculo; pulsa el centro para volver. Esc, otro clic derecho o un clic fuera lo cierran. También se puede seleccionar con las flechas izquierda/derecha y Enter. Capri pausa sus desplazamientos mientras está abierto.
+
+**Aspecto** permite elegir una sombra de contorno con cortes digitales: Violeta, Neón, Hielo, Rojo o Sin sombra. La elección se conserva. Es una copia coloreada de la silueta, desplazada hacia un lado y completa, sin cortes, que se dibuja detrás del cuerpo; no un contorno alrededor de toda la figura. No añade un fondo negro.
+
+## Voz en modo personaje
+
+Las respuestas aparecen en un globo violeta con retrato de Capri y una punta dirigida al personaje. La misma respuesta completa se conserva en el historial; el globo muestra hasta seis líneas y se ajusta a su contenido. La escritura sigue los eventos del reproductor de voz. La boca alterna entre cerrada y una figura blanca abierta, tanto de pie como sentada, usando la misma señal de audio del modo pantalla. No cambia el cuerpo al abrir la boca. Al terminar, el globo se oculta después de tres segundos; las confirmaciones siguen visibles mientras esperan respuesta.
+
+Las descargas que acompañan la transformación quedan fuera de los límites de la imagen para no cruzar su rostro o boca.
+
+## Fluidez y despedida
+
+La preparación de los fotogramas se realiza en un trabajador de Pillow, con cola acotada. Tk recibe pequeños lotes de imágenes en el hilo de interfaz, de modo que la preparación no bloquea todos los eventos. Se reutiliza la caché completa al repetir la transformación; las tareas incompletas se cancelan al interrumpir o cerrar.
+
+Al cerrar normalmente, Capri se transforma en una mano roja centrada, con la silueta de la referencia, que señala una estrella en la parte superior central. Después se descompone en un rayo rojo que viaja hacia esa luz y se consume en su brillo. La secuencia dura unos 2,6 segundos y termina cerrando el proceso. La mano y la estrella son formas vectoriales, por lo que se adaptan al monitor. F8, Esc con foco o una segunda solicitud de cierre permiten terminar de inmediato. Si desactivas las animaciones, el cierre es inmediato.

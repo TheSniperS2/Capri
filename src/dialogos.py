@@ -15,6 +15,7 @@ class Dialogo:
         self.objetivo='';self.visible='';self.usuario='';self.vence=0;self.fase=0;self.editando=False
         self.estado='ENLACE ABIERTO';self.entrada=None;self.control_entrada=None;self.manual=False;self.alto_canvas=108;self.sincronizada=False
         self.menu=None;self.fin_escritura=False;self.retener=lambda:False
+        self.personaje=lambda:False;self.ruta_retrato=None;self.retrato=None;self.punta=80;self.estilo_personaje=None
 
     def crear(self):
         if self.ventana is not None and self.ventana.winfo_exists():return
@@ -25,6 +26,11 @@ class Dialogo:
         self.canvas.pack(fill='both',expand=True)
         self.fuente_pregunta=tkfont.Font(root=p,family=FAMILIA,size=9)
         self.fuente_cuerpo=tkfont.Font(root=p,family=FAMILIA,size=12)
+        if self.ruta_retrato:
+            try:
+                from PIL import Image,ImageTk
+                with Image.open(self.ruta_retrato) as im:self.retrato=ImageTk.PhotoImage(im.convert('RGBA').resize((58,58),Image.Resampling.LANCZOS))
+            except OSError:pass
         self.canvas.bind('<Button-3>',lambda e:self.menu(e) if self.menu else None)
         p.bind('<Escape>',lambda e:self.detener() if self.detener else self.ocultar())
 
@@ -75,7 +81,7 @@ class Dialogo:
     def posicionar(self):
         if not self.ventana or not self.ventana.winfo_exists():return
         sw=self.raiz.winfo_screenwidth();sh=self.raiz.winfo_screenheight()
-        ancho=max(280,self.raiz.winfo_width());alto=self.alto_canvas
+        ancho=min(440,sw-16) if self.personaje() else max(280,self.raiz.winfo_width());alto=self.alto_canvas
         self.canvas.configure(width=ancho)
         x=self.raiz.winfo_x()+(self.raiz.winfo_width()-ancho)//2
         y=self.raiz.winfo_y()-alto-8
@@ -84,17 +90,20 @@ class Dialogo:
             if x<8:x=self.raiz.winfo_x()+self.raiz.winfo_width()+8
             y=self.raiz.winfo_y()+30
         x=max(8,min(x,sw-ancho-8));y=max(8,min(y,sh-alto-12))
+        self.punta=max(30,min(ancho-35,self.raiz.winfo_x()+self.raiz.winfo_width()/2-x))
         self.ventana.geometry(f'{ancho}x{alto}+{x}+{y}')
 
     def dibujar(self):
-        c=self.canvas;c.delete('all');ancho=max(280,c.winfo_width());limite=ancho-62
+        c=self.canvas;c.delete('all');ancho=max(280,int(float(c.cget('width'))));modo=self.personaje()
+        if modo!=self.estilo_personaje:self.fuente_cuerpo.configure(weight='bold' if modo else 'normal');self.estilo_personaje=modo
+        izquierda=104 if modo else 29;arriba=54 if modo else 76;limite=ancho-izquierda-(25 if modo else 33)
         pregunta=' '.join(self.usuario.split())
         pregunta=('TÚ > '+pregunta) if pregunta else 'ENLACE PERSONAL'
         if self.fuente_pregunta.measure(pregunta)>limite:
             while pregunta and self.fuente_pregunta.measure(pregunta+'…')>limite:pregunta=pregunta[:-1]
             pregunta+='…'
         escribiendo=len(self.visible)<len(self.objetivo)
-        punta=random.choice('_/-') if escribiendo and self.glitch() else ('_' if escribiendo else '')
+        punta=(random.choice('_/-') if self.glitch() else '_') if escribiendo and self.visible else ''
         # Envolver por ancho real, incluyendo palabras largas. Solo la vista
         # compacta muestra las últimas seis líneas; el historial queda completo.
         lineas=['']
@@ -107,11 +116,30 @@ class Dialogo:
         if len(lineas)>6:
             lineas=lineas[-6:];lineas[0]='…'+lineas[0]
             while self.fuente_cuerpo.measure(lineas[0])>limite:lineas[0]='…'+lineas[0][2:]
-        cuerpo=c.create_text(29,76,text='\n'.join(lineas),anchor='nw',fill='#edf0fa',font=self.fuente_cuerpo,tags='cuerpo')
-        caja=c.bbox(cuerpo);alto=max(108,(caja[3] if caja else 86)+24)
+        cuerpo=c.create_text(izquierda,arriba,text='\n'.join(lineas),anchor='nw',fill='#edf0fa',font=self.fuente_cuerpo,tags='cuerpo')
+        caja=c.bbox(cuerpo);alto=max(128 if modo else 108,(caja[3] if caja else 86)+28)
         self.alto_canvas=alto;c.configure(height=alto)
+        if modo:
+            punta=max(30,min(ancho-35,self.punta))
+            puntos=[14,8,ancho-24,8,ancho-10,22,ancho-10,alto-24,punta+17,alto-24,punta,alto-5,punta-12,alto-24,10,alto-24,10,21]
+            sombra=c.create_polygon(*[v+4 for v in puntos],fill='#bd2147',outline='',tags='sombra_globo')
+            fondo=c.create_polygon(*puntos,fill='#120f1d',outline='#dd4262',width=2,tags='globo_personaje')
+            c.tag_lower(fondo);c.tag_lower(sombra)
+            if self.retrato:
+                c.create_rectangle(24,26,86,88,fill='#38121e',outline='#ef446b',width=2)
+                c.create_image(26,28,image=self.retrato,anchor='nw',tags='retrato')
+            c.create_text(104,29,text='CAPRI',anchor='w',fill='#e8def9',font=(FAMILIA,11,'bold'))
+            c.create_rectangle(ancho-125,17,ancho-23,37,fill='#89243f',outline='')
+            etiqueta={'GENERANDO RESPUESTA':'PENSANDO','PREPARANDO VOZ':'PREPARANDO','ENLACE ABIERTO':'EN LÍNEA','REVISA EL DICTADO':'REVISAR'}.get(self.estado,self.estado)
+            while self.fuente_pregunta.measure(etiqueta)>94:etiqueta=etiqueta[:-2]+'…'
+            c.create_text(ancho-74,27,text=etiqueta,fill='#efe5fa',font=(FAMILIA,8,'bold'),tags='estado_globo')
+            if not self.visible:
+                for i in range(3):
+                    x=izquierda+i*12;y=arriba+10
+                    c.create_oval(x,y,x+5,y+5,fill='#ffa0b6' if self.fase%3==i else '#702439',outline='',tags='pensando')
+            return
         fondo=c.create_polygon(13,9,ancho-22,9,ancho-10,21,ancho-10,alto-24,ancho-22,alto-12,22,alto-12,10,alto-24,10,22,
-                         fill='#0d111b',outline='#6f9ba3',width=1)
+                         fill='#0d111b',outline='#a54459',width=1)
         c.tag_lower(fondo)
         c.create_line(22,alto-11,ancho-23,alto-11,fill='#ec3c62',width=3)
         c.create_rectangle(26,44,80,61,fill='#f2d959',outline='')

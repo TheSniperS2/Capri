@@ -4,7 +4,15 @@ import base64,hashlib,io,zipfile
 BASE=Path(__file__).resolve().parent
 ARCHIVOS=['puente_opera.py','integraciones/opera-capri/manifest.json','integraciones/opera-capri/control.js','integraciones/opera-capri/page.js','integraciones/opera-capri/content.js','integraciones/opera-capri/worker.js','CONECTAR_OPERA.md','volumen_apps.py','aplicaciones.py','navegador.py','app.py','core.py','voz.py','recursos.py','activar_ia.py','reconocimiento.py','nombres.py','activacion.py','escritorio.py','multimedia.py','playlists.py','intenciones.py','prueba_microfono.py','dialogos.py','avatar.py','sincronia.py','entrada.py','fuentes.py','intro.py','companera.py','travesuras.py','ventanas.py','control_pc.py','assets/capri-personaje-v1.png','assets/capri-caminar-v1.png','assets/capri-base-v2.png','assets/capri-bocas-v2.png','assets/fonts/ChakraPetch-Regular.ttf','assets/fonts/ChakraPetch-Bold.ttf','assets/fonts/OFL.txt','capri.ico','preparar_whisper.py','requirements.txt','LEEME.md','ARTE_ANIMADO.md','COMPARACION_MODELOS.md','PERSONAJE_Y_CONTROL.md','PROMPT_CAMINAR.md']
 
+ARCHIVOS.append('assets/capri-saludo-v1.png')
+ARCHIVOS.append('PROMPT_SALUDO.md')
+ARCHIVOS.append('menu_radial.py')
+ARCHIVOS.append('ajustes_ui.py')
+ARCHIVOS.append('REFERENCIAS_VOZ.md')
+ARCHIVOS.extend(['despedida.py','assets/capri-base-hd-v1.png','PROMPT_HD.md'])
+
 def origen(nombre):
+    if nombre in ('PROMPT_SALUDO.md','PROMPT_HD.md','REFERENCIAS_VOZ.md'):return BASE/'docs'/nombre
     if nombre.startswith(('assets/','integraciones/')):return BASE/nombre
     if nombre=='capri.ico':return BASE/'assets'/nombre
     if nombre=='LEEME.md':return BASE/'docs/USO.md'

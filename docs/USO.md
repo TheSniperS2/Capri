@@ -118,7 +118,7 @@ La cabecera resume los estados como Conectando, Enlace activo, Escucha, Recibien
 
 Usa **Ctrl + rueda** sobre Capri, **clic derecho → Tamaño de Capri**, o el control en Ajustes para cambiar entre 75% y 160%. El tamaño se guarda; las imágenes se recalculan solo al cambiarlo. La fuente Chakra Petch se incluye con su licencia OFL y se carga de forma privada dentro del proceso de Capri, sin instalarla para otros programas.
 
-Al abrir normalmente se reproduce una intro visual de unos 2,8 segundos, con el nombre, barridos y la señal del personaje. No representa un porcentaje real de carga del modelo ni bloquea el micrófono. Escape, F8, enviar una petición o detectar el nombre la interrumpen. Puedes desactivarla en **Intro visual al abrir Capri** o repetirla desde el menú contextual. No reproduce un sonido de inicio.
+Al abrir normalmente se reproduce una intro visual de unos 6,8 segundos, ampliada hasta aproximadamente el 82% de la altura de la pantalla, con el nombre, barridos y la señal del personaje. No representa un porcentaje real de carga del modelo ni bloquea el micrófono. Escape, F8, enviar una petición o detectar el nombre la interrumpen. Puedes desactivarla en **Intro visual al abrir Capri** o repetirla desde el menú contextual. No reproduce un sonido de inicio.
 
 ## Actualización de expresiones e interfaz
 
@@ -127,3 +127,20 @@ La boca normal se retira antes de aplicar la expresión de habla o sonrisa. Los 
 La intro comienza ampliada en el centro durante unos segundos. El cuadro se cuartea en su sitio: sus piezas se consumen con grietas rojas y dejan huecos transparentes antes del desplazamiento. La imagen de Capri se fragmenta en bandas irregulares que se tiñen de rojo, se dispersan y viajan con un barrido de energía hacia su posición habitual. Entre las descargas se dejan entrever partes del rostro; al llegar, los fragmentos recuperan sus colores y se recompone la imagen completa. La transición se inspira en la referencia animada de Steam, usando el avatar propio de la aplicación. La estela es transparente y deja pasar los clics. F8, Esc o una petición la interrumpen. La entrada reaparece al terminar y el tamaño elegido se conserva.
 
 La [comparación local de Llama y Qwen](COMPARACION_MODELOS.md) explica la recomendación para el equipo evaluado, los tiempos y sus límites.
+
+
+Voces (2026-10-29): Ajustes > Voz de Capri permite elegir Capri clasica (Dalia +16Hz), Latina suave (Dalia +6Hz), Vivaz (Ximena +8Hz) y Chilena (Catalina). Escuchar prueba reproduce una frase corta con el perfil seleccionado y respeta volumen y velocidad. Se conserva la eleccion actual al actualizar. Son voces sinteticas de Microsoft, no la actriz ni un modelo oficial de Capri. Catalogo: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=tts . Motor: https://github.com/rany2/edge-tts . Se verifico el catalogo del servicio y se sintetizaron pruebas reales de los tres perfiles alternativos; la disponibilidad requiere internet.
+
+
+Actualizacion 29/10: Ajustes se organiza por canales Escritorio, Microfono, Voz, IA y servicios, Permisos. Las opciones se guardan al cambiarlas. Aspecto abre una galeria con previsualizaciones del personaje y cada sombra. La voz actual se conserva; Capri latina experimental queda como alternativa opcional. Consulta [investigacion de voz](REFERENCIAS_VOZ.md) para conocer sus referencias y limites.
+
+Con los viajes activados, Capri se teletransporta a distintas posiciones del escritorio y puede preferir el borde de una ventana cercana. Si queda en el aire, cae lentamente y a veces clava un anclaje temporal para sujetarse. El anclaje desaparece al viajar. Arrastrarla permite elegir el punto inicial sin bloquear sus viajes posteriores. Pausar viajes detiene tambien la caida y las sujeciones nuevas.
+
+
+Diseño rojo y controles: Ajustes, Aspectos y Conversación usan marcos angulares propios y permanecen por encima de las ventanas normales. Arrastra su barra superior para moverlos y la marca inferior derecha para ajustar el tamaño. Las tarjetas de Aspectos muestran la vista seleccionada. El panel y la entrada indican DI CAPRI; la activación por nombre se puede desactivar en Micrófono. En Ajustes > Voz > Tecla para hablar, pulsa CAMBIAR y presiona la tecla o combinación deseada (por ejemplo, Ctrl+Espacio); Esc cancela. F8 es el valor predeterminado. El cambio se aplica sin reiniciar. Si otra aplicación ocupa la tecla se informa para elegir otra. El menú Voz conserva Hablar y Activar/Silenciar.
+
+La rueda desplaza la sección de ajustes incluso sobre selectores o deslizadores, sin modificar sus valores. Los selectores se abren con un clic y las barras de desplazamiento solo aparecen cuando el contenido no cabe. Permisos reúne la información y su interruptor al principio de la sección. Ambos modos de Capri comparten el menú radial al hacer clic derecho. Las transformaciones mantienen la paleta roja del panel.
+
+La caida empieza al soltar al personaje, con gravedad de 900 px/s2 y velocidad maxima700 px/s a escala1. Una estaca puede clavarse con un golpe visible, fijar un punto de agarre y dejar el cuerpo balanceandose unos segundos. Al teletransportarse o arrastrarlo se retira. La sombra elegida acompana la formacion y los saltos.
+
+El guardado de una opcion no sustituye las otras claves del archivo de preferencias. Las actualizaciones conservan el microfono, LLM, motor y modelo Whisper seleccionados. Se mantienen los valores predeterminados para opciones no elegidas; Whisper Base se indica para priorizar velocidad, Small para precision. Emma multilingue se ofrece como voz alternativa que puede leer espanol, sin sustituir la actual y sin presentarla como la voz original de Capri.

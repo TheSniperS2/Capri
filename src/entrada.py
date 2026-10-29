@@ -9,8 +9,8 @@ class Entrada(tk.Canvas):
     def __init__(self,padre,enviar,menu):
         super().__init__(padre,width=360,height=46,bg=TRANS,highlightthickness=0)
         self.enviar=enviar;self.menu=menu;self.placeholder=True;self.activa=False;self.hablando=False;self.nivel=0
-        self.texto_placeholder='Escribe a Capri…';self.foco_cambio=None;self.antes_foco=None
-        self.entrada=tk.Entry(self,bg='#0d141e',fg='#768b96',insertbackground='#8ce5df',relief='flat',
+        self.texto_placeholder='Di «Capri» o escribe…';self.foco_cambio=None;self.antes_foco=None;self.activacion=True
+        self.entrada=tk.Entry(self,bg='#170c12',fg='#768b96',insertbackground='#ff9eaf',relief='flat',
                               highlightthickness=0,font=(FAMILIA,12))
         self.entrada.insert(0,self.texto_placeholder)
         self.ventana=self.create_window(35,23,window=self.entrada,anchor='w')
@@ -53,7 +53,7 @@ class Entrada(tk.Canvas):
 
     def señal(self,nivel,escuchando,hablando):
         self.nivel=nivel;self.activa=escuchando;self.hablando=hablando
-        nuevo='Te escucho…' if escuchando else 'Escribe a Capri…'
+        nuevo='Te escucho…' if escuchando else ('Di «Capri» o escribe…' if self.activacion else 'Escribe a Capri…')
         if nuevo!=self.texto_placeholder:
             self.texto_placeholder=nuevo
             if self.placeholder:self.entrada.delete(0,'end');self.entrada.insert(0,nuevo)
@@ -61,8 +61,8 @@ class Entrada(tk.Canvas):
 
     def dibujar(self):
         w=max(200,self.winfo_width(),int(self.cget('width')));self.delete('marco')
-        color='#88e4dd' if self.activa else ('#edce67' if self.hablando else '#526d79')
-        self.create_polygon(15,4,w-9,4,w-4,10,w-4,34,w-15,42,5,42,5,14,fill='#0d141e',outline=color,tags='marco')
+        color='#ff9eaf' if self.activa else ('#edce67' if self.hablando else '#9d3b52')
+        self.create_polygon(15,4,w-9,4,w-4,10,w-4,34,w-15,42,5,42,5,14,fill='#170c12',outline=color,tags='marco')
         self.tag_lower('marco');self.itemconfigure(self.ventana,width=max(110,w-78))
         self.coords(self.ventana,35,23)
         if self.activa or self.hablando:

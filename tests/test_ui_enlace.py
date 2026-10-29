@@ -32,11 +32,16 @@ class Enlace(PruebasTk):
         with self.capri() as (c,_):
             c.iniciar_intro();c.root.update_idletasks()
             self.assertGreater(c.escala_avatar,c.cfg['escala_avatar'])
+            self.assertGreater(__import__('intro').DURACION,6)
+            self.assertGreater(int(c.canvas.cget('height')),c.root.winfo_screenheight()*.75)
+            if os.name=='nt':
+                original=c.intro_estilo;c.pasar_clics_intro(True)
+                self.assertEqual(c.intro_estilo,original)
             self.assertFalse(c.entrada_compacta.winfo_manager())
             c.inicio_intro=time.monotonic()-1;c.animar()
             textos=[c.canvas.itemcget(i,'text') for i in c.canvas.find_all() if c.canvas.type(i)=='text']
             self.assertIn('CONECTANDO',textos)
-            c.inicio_intro=time.monotonic()-2.2;c.animar()
+            c.inicio_intro=time.monotonic()-__import__('intro').DURACION*.8;c.animar()
             self.assertTrue(c.intro_en_viaje)
             self.assertTrue(c.canvas.find_withtag('descarga'))
             self.assertTrue(c.canvas.find_withtag('fragmento_capri'))
@@ -83,7 +88,7 @@ class Enlace(PruebasTk):
         with self.capri() as (c,_),patch.object(c.micro,'escuchar') as escuchar:
             c.iniciar_intro();c.inicio_intro=time.monotonic()-.7;c.animar()
             self.assertTrue(c.intro_activa)
-            c.inicio_intro=time.monotonic()-3;c.animar();self.assertFalse(c.intro_activa)
+            c.inicio_intro=time.monotonic()-__import__('intro').DURACION-.1;c.animar();self.assertFalse(c.intro_activa)
             c.iniciar_intro();c.parar();self.assertFalse(c.intro_activa)
             escuchar.assert_not_called()
 

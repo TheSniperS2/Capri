@@ -13,6 +13,18 @@ from concurrent.futures import Future
 from contextlib import contextmanager, ExitStack
 from functools import wraps
 import re
+
+PERFILES_VOZ={
+    'capri':('Capri clásica · Dalia','es-MX-DaliaNeural','+16Hz'),
+    'latina':('Latina suave · Dalia','es-MX-DaliaNeural','+6Hz'),
+    'vivaz':('Vivaz · Ximena','es-ES-XimenaNeural','+8Hz'),
+    'chilena':('Chilena · Catalina','es-CL-CatalinaNeural','+0Hz'),
+    'capri_latina':('Capri latina · experimental','es-MX-DaliaNeural','+10Hz'),
+    'multilingue':('Emma multilingüe · español','en-US-EmmaMultilingualNeural','+8Hz'),
+}
+
+def elegir_voz(perfil):
+    return PERFILES_VOZ.get(perfil,PERFILES_VOZ['capri'])[1:]
 import unicodedata
 import atexit
 import math
@@ -416,6 +428,7 @@ class Voz:
         archivo = None
         activo = False
         ritmo,rapidez_windows=parametros_velocidad(velocidad)
+        if perfil=='capri_latina':ritmo=parametros_velocidad(normalizar_velocidad(velocidad)*1.06)[0]
         try:
             if natural and time.monotonic() >= self.natural_no_hasta:
                 try:
@@ -423,8 +436,9 @@ class Voz:
                     with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f: archivo = Path(f.name)
                     eventos=[]
                     async def crear():
-                        comunicacion = edge_tts.Communicate(texto, 'es-MX-DaliaNeural' if perfil=='capri' else 'es-CL-FranciscaNeural',
-                                                          rate=ritmo,pitch='+16Hz' if perfil=='capri' else '+0Hz',boundary='WordBoundary')
+                        nombre,tono=elegir_voz(perfil)
+                        comunicacion = edge_tts.Communicate(texto,nombre,
+                                                          rate=ritmo,pitch=tono,boundary='WordBoundary')
                         async def guardar():
                             with archivo.open('wb') as salida:
                                 async for evento in comunicacion.stream():
@@ -455,10 +469,33 @@ class Voz:
                 try: archivo.unlink(missing_ok=True)
                 except OSError: pass
 
+TECLAS_HABLAR=[f'F{i}' for i in range(2,13)]
+
+def datos_atajo(tecla):
+    partes=str(tecla).split('+');base=partes[-1];mods=0x4000
+    for parte in partes[:-1]:
+        if parte not in ('Ctrl','Alt','Shift','Win'):return None
+        mods|={'Ctrl':2,'Alt':1,'Shift':4,'Win':8}[parte]
+    especiales={'Space':0x20,'Enter':0x0d,'Tab':0x09,'Insert':0x2d,'Home':0x24,'End':0x23,
+                'PageUp':0x21,'PageDown':0x22,'Left':0x25,'Up':0x26,'Right':0x27,'Down':0x28,'Caps_Lock':0x14,
+                'BackSpace':8,'Delete':0x2e,'Pause':0x13,'Scroll_Lock':0x91,'Num_Lock':0x90,'Print':0x2c,
+                'KP_Add':0x6b,'KP_Subtract':0x6d,'KP_Multiply':0x6a,'KP_Divide':0x6f,'KP_Decimal':0x6e}
+    if re.fullmatch(r'F(?:[1-9]|1[0-9]|2[0-4])',base):vk=0x6f+int(base[1:])
+    elif re.fullmatch('[A-Z0-9]',base):vk=ord(base)
+    elif re.fullmatch(r'KP_[0-9]',base):vk=0x60+int(base[-1])
+    else:vk=especiales.get(base)
+    return (mods,vk) if vk is not None else None
+
+def atajo_valido(tecla):return datos_atajo(tecla) is not None
+
+def tecla_virtual(tecla):
+    datos=datos_atajo(tecla);return datos[1] if datos else 0x77
+
 class Atajo:
-    """F8 del sistema; no necesita mantener enfocada la ventana de Capri."""
-    def __init__(self, ejecutar, error):
+    """Tecla global configurable, sin capturar la escritura del usuario."""
+    def __init__(self, ejecutar, error,tecla='F8'):
         self.ejecutar = ejecutar; self.error = error
+        self.tecla=tecla if atajo_valido(tecla) else 'F8';self.detener=threading.Event()
         self.hilo_id = None
         self.hilo = threading.Thread(target=self._run, daemon=True)
         self.hilo.start()
@@ -469,8 +506,12 @@ class Atajo:
         from ctypes import wintypes
         user = ctypes.windll.user32
         self.hilo_id = ctypes.windll.kernel32.GetCurrentThreadId()
-        if not user.RegisterHotKey(None, 4817, 0x4000, 0x77):
-            self.error('F8 está ocupado por otra aplicación. Usa el botón Hablar.')
+        if self.detener.is_set():return
+        mods,vk=datos_atajo(self.tecla)
+        if not user.RegisterHotKey(None, 4817, mods,vk):
+            self.error(self.tecla+' está ocupada por otra aplicación. Elige otra tecla en Ajustes.');return
+        if self.detener.is_set():
+            user.UnregisterHotKey(None,4817)
             return
         try:
             msg = wintypes.MSG()
@@ -480,6 +521,8 @@ class Atajo:
             user.UnregisterHotKey(None, 4817)
 
     def cerrar(self):
+        self.detener.set()
         if os.name == 'nt' and self.hilo_id:
             import ctypes
             ctypes.windll.user32.PostThreadMessageW(self.hilo_id, 0x12, 0, 0)
+        if self.hilo.is_alive() and threading.current_thread() is not self.hilo:self.hilo.join(.25)

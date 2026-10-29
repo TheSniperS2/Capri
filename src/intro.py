@@ -1,11 +1,201 @@
 """Secuencia visual de enlace. No bloquea el audio ni simula carga del modelo."""
 import math
 import random
-from PIL import Image,ImageTk,ImageChops,ImageDraw
+import threading
+import queue
+import time
+import os
+from PIL import Image,ImageTk,ImageChops,ImageDraw,ImageFont
+from pathlib import Path
 from fuentes import FAMILIA
 
-DURACION=2.8
-VIAJE=.58
+DURACION=6.8
+VIAJE=.72
+
+def suave(t):
+    t=max(0,min(1,t));return t*t*(3-2*t)
+
+class TrasladoTeselas:
+    """El propio sprite se desarma y recompone; no usa lenguas rojas externas."""
+    def __init__(self,origen,destino,inicio,fin):
+        self.inicio=inicio;self.fin=fin;self.piezas=[]
+        destino=destino.resize(origen.size,Image.Resampling.LANCZOS)
+        w,h=origen.size
+        for fila in range(8):
+            for col in range(6):
+                caja=(col*w//6,fila*h//8,(col+1)*w//6,(fila+1)*h//8)
+                a=origen.crop(caja);b=destino.crop(caja)
+                if not a.getbbox() and not b.getbbox():continue
+                def rojo(im):
+                    tinta=Image.new('RGBA',im.size,'#f60031')
+                    tinta=Image.blend(im,tinta,.48);tinta.putalpha(im.getchannel('A'));return tinta
+                fotos=[ImageTk.PhotoImage(im) for im in (a,rojo(a),rojo(b),b)]
+                offset=((caja[0]+caja[2]-w)/2,(caja[1]+caja[3]-h)/2)
+                self.piezas.append((fotos,offset,fila,col))
+
+    def dibujar(self,c,p):
+        for fotos,(ox,oy),fila,col in self.piezas:
+            retraso=(fila%3)*.025+col*.009
+            u=max(0,min(1,(p-retraso)/(1-retraso)));t=suave(u)
+            arco=math.sin(math.pi*u)
+            x=self.inicio[0]+(self.fin[0]-self.inicio[0])*t+ox+(col-2.5)*7*arco
+            y=self.inicio[1]+(self.fin[1]-self.inicio[1])*t+oy-35*arco+(fila-3.5)*5*arco
+            indice=0 if u<.16 else (1 if u<.48 else (2 if u<.78 else 3))
+            c.create_image(x,y,image=fotos[indice],tags='fragmento_viaje')
+
+def geometria_morfosis(q,inicio,centro,fin,normal,grande,pequena):
+    """Primero centrar y crecer; después encoger y solo al final desplazarse."""
+    def mezclar(a,b,t):return tuple(x+(y-x)*t for x,y in zip(a,b))
+    if q<.42:
+        return mezclar(inicio,centro,suave(q/.30)),mezclar(normal,grande,suave(q/.42))
+    if q<.62:return centro,grande
+    return mezclar(centro,fin,suave((q-.78)/.22)),mezclar(grande,pequena,suave((q-.62)/.38))
+
+class Transformacion:
+    def __init__(self,vista,saludo,personaje,inicio,fin,ancho,alto,escala=1,inversa=False,fotos=None,directa=False):
+        from PIL import ImageOps
+        self.fotos=[];self.inicio=inicio;self.fin=fin;self.centro=(ancho/2,alto/2);self.inversa=inversa
+        self.directa=directa;self.cantidad=31 if directa else 85
+        self.cancelar=threading.Event();self.cola=queue.Queue(maxsize=8)
+        panel=Image.new('RGBA',(1080,876));d=ImageDraw.Draw(panel)
+        d.polygon([(24,60),(60,24),(1020,24),(1056,60),(1056,840),(1020,870),(24,870)],fill='#10090d',outline='#ed6684',width=6)
+        panel.alpha_composite(vista.resize((960,630),Image.Resampling.LANCZOS),(60,165))
+        fuente=Path(__file__).resolve().parent/'assets/fonts/ChakraPetch-Bold.ttf'
+        if not fuente.exists():fuente=Path(__file__).resolve().parents[1]/'assets/fonts/ChakraPetch-Bold.ttf'
+        try:fuente=ImageFont.truetype(str(fuente),38)
+        except OSError:fuente=ImageFont.load_default()
+        d.text((54,60),'CAPRI // ENLACE PERSONAL',fill='#ffb0c3',font=fuente)
+        self.normal=(360*escala,292*escala)
+        self.grande=(min(ancho*.78,alto*.8*saludo.width/saludo.height),alto*.8)
+        self.pequena=personaje.size
+        self.preview=ImageTk.PhotoImage(personaje if inversa else panel.resize((round(360*escala),round(292*escala)),Image.Resampling.LANCZOS))
+        if fotos is not None:self.fotos=fotos;return
+        # Pillow trabaja fuera de Tk; PhotoImage se crea en pequeños lotes en el hilo UI.
+        self.worker=threading.Thread(target=Transformacion.preparar,args=(self.cola,self.cancelar,panel,saludo,personaje,self.cantidad,directa,inversa,
+                                    inicio,self.centro,fin,self.normal,self.grande,self.pequena),daemon=True,name='CapriFrames')
+        self.worker.start()
+
+    def geometria(self,q):
+        if self.directa:
+            t=suave(q)
+            return (tuple(a+(b-a)*t for a,b in zip(self.inicio,self.fin)),tuple(a+(b-a)*t for a,b in zip(self.normal,self.pequena)))
+        return geometria_morfosis(q,self.inicio,self.centro,self.fin,self.normal,self.grande,self.pequena)
+
+    @staticmethod
+    def preparar(cola,cancelar,panel,saludo,personaje,cantidad,directa,inversa,inicio,centro,fin,normal,grande,pequena):
+        from PIL import ImageOps
+        # Separar color y máscara evita la conversión premultiplicada de RGBA
+        # repetida en cada redimensionamiento grande durante la transición.
+        fuentes={id(im):(im.convert('RGB'),im.getchannel('A')) for im in (panel,saludo,personaje)}
+        anterior=None
+        for i in range(cantidad):
+            if cancelar.is_set():return
+            # En retorno se preparan primero los estados próximos al personaje.
+            indice=cantidad-1-i if inversa else i
+            q=indice/(cantidad-1)
+            if not directa and .42<q<.62 and anterior is not None and anterior/(cantidad-1)>.42:
+                while not cancelar.is_set():
+                    try:cola.put((indice,anterior),timeout=.05);break
+                    except queue.Full:pass
+                continue
+            if directa:tam=tuple(a+(b-a)*suave(q) for a,b in zip(normal,pequena))
+            else:_,tam=geometria_morfosis(q,inicio,centro,fin,normal,grande,pequena)
+            caja=(max(1,round(tam[0])),max(1,round(tam[1])))
+            def encajar(im):
+                filtro=Image.Resampling.LANCZOS if q in (0,1) or .42<q<.62 else Image.Resampling.NEAREST
+                rgb,alfa=fuentes[id(im)]
+                rgb=ImageOps.contain(rgb,caja,filtro)
+                mascara=alfa.resize(rgb.size,filtro)
+                rgb.putalpha(mascara)
+                fondo=Image.new('RGBA',caja);fondo.paste(rgb,((caja[0]-rgb.width)//2,(caja[1]-rgb.height)//2));return fondo
+            if directa:a,b,mezcla=panel,personaje,suave(q)
+            elif q<.42:a,b,mezcla=panel,saludo,suave((q-.14)/.28)
+            else:a,b,mezcla=saludo,personaje,suave((q-.62)/.16)
+            if mezcla<=0:im=encajar(a)
+            elif mezcla>=1:im=encajar(b)
+            else:
+                a=encajar(a);b=encajar(b)
+                mascara=Image.new('L',caja);p=ImageDraw.Draw(mascara)
+                for y in range(0,caja[1],8):
+                    borde=round((mezcla+math.sin(y*.17)*.07*math.sin(mezcla*math.pi))*caja[0])
+                    if borde>0:p.rectangle((0,y,min(caja[0],borde),y+7),fill=255)
+                im=Image.composite(b,a,mascara)
+            im.putalpha(im.getchannel('A').point(lambda v:255 if v>=96 else 0))
+            limite=im.getchannel('A').getbbox()
+            offset=(0,0)
+            if limite:
+                offset=((limite[0]+limite[2]-im.width)/2,(limite[1]+limite[3]-im.height)/2)
+                im=im.crop(limite)
+            if os.name=='nt':
+                # La ventana usa este color como transparencia. Enviar RGB
+                # evita la conversión RGBA de Tk en cada fotograma grande.
+                rgb=Image.new('RGB',im.size,'#010203');rgb.paste(im,mask=im.getchannel('A'));im=rgb
+            dato=(im,offset);anterior=indice
+            while not cancelar.is_set():
+                try:cola.put((indice,dato),timeout=.05);break
+                except queue.Full:pass
+
+    def actualizar(self):
+        inicio=time.perf_counter()
+        for _ in range(2):
+            try:indice,im=self.cola.get_nowait()
+            except queue.Empty:break
+            while len(self.fotos)<self.cantidad:self.fotos.append(None)
+            if isinstance(im,int):self.fotos[indice]=self.fotos[im]
+            else:
+                im,offset=im;foto=ImageTk.PhotoImage(im);foto.offset=offset;self.fotos[indice]=foto
+            if time.perf_counter()-inicio>.004:break
+
+    def detener(self):self.cancelar.set()
+
+    def dibujar(self,c,progreso):
+        self.actualizar()
+        q=1-progreso if self.inversa else progreso;q=max(0,min(1,q))
+        indice=round(q*(self.cantidad-1))
+        lista=[i for i,f in enumerate(self.fotos) if f is not None]
+        elegido=min(lista,key=lambda i:abs(i-indice)) if lista else None
+        # La posición y el tamaño pertenecen al MISMO estado preparado: nunca
+        # llevar una foto grande atrasada hasta el destino del sprite pequeño.
+        listo=elegido is not None and abs(elegido-indice)<=1
+        centro,_=self.geometria(q if listo else (elegido/(self.cantidad-1) if elegido is not None else (1 if self.inversa else 0)))
+        self.imagen=self.fotos[elegido] if elegido is not None else self.preview
+        offset=getattr(self.imagen,'offset',(0,0))
+        pos=(centro[0]+offset[0],centro[1]+offset[1])
+        item=getattr(self,'item',None)
+        if item is not None and c.type(item)=='image':
+            c.coords(item,*pos)
+            if getattr(self,'ultima_imagen',None) is not self.imagen:c.itemconfigure(item,image=self.imagen)
+        else:self.item=c.create_image(*pos,image=self.imagen,tags='morfosis_capri')
+        self.ultima_imagen=self.imagen
+
+class Saludo:
+    """Pose grande independiente del sprite de escritorio, preparada una vez."""
+    def __init__(self,ruta,ancho,alto,solo_fuente=False):
+        self.imagen=None;self.variantes=[];self.alto=alto*.72;self.vista=None;self.original=None
+        try:
+            from companera import limpiar_silueta,glitch_silueta
+            with Image.open(ruta) as archivo:im=archivo.convert('RGBA')
+            im.thumbnail((round(ancho*.80),round(alto*.80)),Image.Resampling.LANCZOS)
+            im.putalpha(im.getchannel('A').point(lambda a:255 if a>=96 else 0));self.alto=im.height
+            self.original=im
+            copia=im.copy();copia.thumbnail((320,210),Image.Resampling.LANCZOS)
+            self.vista=Image.new('RGBA',(320,210));self.vista.alpha_composite(copia,((320-copia.width)//2,(210-copia.height)//2))
+            if not solo_fuente:
+                self.imagen=ImageTk.PhotoImage(im)
+                self.variantes=[ImageTk.PhotoImage(glitch_silueta(im,i)) for i in range(2)]
+        except OSError:pass
+
+    def dibujar(self,c,tiempo,x,y,glitch=True):
+        imagen=self.imagen
+        if imagen is not None:
+            if glitch and (.12<tiempo<.23 or 1.24<tiempo<1.36):imagen=self.variantes[int(tiempo*35)%2]
+            c.create_image(x,y+math.sin(tiempo*2)*3,image=imagen,tags='saludo_capri')
+        if tiempo<.32 or 2.18<tiempo<2.4:
+            for i in range(3):
+                a=i*math.pi*2/3+tiempo*2;r=min(self.alto*.5,160+tiempo*40)
+                descarga(c,[x+math.cos(a)*r*.7,y+math.sin(a)*r*.7,x+math.cos(a+.1)*r,y+math.sin(a+.1)*r,
+                            x+math.cos(a)*r*1.2,y+math.sin(a)*r*1.2],grueso=.4)
+        c.create_text(x,y+self.alto*.45,text='ENLACE ESTABLECIDO',fill='#78e6cb',font=(FAMILIA,16,'bold'),tags='saludo_texto')
 
 
 class Fragmentos:
@@ -14,6 +204,7 @@ class Fragmentos:
         self.fotos=[];self.bandas=[]
         original=vista.convert('RGBA');r,g,b,_=original.split()
         mascara=ImageChops.lighter(ImageChops.lighter(r,g),b).point(lambda v:0 if v<40 else min(255,(v-40)*5))
+        mascara=ImageChops.multiply(mascara,original.getchannel('A'))
         original.putalpha(mascara)
         roja=Image.new('RGBA',original.size,'#ff003e');roja.putalpha(mascara)
         cortes=(0,16,42,57,91,107,139,153,181,210)
@@ -30,6 +221,7 @@ class Fragmentos:
                 tira.putalpha(ImageChops.multiply(tira.getchannel('A'),borde))
                 if j:tira=tira.rotate((-1 if i%2 else 1)*(3+i%4),expand=True,resample=Image.Resampling.BILINEAR)
                 tira=tira.resize((round(tira.width*escala),max(1,round(tira.height*escala))),Image.Resampling.BILINEAR)
+                tira.putalpha(tira.getchannel('A').point(lambda a:255 if a>=96 else 0))
                 foto=ImageTk.PhotoImage(tira);self.fotos.append(foto);par.append(foto)
             self.bandas.append(((y+fin)/2-105,par))
 

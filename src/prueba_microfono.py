@@ -64,38 +64,42 @@ def reproducir(muestra,detener):
             if detener.is_set():salida.abort();return
             salida.write(pcm[i:i+paso])
 
+from ajustes_ui import BotonCyber,InterruptorCyber,EscalaCyber
+
 class PanelPrueba(tk.Frame):
     def __init__(self,padre,micro,cfg,guardar,antes_grabar=None):
-        super().__init__(padre,bg='#151720',padx=12,pady=12)
+        super().__init__(padre,bg='#211018',padx=12,pady=12)
         self.micro=micro;self.cfg=cfg;self.guardar=guardar;self.raiz=self._root()
         self.antes_grabar=antes_grabar
         self.cola=queue.Queue();self.stop=threading.Event();self.ticket=0
         self.activa=False;self.cerrado=False;self.muestra=None;self.hilo=None;self.db=-90
-        fg='#f6eff1';bg='#151720'
+        fg='#f6eff1';bg='#211018'
         tk.Label(self,text='Prueba de micrófono',bg=bg,fg=fg,font=('Segoe UI',11,'bold')).pack(anchor='w')
         tk.Label(self,text='Graba 5 segundos y escucha cómo llega tu voz. No necesitas decir Capri.',
-                 bg=bg,fg='#9d98ab',wraplength=425,justify='left').pack(anchor='w',pady=(3,8))
-        self.medidor=tk.Canvas(self,height=25,bg='#0b0c13',highlightthickness=0)
+                 bg=bg,fg='#bb929f',wraplength=425,justify='left').pack(anchor='w',pady=(3,8))
+        self.medidor=tk.Canvas(self,height=25,bg='#10090d',highlightthickness=0)
         self.medidor.pack(fill='x');self.medidor.bind('<Configure>',lambda e:self.dibujar())
         self.etiqueta=tk.StringVar(value='Sin prueba · el micrófono se abre al pulsar Grabar.')
         tk.Label(self,textvariable=self.etiqueta,bg=bg,fg=fg,wraplength=425,justify='left').pack(anchor='w',pady=5)
         botones=tk.Frame(self,bg=bg);botones.pack(fill='x')
-        self.b_grabar=tk.Button(botones,text='Grabar prueba · 5 s',command=self.grabar)
+        self.b_grabar=BotonCyber(botones,text='Grabar prueba · 5 s',command=self.grabar,bg='#4a1427',fg=fg,
+                               activebackground='#77243c',activeforeground='#ffadbf',relief='flat',padx=10,pady=7,font=('Chakra Petch',9,'bold'))
         self.b_grabar.pack(side='left')
-        self.b_oir=tk.Button(botones,text='Escuchar prueba',command=self.oir,state='disabled')
+        self.b_oir=BotonCyber(botones,text='Escuchar prueba',command=self.oir,state='disabled',bg='#4a1427',fg=fg,
+                            disabledforeground='#80748e',activebackground='#77243c',activeforeground='#ffadbf',relief='flat',padx=10,pady=7,font=('Chakra Petch',9,'bold'))
         self.b_oir.pack(side='left',padx=6)
         self.automatico=tk.BooleanVar(value=umbral_db(cfg.get('umbral_microfono_db')) is None)
-        tk.Checkbutton(self,text='Umbral automático (recomendado)',variable=self.automatico,command=self.cambiar,
-                       bg=bg,fg=fg,selectcolor='#0b0c13',activebackground=bg,activeforeground=fg).pack(anchor='w',pady=(10,0))
-        self.escala=tk.Scale(self,from_=-75,to=-20,resolution=1,orient='horizontal',bg=bg,fg=fg,
-                             highlightthickness=0,troughcolor='#0b0c13',label='Umbral manual · dB')
+        InterruptorCyber(self,text='Umbral automático (recomendado)',variable=self.automatico,command=self.cambiar,
+                       bg=bg,fg=fg,selectcolor='#10090d',activebackground=bg,activeforeground=fg).pack(anchor='w',pady=(10,0))
+        self.escala=EscalaCyber(self,from_=-75,to=-20,resolution=1,orient='horizontal',bg=bg,fg=fg,
+                             highlightthickness=0,troughcolor='#10090d',label='Umbral manual · dB')
         self.escala.set(umbral_db(cfg.get('umbral_microfono_db')) or -56)
         self.escala.configure(state='disabled' if self.automatico.get() else 'normal')
         self.escala.bind('<ButtonRelease-1>',self.cambiar);self.escala.bind('<KeyRelease>',self.cambiar)
         self.escala.pack(fill='x')
         tk.Label(self,text='Izquierda: capta voz más baja. Derecha: exige hablar más fuerte.\n'
                  'La línea marca el umbral manual. Pasarlo no garantiza reconocer las palabras.\n'
-                 'La prueba se escucha sin este filtro y se borra al cerrar Ajustes.',bg=bg,fg='#9d98ab',wraplength=425,justify='left').pack(anchor='w')
+                 'La prueba se escucha sin este filtro y se borra al cerrar Ajustes.',bg=bg,fg='#bb929f',wraplength=425,justify='left').pack(anchor='w')
         self.bind('<Destroy>',self.destruir)
         self.pendiente=self.raiz.after(60,self.poll)
 
@@ -107,7 +111,7 @@ class PanelPrueba(tk.Frame):
     def dibujar(self):
         c=self.medidor;w=max(1,c.winfo_width());c.delete('all')
         valor=umbral_db(self.cfg.get('umbral_microfono_db'))
-        color='#b5ff7c' if valor is None or self.db>=valor else '#9d98ab'
+        color='#b5ff7c' if valor is None or self.db>=valor else '#bb929f'
         c.create_rectangle(0,0,w*max(0,(self.db+75)/75),25,fill=color,outline='')
         if valor is not None:
             x=w*(valor+75)/75;c.create_line(x,0,x,25,fill='#ff4267',width=3)

@@ -114,7 +114,11 @@ class Preparar:
             linea='CreateObject("WScript.Shell").Run """'+str(pythonw)+'"" ""'+str(DESTINO/'app.py')+'""", 0, False\r\n'
             lanzador.write_text(linea,encoding='utf-16')
             # Acceso directo normal, solo para la cuenta actual.
-            datos=base64.b64encode(json.dumps([str(pythonw),str(DESTINO/'app.py'),str(DESTINO),str(DESTINO/'capri.ico')]).encode('utf8')).decode('ascii')
+            # Otra ruta por contenido evita que Inicio conserve un icono anterior.
+            datos_icono=(DESTINO/'capri.ico').read_bytes()
+            icono_acceso=DESTINO/('capri-icono-'+hashlib.sha256(datos_icono).hexdigest()[:12]+'.ico')
+            icono_acceso.write_bytes(datos_icono)
+            datos=base64.b64encode(json.dumps([str(pythonw),str(DESTINO/'app.py'),str(DESTINO),str(icono_acceso)]).encode('utf8')).decode('ascii')
             script="$p=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('"+datos+"'))|ConvertFrom-Json;$w=New-Object -ComObject WScript.Shell;$s=$w.CreateShortcut([IO.Path]::Combine($w.SpecialFolders.Item('Desktop'),'Capri.lnk'));$s.TargetPath=$p[0];$s.Arguments='\"'+$p[1]+'\"';$s.WorkingDirectory=$p[2];$s.IconLocation=$p[3]+',0';$s.Save()"
             codificado=base64.b64encode(script.encode('utf-16-le')).decode('ascii')
             try:self.comando(['powershell.exe','-NoProfile','-EncodedCommand',codificado],20)
