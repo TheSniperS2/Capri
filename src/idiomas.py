@@ -163,6 +163,28 @@ TEXTOS={
 }
 
 def codigo(valor):return valor if valor in IDIOMAS else 'es'
+
+def coincide_idioma(frase,idioma):
+    """Detecta desvíos claros, sin confundir nombres propios con un idioma."""
+    idioma=codigo(idioma)
+    frase=re.sub(r'__CAPRI_LITERAL_\w+__|https?://\S+|«[^»]*»|“[^”]*”|"[^"]*"|`[^`]*`',' ',frase)
+    japones=len(re.findall(r'[\u3040-\u30ff\u3400-\u9fff]',frase))
+    latinas=len(re.findall(r'[a-zA-Z]',frase))
+    if japones and (japones>=latinas*.4):return idioma=='ja'
+    palabras=re.findall(r"[a-záéíóúãõâêôçñ]+",frase.lower())
+    marcas={
+        'en':set("hello hey hi i'm you're you your yours what what's how can could would will the this that is are with and not don't let's thanks thank listening ready speak speaking about today friend".split()),
+        'pt':set('olá oi você vocês não estou sou posso pode podemos fazer quer quê qual quais obrigada obrigado também então agora aqui bem música vamos falar fale ouvir escolha seu sua seus suas uma para hoje prazer sim'.split()),
+        'es':set('hola tú usted ustedes estoy soy puedo puedes podemos hacer quieres qué cuál cuáles gracias también entonces ahora aquí música hablar habla escuchar elige tus una hoy dime sí conmigo'.split()),
+    }
+    # Los acentos diferenciadores pesan más que vocabulario compartido.
+    fuertes={'pt':{'você','vocês','não','olá','obrigada','obrigado','estou'},'es':{'hola','estoy','puedes','quieres','gracias'},'en':{'hello','hey','hi','you','your','the','what','how','thanks'}}
+    puntos={k:sum((2 if p in fuertes[k] else 1) for p in palabras if p in vocab) for k,vocab in marcas.items()}
+    if re.search(r"\b(of course|sure|absolutely|good morning|no problem|i'm|i am|let's|what's|it's)\b",frase.lower()):puntos['en']+=3
+    if idioma=='ja':
+        return not palabras or all(p in {'capri','spotify','youtube','ollama','whisper','opera','gx','ok'} for p in palabras)
+    otro=max(v for k,v in puntos.items() if k!=idioma)
+    return not (otro>=2 and otro>puntos[idioma])
 def texto(clave,idioma='es'):return TEXTOS[clave][list(IDIOMAS).index(codigo(idioma))]
 def fuente(idioma):return 'Yu Gothic UI' if codigo(idioma)=='ja' else 'Segoe UI'
 

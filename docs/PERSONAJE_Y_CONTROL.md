@@ -97,7 +97,7 @@ Clic derecho sobre el personaje abre ocho sectores: Ajustes, Chat, Juegos, Aspec
 
 ## Voz en modo personaje
 
-Las respuestas aparecen en un globo violeta con retrato de Capri y una punta dirigida al personaje. La misma respuesta completa se conserva en el historial; el globo muestra hasta seis líneas y se ajusta a su contenido. La escritura sigue los eventos del reproductor de voz. La boca alterna entre cerrada y una figura blanca abierta, tanto de pie como sentada, usando la misma señal de audio del modo pantalla. No cambia el cuerpo al abrir la boca. Al terminar, el globo se oculta después de tres segundos; las confirmaciones siguen visibles mientras esperan respuesta.
+Las respuestas aparecen en un globo oscuro con borde rojo con retrato de Capri y una punta dirigida al personaje. La misma respuesta completa se conserva en el historial; el globo muestra hasta seis líneas y se ajusta a su contenido. La escritura sigue los eventos del reproductor de voz. La boca alterna entre cerrada y una figura blanca abierta, tanto de pie como sentada, usando la misma señal de audio del modo pantalla. No cambia el cuerpo al abrir la boca. Al terminar, el globo se oculta después de tres segundos; las confirmaciones siguen visibles mientras esperan respuesta.
 
 Las descargas que acompañan la transformación quedan fuera de los límites de la imagen para no cruzar su rostro o boca.
 
@@ -105,4 +105,4 @@ Las descargas que acompañan la transformación quedan fuera de los límites de 
 
 La preparación de los fotogramas se realiza en un trabajador de Pillow, con cola acotada. Tk recibe pequeños lotes de imágenes en el hilo de interfaz, de modo que la preparación no bloquea todos los eventos. Se reutiliza la caché completa al repetir la transformación; las tareas incompletas se cancelan al interrumpir o cerrar.
 
-Al cerrar normalmente, Capri se transforma en una mano roja centrada, con la silueta de la referencia, que señala una estrella en la parte superior central. Después se descompone en un rayo rojo que viaja hacia esa luz y se consume en su brillo. La secuencia dura unos 2,6 segundos y termina cerrando el proceso. La mano y la estrella son formas vectoriales, por lo que se adaptan al monitor. F8, Esc con foco o una segunda solicitud de cierre permiten terminar de inmediato. Si desactivas las animaciones, el cierre es inmediato.
+Al cerrar normalmente, Capri se transforma en una mano roja centrada, con la silueta de la referencia, que señala una estrella en la parte superior central. Después se descompone en un rayo rojo que viaja hacia esa luz y se consume en su brillo. La secuencia dura unos 4,4 segundos y termina cerrando el proceso. La mano y la estrella son formas vectoriales, por lo que se adaptan al monitor. F8, Esc con foco o una segunda solicitud de cierre permiten terminar de inmediato. Si desactivas las animaciones, el cierre es inmediato.

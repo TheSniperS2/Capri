@@ -158,6 +158,10 @@ class Dialogo:
         c.create_text(29,25,text=pregunta,anchor='w',fill='#8d98a4',font=self.fuente_pregunta,tags='pregunta')
         if escribiendo and self.glitch() and self.fase%9==0:
             y=81+(self.fase*7)%max(1,alto-110);c.create_line(ancho-75,y,ancho-29,y,fill='#ff4267')
+        if not self.visible:
+            for i in range(3):
+                x=izquierda+i*12;y=arriba+10
+                c.create_oval(x,y,x+5,y+5,fill='#ffa0b6' if self.fase%3==i else '#702439',outline='',tags='pensando')
 
     def tick(self):
         self.pendiente=None

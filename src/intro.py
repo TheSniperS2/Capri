@@ -308,15 +308,13 @@ def dibujar_viaje(c,p,inicio=(70,150),fin=(290,150),imagen=None,fragmentos=None)
 
 
 def dibujar_carga(c,p):
-    carga=max(0,min(1,(p-.43)/(VIAJE-.43)));rng=random.Random(40+int(p*95))
-    for i in range(8):
-        a=i*math.pi/4;radio=40+75*carga
-        x=180+math.cos(a)*radio;y=153+math.sin(a)*radio*.7
-        descarga(c,[x,y,x+rng.uniform(-18,18),y+rng.uniform(-12,12),
-                    x+math.cos(a)*28,y+math.sin(a)*24],grueso=.35)
-    for i in range(5):
-        y=rng.uniform(65,245);x=rng.uniform(25,230)
-        c.create_line(x,y,min(337,x+40+80*carga),y,fill='#fb355b',width=rng.choice((1,2,3)))
+    carga=suave((p-.43)/(VIAJE-.43))
+    for lado in (-1,1):
+        x=180+lado*(100+40*carga);y=130+lado*35
+        descarga(c,[x-lado*18,y-24,x,y-8,x-lado*5,y+4,x+lado*28,y+35],grueso=.25+.25*carga)
+    for i in range(3):
+        y=80+i*65;avance=suave((carga-i*.12)/.65)
+        if avance>0:c.create_line(28,y,28+300*avance,y,fill='#ff3864',width=1,tags='carga_enlace')
 
 
 def romper_carcasa(c,p):
@@ -324,7 +322,7 @@ def romper_carcasa(c,p):
     q=max(0,min(1,(p-.39)/.17))
     if q<=0:
         c.create_polygon(13,11,343,11,352,20,352,280,342,290,8,290,8,20,
-                         fill='#070d16',outline='#6b969e')
+                         fill='#10090d',outline='#ed6684')
         return
     # Teselas con tiempos de ruptura distintos: dejan huecos transparentes.
     for fila in range(5):
@@ -336,7 +334,7 @@ def romper_carcasa(c,p):
             x=13+columna*55+rng.uniform(-10,10)*rotura
             y=11+fila*55+rng.uniform(-8,8)*rotura
             c.create_polygon(x,y,x+55,y+3*rotura,x+52-rotura*8,y+55,x+rotura*10,y+52,
-                             fill='#070d16' if rotura<.7 else '#a70b32',outline='',tags='carcasa_rota')
+                             fill='#10090d' if rotura<.7 else '#a70b32',outline='',tags='carcasa_rota')
             if rotura>.1:
                 c.create_line(x,y,x+35*(1-rotura),y+8*rotura,fill='#ff003e',width=1,tags='carcasa_rota')
     # Los bordes pierden segmentos y se convierten en esquirlas muy cortas.
@@ -356,30 +354,29 @@ def dibujar(c,progreso,imagen=None,escala=1,ruta=None,fragmentos=None):
         dibujar_viaje(c,p,*(ruta or ((70,150),(290,150))),imagen=imagen,fragmentos=fragmentos)
         return
     romper_carcasa(c,p)
-    if imagen is not None and p>.12:
+    if imagen is not None and p>.06:
         if p>.43 and fragmentos:
             disolver=min(1,(p-.43)/(VIAJE-.43))
             fragmentos.dibujar(c,(180,153),disolver*.5,disolver,p)
         else:c.create_image(180,153,image=imagen)
-        apertura=min(1,(p-.12)/.38);margen=(1-apertura)*105
+        apertura=suave((p-.06)/.28);margen=(1-apertura)*105
         if p<=.39:
-            c.create_rectangle(19,47,341,47+margen,fill='#070d16',outline='')
-            c.create_rectangle(19,257-margen,341,258,fill='#070d16',outline='')
+            c.create_rectangle(19,47,341,47+margen,fill='#10090d',outline='')
+            c.create_rectangle(19,257-margen,341,258,fill='#10090d',outline='')
     if p<.43:
-        radio=35+14*math.sin(p*math.pi)
-        for i in range(8):
-            a=p*8+i*math.pi/4;x=180+radio*math.cos(a);y=151+radio*math.sin(a)
-            c.create_line(x,y,x+9*math.cos(a),y+9*math.sin(a),fill='#f1d65e' if i%2 else '#7de0df',width=2)
-    titulo='CAPRI'[:min(5,1+int(p*13))]
-    if p<.27:titulo+=' /_'[int(p*100)%3]
+        for x,y,lado,vertical in ((25,52,1,1),(335,52,-1,1),(25,253,1,-1),(335,253,-1,-1)):
+            c.create_line(x,y+vertical*14,x,y,x+lado*20,y,fill='#ff718f',width=2,tags='revelado_intro')
+        if .06<p<.34:
+            y=47+210*suave((p-.06)/.28)
+            c.create_line(25,y,335,y,fill='#ffb1c5',width=2,tags='revelado_intro')
+    titulo='CAPRI'
     if p<.46:
-        c.create_text(180,30,text=titulo,fill='#f0da68',font=(FAMILIA,round(22*escala),'bold'))
-        c.create_rectangle(103,133,257,173,fill='#0b111b',outline='#e83c61')
-        c.create_text(180,153,text='CONECTANDO',fill='#f3d568',font=(FAMILIA,max(8,round(12*escala)),'bold'))
+        c.create_text(180,29,text=titulo,fill='#ffb0c3',font=(FAMILIA,round(22*escala),'bold'))
+        c.create_text(180,272,text='CONECTANDO',fill='#ff8ca8',font=(FAMILIA,max(8,round(9*escala)),'bold'))
     if p>.43:dibujar_carga(c,p)
     if p<.43:
         longitud=300*p;c.create_line(30,285,30+longitud,285,fill='#ec3c62',width=2)
     if .12<p<.48 or .7<p<.77:
         for i in range(3):
             y=65+(int(p*650)+i*39)%170
-            c.create_line(25+i*12,y,330-i*8,y,fill='#6cdad9' if i%2 else '#ec3c62',width=2)
+            c.create_line(25+i*12,y,330-i*8,y,fill='#ff819f' if i%2 else '#ec3c62',width=1)

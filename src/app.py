@@ -193,6 +193,9 @@ class Capri:
             if not self.es_personaje() and e.y<42*self.escala_avatar and e.x>self.canvas.winfo_width()-36*self.escala_avatar:self.menu(e)
             else:self.entrada_compacta.dar_foco()
         elif self.drag and self.es_personaje():
+            self.ocultar_entrada_personaje()
+            self.foco_lateral=False
+            self.root.focus_set()
             self.companera.posar(self.root.winfo_x(),self.root.winfo_y())
         self.drag = None
 
@@ -277,11 +280,16 @@ class Capri:
         self.foco_lateral=foco;self.dialogo.editando=foco
         if not foco:self.root.after(150,lambda:self.ocultar_entrada_personaje() if not getattr(self,'foco_lateral',False) else None)
 
+    def escribiendo(self):
+        entrada=self.dialogo.entrada
+        return bool(self.dialogo.editando and entrada and entrada.winfo_exists()
+                    and entrada.winfo_viewable() and self.root.focus_get()==entrada)
+
     def dibujar_personaje(self,mover=True):
         p=self.companera
         if self.asomo and time.monotonic()>=self.asomo['hasta'] and not self.transito and not self.escuchando and not self.ocupada:
             destino=self.asomo['volver'];self.asomo=None;self.salto_juego(destino);return
-        if mover:p.tick(pausa=bool(getattr(self,'radial',None) or self.asomo or self.drag or self.escuchando or self.hablando or self.ocupada or self.dialogo.editando or self.control_pc.pendiente),
+        if mover:p.tick(pausa=bool(getattr(self,'radial',None) or self.asomo or self.drag or self.escuchando or self.hablando or self.ocupada or self.escribiendo() or self.control_pc.pendiente),
                         pasear=self.cfg.get('pasear_personaje',True))
         if mover and p.salto:
             salto=p.salto;p.salto=None;self.iniciar_transito('salto',salto=salto);self.dibujar_transito();return
@@ -304,7 +312,7 @@ class Capri:
             self.ocultar_entrada_personaje();self.entrada_compacta.pack_forget()
 
     def juego_ocupada(self):
-        return bool(getattr(self,'radial',None) or self.transito or self.intro_activa or self.asomo or self.ocupada or self.escuchando or self.hablando or self.voz_ticket is not None or self.drag or self.dialogo.editando or self.control_pc.pendiente or (self.ajustes and self.ajustes.winfo_exists()))
+        return bool(getattr(self,'radial',None) or self.transito or self.intro_activa or self.asomo or self.ocupada or self.escuchando or self.hablando or self.voz_ticket is not None or self.drag or self.escribiendo() or self.control_pc.pendiente or (self.ajustes and self.ajustes.winfo_exists()))
 
     def decir_juego(self,texto):
         self.dialogo.usuario='';self.poner_chat('Capri',texto,mostrar=not self.puede_narrar())
@@ -641,10 +649,17 @@ class Capri:
         self.marco_entrada=MarcoTransmision(contenido,'NUEVA TRANSMISIÓN // ESCRIBE AQUÍ',height=94)
         self.marco_entrada.pack(fill='x',padx=12,pady=(0,8))
         caja=self.marco_entrada.cuerpo
-        self.entrada = tk.Entry(caja,bg='#180d13',fg=FG,insertbackground=GREEN,relief='flat',borderwidth=0,highlightthickness=0,font=(fuente(self.cfg.get('idioma')),11),selectbackground='#6a2038',selectforeground=FG)
-        self.entrada.pack(side='left',fill='x',expand=True,padx=(2,10),pady=8)
-        self.entrada.configure(highlightthickness=1,highlightbackground='#59303e',highlightcolor=RED)
-        self.placeholder_entrada=tk.Label(caja,text='Escribe un mensaje…',bg='#180d13',fg=MUTED,anchor='w',font=(fuente(self.cfg.get('idioma')),11))
+        self.campo_entrada=CanvasUI(caja,bg='#180d13',highlightthickness=0,width=160,height=40)
+        self.campo_entrada.pack(side='left',fill='both',expand=True,padx=(2,10))
+        self.entrada = tk.Entry(self.campo_entrada,bg='#180d13',fg=FG,insertbackground=GREEN,relief='flat',borderwidth=0,highlightthickness=0,font=(fuente(self.cfg.get('idioma')),11),selectbackground='#6a2038',selectforeground=FG)
+        item_entrada=self.campo_entrada.create_window(10,23,window=self.entrada,anchor='w')
+        def dibujar_campo(e):
+            c=self.campo_entrada;w=e.width;y=e.height/2;c.delete('corchetes')
+            c.create_line(8,y-11,2,y-11,2,y+11,8,y+11,fill='#6f3449',tags='corchetes')
+            c.create_line(w-8,y-11,w-2,y-11,w-2,y+11,w-8,y+11,fill='#6f3449',tags='corchetes')
+            c.coords(item_entrada,10,y);c.itemconfigure(item_entrada,width=max(1,w-20))
+        self.campo_entrada.bind('<Configure>',dibujar_campo)
+        self.placeholder_entrada=tk.Label(self.campo_entrada,text='Escribe un mensaje…',bg='#180d13',fg=MUTED,anchor='w',font=(fuente(self.cfg.get('idioma')),11))
         def entrar(e=None):
             self.placeholder_entrada.place_forget()
         def salir(e=None):
@@ -1280,6 +1295,7 @@ class Capri:
                 for rol in ('yo','capri'):self.chat.tag_configure(rol,font=('Yu Gothic UI' if v=='ja' else 'Chakra Petch',10,'bold'))
                 self.pintar_historial()
             localizar_widgets(self.root,True)
+            if self.dialogo.ventana and self.dialogo.ventana.winfo_exists():self.dialogo.dibujar()
         if k=='tecla_hablar' and self.atajo:
             self.atajo.cerrar()
             self.atajo=Atajo(lambda:self.eventos.put(('micro',None)),lambda t:self.eventos.put(('aviso',t)),v)

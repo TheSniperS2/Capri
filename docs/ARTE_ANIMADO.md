@@ -1,4 +1,4 @@
-# Avatar corregido: misma ilustración y tres bocas
+# Arte, animaciones e interfaz
 
 `assets/capri-base-v2.png` conserva, byte por byte, la imagen capri-3.png que ya usaba la aplicación: https://mudae.net/uploads/3127100/OwjeVmT~59966d2d98c2.png. El pelo, los ojos, el cuerpo y la pose no se generan de nuevo. El avatar anterior de seis fotogramas quedó descartado.
 
@@ -19,35 +19,28 @@ El modo pantalla usa ahora una [reconstrucción HD](PROMPT_HD.md) del mismo encu
 
 El glitch es transitorio: seis variantes con separación de canales, bandas de distintas alturas, desplazamientos y pequeños cortes digitales. Las líneas de trama normales tienen menos opacidad para no emborronar el rostro. Las descargas decorativas sueltas de las transformaciones de modo se han retirado.
 
+## Entrada, transformación y salida
 
-La transici?n prepara 163 estados de ida y 43 de vuelta fuera del hilo de interfaz. Durante el movimiento usa remuestreo r?pido y durante la pausa central y los extremos usa Lanczos. El temporizador descuenta el tiempo de dibujo para mantener una cadencia objetivo de 60 Hz. El rendimiento final depende del equipo. La sombra del personaje conserva su silueta completa con un desplazamiento menor (5 px, 7 durante glitch). Durante la captura de voz aparece un indicador temporal ?TE ESCUCHO? sobre el personaje, con barras de nivel; se oculta al terminar. La despedida usa rojo #f60031 muestreado de la referencia, mano ligeramente a la izquierda de la estrella y destellos diagonales m?s largos.
+La intro de arranque dura 6,8 segundos. Revela el avatar desde el centro, usa marcas angulares y una paleta roja, y mantiene el rostro despejado del rótulo de conexión. Después el avatar se fragmenta y viaja a su posición, conservando parte de su textura y color. Es una secuencia visual; no representa el avance real de descarga o carga del modelo.
 
+La transformación de pantalla a personaje dura unos 2,7 segundos: el panel se centra, aparece la pose de bienvenida y se reduce antes de llegar a su ubicación. La vuelta es directa y más breve. Se preparan 85 estados de ida y 31 de vuelta mediante un trabajador de Pillow y una cola acotada. Tk recibe las imágenes en el hilo de interfaz; se reutilizan las dos direcciones de la caché. En Windows, los fotogramas usan RGB con el color transparente de la ventana para reducir el coste de transferencia. La preparación y el monitor pueden afectar la fluidez.
 
-Despedida electrica (4,4 s): el antebrazo se consume hacia el dedo conservando la escala de la mano; una descarga delgada con nucleo luminoso, cambios angulares y ramificaciones proporcionales asciende hacia la estrella. Al llegar aumenta el brillo, se contraen los rayos y los destellos se reducen hasta desaparecer antes de cerrar. No utiliza capturas del escritorio ni agrega imagenes a pantalla completa.
+La despedida dura unos 4,4 segundos. Las piezas de Capri convergen en una mano roja centrada, basada en la silueta de referencia. El antebrazo se descompone y una descarga compacta, con puntas convergentes, viaja hasta la estrella. La punta alcanza su núcleo antes de la absorción y del apagado gradual. La mano y la estrella son vectoriales. Se usa `#f60031` para la mano; no se captura el escritorio para preparar la secuencia.
 
+F8, Esc con foco o una segunda solicitud de cierre permiten terminar la despedida inmediatamente. Desactivar las animaciones omite el cierre animado.
 
-Revision de despedida: primero se traslada la imagen actual de Capri al centro (0-18%); solo despues forma la mano alli (18-33%). La mano completa se transforma geometricamente en una descarga roja rellena (58-70%), conservando un volumen proporcional al antebrazo. Se interpola el contorno uniforme de ambas siluetas y el rayo asciende y se estrecha hasta la estrella (70-95%). Sustituye la version previa de hilos, nucleo rosa y ramas, y conserva el apagado gradual final.
+## Personaje y anclaje
 
+Los saltos emplean `TrasladoTeselas`: cortes con la textura y alfa del sprite, un tinte transitorio y reconstrucción de la pose de destino. La sombra elegida se compone en los fotogramas antes del viaje para evitar que aparezca de golpe al llegar.
 
-Ajuste de traslado y estela final: la llegada al centro reutiliza intro.dibujar_viaje, el mismo renderer de desplazamiento del personaje. La mano se desintegra en franjas desplazadas hacia la energia, en lugar de interpolarse a un zigzag macizo. La subida reutiliza la energia orientada a la estrella con tres puntas escalonadas y convergentes; el volumen inicial depende de la altura de la mano y se afina al llegar. Las chispas y cortes son transparentes fuera de las siluetas. Se conserva el apagado gradual de la estrella.
+El personaje puede aparecer en cualquier punto del área de trabajo y acercarse a ventanas accesibles. Al soltarlo, la caída comienza sin esperar un clic adicional. La gravedad es de 900 px/s² y la velocidad terminal de 700 px/s a escala 1. Escribir en una entrada visible con foco, arrastrar o una interacción activa pueden pausar su movimiento; un campo oculto no lo pausa.
 
+Una estaca temporal puede detener la caída durante 3,5–6 segundos. Se ven la inserción, las marcas de impacto y las chispas. El brazo del sprite se coloca sobre el mango, con dedos delante y balanceo alrededor del agarre. El anclaje desaparece al arrastrar al personaje o al comenzar un traslado. Las cachés de poses y sombras tienen límites.
 
-Mano de referencia 201212: contorno vectorial trazado con 91 vertices a partir de su silueta, conservando curvas de indice, nudillos, pulgar y muneca. El antebrazo se prolonga fuera de pantalla. Al aterrizar el traslado NO recompone la imagen de origen: la mano se revela directamente a escala final desde la energia del centro, sin una pantalla intermedia ni una mano miniatura que crece. La disolucion usa 80 franjas finas con desplazamiento continuo en vez de 18 cortes gruesos.
+## Interfaz y accesibilidad visual
 
+La interfaz usa rojo oscuro, carmesí y texto claro. Ajustes, aspectos y conversación tienen contornos angulares, cierre propio y margen inicial respecto de los bordes del área de trabajo. El menú radial busca espacio libre alrededor del personaje y se mantiene dentro de la pantalla.
 
-Formacion por teselas: la despedida descompone la transmision en piezas que vuelan por arcos cortos y encajan directamente en celdas recortadas de la silueta de la mano. Cada pieza conserva su destino, cambia del color muestreado de la imagen al rojo, y completa la mano en el 30% de la secuencia. Sustituye los rayos de traslado de esta despedida. La locomocion normal del personaje sigue igual. La descarga ascendente conserva una punta visible hasta alcanzar exactamente el nucleo de la estrella al 88%; se absorbe hasta el 92%. El pulso de contacto y el apagado de la estrella ocurren despues de la llegada.
+La sombra es una copia sólida desplazada de la silueta, no una circunferencia. El globo conserva hasta seis líneas, retrato y espacio debajo del texto. Durante la captura aparece un indicador con nivel de audio. Las etiquetas se adaptan al idioma; los campos de conversación usan tipografía de lectura y soporte japonés. La tecla para hablar se captura al presionar la tecla o combinación deseada, con F8 como valor inicial.
 
-
-Revision 2026-10-29: morfosis con 85 estados de ida y 31 de vuelta, cola de anticipacion de 8 y cache acotada de las dos direcciones. Recorta margenes transparentes antes de transferir imagenes a Tk y evita composiciones cuando solo queda una fuente. Posicion y bitmap usan el mismo estado preparado. La pose de personaje se completa al 78%, antes del viaje final que empieza al 78%, evitando que llegue una bienvenida gigante y sea sustituida de golpe. Perfil Tk propio a1920x1080, no FPS del escritorio: atraso maximo preparado 1.304s->0.064s; coste mediano9.4ms, p9588.46ms, sin prometer60FPS.
-
-Los saltos sobre ventanas usan TrasladoTeselas: fragmentos con la textura y alfa reales de Capri, tinte rojo transitorio y reconstruccion de la pose sentada durante el recorrido. Sustituye descargas gigantes externas. El menu radial busca espacio sobre el personaje y, si no cabe, un lateral; ajusta diametro para mantenerse en pantalla. Soltar en cualquier punto conserva esa ubicacion. Solo se ajusta a una barra si la cadera queda a menos de8px escalados, y conserva el punto horizontal elegido en vez de forzar esquina.
-
-
-Optimizacion adicional: en Windows los frames de morfosis se componen como RGB con el mismo color transparente #010203 de la ventana, evitando la conversion RGBA de Tk; los demas sistemas mantienen alfa. El Canvas conserva un unico item de imagen, mueve sus coordenadas e intercambia el bitmap solo al cambiar de estado. Con el estado listo se interpola la posicion entre fotogramas. Perfil Tk propio1920x1080:158ticks/2.7s, mediana0.86ms,p9511.62ms, atraso maximo de preparacion0.002s; referencia anterior84ticks,9.4ms,p9588.46ms,.064s. No equivale a medir FPS del escritorio ni garantiza60FPS en cualquier equipo.
-
-Autonomia: destinos aleatorios en todo el area de trabajo, preferencia75% por una ventana cercana cuando existe una accesible, caida40px/s2 limitada65px/s (escala1), pausa tras aterrizar/arrastrar, sujecion probabilistica temporal2-4s con marca y union a mano. El anclaje se limpia al iniciar un traslado. Apariencia y ajustes tienen vistas propias con la paleta violeta/rojo/verde y tipografia de Capri; no se anaden assets externos nuevos.
-
-
-Revision roja: la paleta de marcos, entradas, dialogos, menu y ajustes pasa a carmesi/rojo oscuro. VentanaCyber proporciona contorno recortado, titulo propio, cierre, arrastre y redimensionado desde esquina inferior derecha; se aplica a ajustes, aspectos y conversacion. Las tarjetas de aspectos son Canvas angulares con vista del sprite y estado ACTIVO. Conversacion mantiene visible la entrada con altura de historial ajustada. El panel muestra DI CAPRI y la entrada lo recuerda. La tecla global F2-F12 se configura en Voz, conservando F8 por defecto.
-
-Fisica final: se elimina toda espera al soltar/aterrizar. Gravedad900px/s2 y terminal700px/s a escala1. La sujecion tiene estaca de dos planos, guarda y mango, insercion0.16s, grietas/chispas de impacto y union a la mano. Un asentamiento amortiguado y rotacion discreta de hasta4grados alrededor de la mano simulan el cuerpo colgando. La estaca queda fija y se elimina al viajar. La sombra se compone dentro de los bitmaps de morfosis y teselas antes del traslado; la cache incluye el aspecto elegido.
+La galería de aspectos utiliza vistas del sprite real. Los recursos de saludo y de mayor resolución se documentan en [PROMPT_SALUDO.md](PROMPT_SALUDO.md) y [PROMPT_HD.md](PROMPT_HD.md). Los materiales de terceros mantienen los derechos descritos en [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).

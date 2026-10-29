@@ -151,6 +151,12 @@ Los selectores muestran todas las opciones de las listas cortas, empezando por l
 
 Los indicadores de escucha, procesamiento y voz también siguen el idioma elegido. Los marcadores internos del traductor se validan antes de mostrar o narrar el resultado. El campo y su título respetan el ancho disponible, y el globo del personaje reserva espacio debajo de la última línea. Al sujetarse, Capri levanta el brazo hacia una estaca: se ve la inserción, el impacto, los dedos sobre el mango y el balanceo del cuerpo. El anclaje desaparece al trasladarse o al arrastrarla.
 
+El campo del historial mantiene corchetes laterales tanto vacío como al escribir; enfocarlo no dibuja un rectángulo completo. Las etiquetas del menú se ajustan a su sector según el idioma. Mientras se prepara la voz, el globo muestra puntos de espera y actualiza sus indicadores al cambiar de idioma.
+
 La caida empieza al soltar al personaje, con gravedad de 900 px/s2 y velocidad maxima700 px/s a escala1. Una estaca puede clavarse con un golpe visible, fijar un punto de agarre y dejar el cuerpo balanceandose unos segundos. Al teletransportarse o arrastrarlo se retira. La sombra elegida acompana la formacion y los saltos.
+
+Al soltar a Capri, una entrada oculta no mantiene la física en pausa: no hace falta hacer clic después en el escritorio. La escritura sí pausa el movimiento mientras su campo está visible y tiene el foco.
+
+La conversación refuerza el idioma seleccionado aunque el historial esté en otro idioma. Si detecta una respuesta claramente desviada, la corrige antes de mostrarla o narrarla; esto puede añadir espera. El cambio de voz y el idioma del contenido se comprueban por separado. Los nombres de canciones, programas y archivos conservan su escritura.
 
 El guardado de una opcion no sustituye las otras claves del archivo de preferencias. Las actualizaciones conservan el microfono, LLM, motor y modelo Whisper seleccionados. Se mantienen los valores predeterminados para opciones no elegidas; Whisper Base se indica para priorizar velocidad, Small para precision. Emma multilingue se ofrece como voz alternativa que puede leer espanol, sin sustituir la actual y sin presentarla como la voz original de Capri.

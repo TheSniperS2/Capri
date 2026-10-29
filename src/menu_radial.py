@@ -23,7 +23,10 @@ def colocar_menu(personaje,pantalla,tamano):
 
 def icono(c,x,y,indice,color):
     def linea(*p):c.create_line(*[v+(x if i%2==0 else y) for i,v in enumerate(p)],fill=color,width=2)
-    if indice==0:
+    if indice==8:
+        linea(-9,8,-7,1,5,-11,11,-5,-1,7,-9,8)
+        linea(-5,0,1,6)
+    elif indice==0:
         puntos=[]
         for i in range(16):
             a=i*math.pi/8;r=10 if i%2==0 else 7;puntos.extend((x+math.cos(a)*r,y+math.sin(a)*r))
@@ -88,6 +91,8 @@ class MenuRadial:
         else:self.cerrar();accion()
 
     def dibujar(self):
+        from tkinter import font as tkfont
+        from idiomas import ui,idioma_actual
         c=self.canvas;c.delete('all');m=self.centro;r=self.radio;n=len(self.opciones);paso=2*math.pi/n
         c.create_oval(m-r-4,m-r-4,m+r+4,m+r+4,outline='#9d2949',width=1)
         for i,(texto,_) in enumerate(self.opciones):
@@ -99,9 +104,24 @@ class MenuRadial:
                 a=inicio+(fin-inicio)*k/12;puntos.extend((m+math.cos(a)*r*.39,m+math.sin(a)*r*.39))
             activo=i==self.seleccion
             c.create_polygon(*puntos,fill='#4b1528' if activo else '#1c0b13',outline='#ff6486' if activo else '#8b2744',width=3,tags=f'sector_{i}')
-            x=m+math.cos(angulo)*r*.69;y=m+math.sin(angulo)*r*.69
-            if not self.pila:icono(c,x,y-12,i,'#ffb5c6' if activo else '#d79cac');y+=13
-            c.create_text(x,y,text=texto,width=r*.54,justify='center',fill='#ffb5c6' if activo else '#e1d9ee',font=(FAMILIA,10,'bold'))
+            x=m+math.cos(angulo)*r*.72;y=m+math.sin(angulo)*r*.72
+            factor=self.tamano/430
+            if not self.pila:icono(c,x,y-15*factor,8 if texto=='Escribir' else i,'#ffb5c6' if activo else '#d79cac');y+=13*factor
+            familia='Yu Gothic UI' if idioma_actual()=='ja' else FAMILIA
+            tamano=max(7,round(10*factor));ancho=r*.50;traducido=ui(texto)
+            def envolver(fuente):
+                lineas=['']
+                for palabra in traducido.split():
+                    candidato=(lineas[-1]+' '+palabra).strip()
+                    if lineas[-1] and fuente.measure(candidato)>ancho:lineas.append(palabra)
+                    else:lineas[-1]=candidato
+                return '\n'.join(lineas)
+            fuente=tkfont.Font(root=c,font=(familia,tamano,'bold'))
+            item=c.create_text(x,y,text=envolver(fuente),justify='center',fill='#ffb5c6' if activo else '#e1d9ee',font=fuente,tags=f'etiqueta_{i}')
+            while tamano>7:
+                bbox=c.bbox(item)
+                if bbox and all(sector(px,py,m,r-6,n)==i for px,py in ((bbox[0]-3,bbox[1]-2),(bbox[2]+3,bbox[1]-2),(bbox[0]-3,bbox[3]+2),(bbox[2]+3,bbox[3]+2))):break
+                tamano-=1;fuente.configure(size=tamano);c.itemconfigure(item,text=envolver(fuente))
         a=r*.34;c.create_oval(m-a,m-a,m+a,m+a,fill='#32101d',outline='#e985a0',width=2)
         c.create_text(m,m-19,text='‹' if self.pila else '×',fill='#ffb4c5',font=(FAMILIA,23))
         c.create_text(m,m+8,text='CAPRI',fill='#f3eaff',font=(FAMILIA,15,'bold'))

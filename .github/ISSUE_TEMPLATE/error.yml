@@ -1,0 +1,28 @@
+name: Reportar un error
+description: Algo no funciona como esperabas en Capri.
+title: "[Error] "
+body:
+  - type: textarea
+    id: pasos
+    attributes:
+      label: Cómo reproducirlo
+      description: Describe los pasos o la frase exacta que dijiste. Omite datos personales.
+    validations:
+      required: true
+  - type: textarea
+    id: resultado
+    attributes:
+      label: Qué ocurrió y qué esperabas
+      description: Incluye el mensaje de Capri o una captura si es un problema visual.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versión o procedencia
+      placeholder: Release v… o rama main, fecha de descarga
+  - type: textarea
+    id: entorno
+    attributes:
+      label: Configuración relacionada
+      description: Windows, idioma, modo pantalla/personaje, motor de reconocimiento o modelo local. Para integraciones, indica la aplicación y su estado.

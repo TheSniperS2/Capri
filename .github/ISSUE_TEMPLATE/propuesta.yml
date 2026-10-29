@@ -1,0 +1,16 @@
+name: Proponer una mejora
+description: Una idea para el personaje, la interfaz o las funciones.
+title: "[Idea] "
+body:
+  - type: textarea
+    id: necesidad
+    attributes:
+      label: Qué te gustaría poder hacer
+      description: Explica la situación y el comportamiento que imaginas.
+    validations:
+      required: true
+  - type: textarea
+    id: ejemplo
+    attributes:
+      label: Ejemplo o referencia
+      description: Puedes incluir una petición de voz, un boceto o una referencia visual.

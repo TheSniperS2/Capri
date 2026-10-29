@@ -153,7 +153,8 @@ class DisenoEIdioma(PruebasTk):
             self.assertEqual(c.entrada.get(),'')
             self.assertEqual(c.placeholder_entrada.cget('text'),'Escribe un mensaje…')
             self.assertEqual(c.placeholder_entrada.winfo_manager(),'place')
-            self.assertEqual(c.entrada.cget('highlightthickness'),1)
+            self.assertEqual(c.entrada.cget('highlightthickness'),0)
+            self.assertEqual(len(c.campo_entrada.find_withtag('corchetes')),2)
             c.guardar('idioma','ja')
             self.assertEqual(c.placeholder_entrada.cget('text'),'メッセージを入力…')
 

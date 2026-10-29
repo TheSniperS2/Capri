@@ -1,78 +1,97 @@
-# Capri
+<p align="center"><img src="assets/capri-icono-v2.png" width="112" alt="Capri"></p>
 
-Asistente de escritorio para Windows con chat, activación por voz y acciones sobre aplicaciones compatibles. Inspirado en Capri de *Cyberpunk: Edgerunners*, con una ventana flotante y una personalidad configurable.
+# Capri · tu compañera de escritorio
 
-Proyecto de aficionado, independiente y no oficial. La voz es sintética y la interfaz usa referencias visuales del personaje; no es un modelo 3D ni reproduce el timbre exacto de la actriz.
+[![Pruebas Windows](https://github.com/TheSniperS2/Capri-Capricorn-Para-Escritorio/actions/workflows/tests.yml/badge.svg)](https://github.com/TheSniperS2/Capri-Capricorn-Para-Escritorio/actions/workflows/tests.yml)
 
-## Instalar y usar
+Capri es una compañera de escritorio de código abierto para Windows, inspirada en la estética de *Cyberpunk: Edgerunners*. Puedes conversar con ella usando IA local, hablarle por el micrófono y pedirle acciones sobre aplicaciones compatibles. Vive en una pantalla flotante o como un personaje que se teletransporta, cae y se sujeta en tu escritorio.
 
-Necesitas **Windows 10 u 11** y **Python 3.12 de 64 bits**, con Tcl/Tk. No hace falta programar, crear una cuenta de API ni introducir claves.
+**[Descargar una versión](https://github.com/TheSniperS2/Capri-Capricorn-Para-Escritorio/releases) · [Guía de uso](docs/USO.md) · [Documentación](docs/README.md) · [Reportar un problema](https://github.com/TheSniperS2/Capri-Capricorn-Para-Escritorio/issues/new/choose)**
 
-1. Abre la sección **Releases** del repositorio y descarga **Abrir Capri.pyw**.
-2. Abre el archivo. Si Windows no lo asocia a Python, ejecútalo con `pythonw "Abrir Capri.pyw"`.
-3. Espera la preparación inicial: descarga dependencias, modelos locales de reconocimiento y referencias visuales.
-4. Selecciona tu micrófono en **Ajustes** y prueba **«Capri, abre la calculadora»**.
+> Las novedades de esta página corresponden a la rama `main`. Una Release anterior puede no incluirlas todavía. Para probar el código más reciente, usa la instalación desde el código que aparece abajo.
 
-Si todavía no hay una Release publicada, descarga el código y genera el lanzador con `python empaquetar.py`; aparecerá en `dist/`.
+## Qué incluye
 
-La primera apertura necesita internet. Capri crea su entorno y un acceso directo, sin permisos de administrador ni inicio automático con Windows. Los archivos personales quedan en **`%LOCALAPPDATA%\Capri`**, fuera del repositorio.
-
-### Conversación y voz
-
-- Las órdenes directas funcionan sin un modelo de conversación.
-- Para conversar, usa **Ajustes → Activar IA local**. Prepara Ollama y `llama3.2:3b`, o reutiliza un modelo local compatible.
-- El reconocimiento predeterminado usa Whisper multilingüe. También puedes elegir Vosk español, más rápido.
-- La voz natural requiere internet; puedes desactivarla para usar la voz de Windows.
-
-Los modelos se descargan por separado. La primera carga puede tardar más; la latencia depende del equipo.
-
-## Qué puedes pedir
-
-| Petición | Resultado |
+| Función | Qué ofrece |
 | --- | --- |
-| «Capri, abre una pestaña en Opera GX» | Abre una pestaña |
-| «Búscame memes de Cyberpunk» | Abre la búsqueda en Opera GX |
-| «Abre Descargas» | Abre la carpeta configurada en Windows |
-| «Abre Spotify» | Abre la aplicación |
-| «Reproduce la música» | Reanuda la sesión actual sin buscar otra canción |
-| «Salta la canción» o «pon la música siguiente» | Pide la siguiente pista de la cola |
-| «Pon la canción anterior» | Pide la pista anterior |
-| «Pausa Spotify» | Pausa la sesión actual |
-| «Qué canción está sonando» | Consulta el estado que comunica Spotify |
-| «Reproduce Never Fade Away en Spotify» | Busca e intenta reproducir ese título |
-| «Pon mi playlist Cyberpunk» | Busca la lista en Tu biblioteca o usa su enlace vinculado |
+| Dos formas de acompañarte | Pantalla flotante y personaje, con transformaciones, sombras y efectos eléctricos. |
+| Conversación local | Ollama procesa las conversaciones en tu equipo. Elige uno de tus modelos instalados. |
+| Voz | Activación al decir «Capri», tecla configurable y sincronización de texto y boca. |
+| Cuatro idiomas | Español, inglés, portugués de Brasil y japonés para interfaz, respuestas y voz. |
+| Música y sitios | Spotify, pestañas de Opera/Opera GX y controles compatibles de YouTube. |
+| Control opcional del equipo | Aplicaciones, ventanas y archivos mediante acciones definidas. Las operaciones sensibles requieren confirmar el objetivo. |
+| Apariencia | Tamaño, sombras de color, menú radial y ajustes con temática roja. |
 
-Puedes decir **«Capri» y la instrucción en una misma frase**, sin esperar un aviso. También puedes usar **F8** o el botón **Hablar**. Durante la respuesta, F8 o Hablar interrumpen la voz; **Esc** la detiene. La escucha del nombre se pausa mientras Capri habla o los Ajustes están abiertos.
+| Pantalla flotante | Personaje en el escritorio |
+| :---: | :---: |
+| <img src="docs/media/pantalla.png" width="360" alt="Capri en modo pantalla"> | <img src="docs/media/personaje.png" width="210" alt="Capri en modo personaje"> |
 
-Para una playlist privada, usa **Ajustes → Vincular playlist de Spotify** y pega su enlace. Debe ser accesible desde la cuenta iniciada; no hace falta hacerla pública.
+## Empieza a usarla
 
-## Requisitos de las integraciones
+Necesitas **Windows 10 u 11** y **Python 3.12 de 64 bits con Tcl/Tk**. No necesitas una clave de API. La preparación inicial requiere internet y espacio para las dependencias y modelos descargados.
 
-- **Opera GX u Opera:** pestañas y búsquedas web.
-- **Spotify de escritorio con sesión iniciada:** controles multimedia y playlists.
-- **Ollama con un modelo local:** conversación libre e interpretación de peticiones con contexto.
+### Desde una Release
 
-Los modelos instalados de Ollama se eligen desde Ajustes. Whisper también permite seleccionar Base o Small cuando estén descargados, conservando el anterior para volver atrás. Los modelos mayores pueden aumentar la precisión y también la demora; conviene compararlos en el equipo donde se usará Capri.
+1. Abre [Releases](https://github.com/TheSniperS2/Capri-Capricorn-Para-Escritorio/releases) y descarga el lanzador **Abrir Capri.pyw**; GitHub puede mostrarlo como `Abrir.Capri.pyw`.
+2. Ábrelo con Python. Si no se abre al hacer doble clic, usa `pythonw "Abrir.Capri.pyw"`, ajustando el nombre al archivo descargado.
+3. Espera la preparación inicial y entra en **Ajustes → Micrófono** para elegir y probar tu entrada.
+4. Prueba **«Capri, abre la calculadora»**. Para conversar, activa la IA local en **Ajustes → IA y servicios**.
 
-Con la IA local activada puedes hablar con más naturalidad: «detén la canción» pausa Spotify; después de una pausa, «ahora sigue» permite reanudar, y «pon otra» cambia de pista cuando el tema reciente es música. Capri usa el modelo para interpretar la intención y el contexto reciente, pide una aclaración si falta el referente y ejecuta únicamente acciones implementadas. Las órdenes directas siguen funcionando sin consultar al modelo. La interpretación depende del modelo local y puede añadir una espera.
+El lanzador instala Capri en **`%LOCALAPPDATA%\Capri`**, crea un acceso directo y conserva tus preferencias al actualizar. No requiere administrador ni se añade al inicio de Windows.
 
-Capri ejecuta un conjunto definido de acciones; no controla cualquier aplicación ni entiende cualquier instrucción. Las búsquedas abren páginas, pero no leen ni resumen los resultados. La reproducción por título o playlist depende de los controles accesibles que exponga Spotify. Si una acción no se confirma, lo informa.
+### Desde el código más reciente
 
-## Privacidad
+Descarga el ZIP de la rama `main` desde **Code → Download ZIP**, extráelo y abre PowerShell en la carpeta del proyecto:
 
-- El reconocimiento es local y el audio permanece temporalmente en memoria, sin grabaciones en archivos.
-- La conversación con Ollama se procesa en el equipo; el historial dura mientras la aplicación está abierta.
-- Edge TTS envía a Microsoft el texto de las respuestas para sintetizarlo.
-- Las búsquedas envían la consulta al servicio correspondiente.
-- Ajustes, playlists, diagnósticos, modelos y recursos descargados están excluidos de Git.
-- El modelo de conversación no ejecuta código ni comandos de consola.
-- No hay un nombre personal del usuario fijado en los saludos ni en la personalidad.
+```powershell
+python empaquetar.py
+pythonw ".\dist\Abrir Capri.pyw"
+```
 
-Consulta la [guía de uso y solución de problemas](docs/USO.md).
+El lanzador prepara el entorno. Para ejecutar o modificar los módulos directamente, sigue la [guía de contribución](CONTRIBUTING.md).
 
-## Desarrollo
+## Habla con Capri
 
-Desde la raíz del repositorio:
+Di su nombre y la petición en una frase, o usa **F8**. Puedes cambiar esa tecla presionando la combinación deseada en **Ajustes → Voz**. **Esc** detiene la respuesta. La escucha del nombre se pausa mientras Capri habla y mientras están abiertos los ajustes.
+
+| Puedes pedir… | Capri intenta… |
+| --- | --- |
+| «Abre YouTube» / «Abre Netflix» | Abrir el sitio en Opera, sin convertir su nombre en una búsqueda de Google. |
+| «Busca gatos en Google» | Abrir una búsqueda web. |
+| «Reproduce High Forever de mi playlist Capri» | Encontrar la playlist en Tu biblioteca de Spotify y buscar la canción dentro de ella. |
+| «Pausa Spotify» / «Siguiente canción» | Controlar su sesión multimedia. |
+| «Pon el volumen de YouTube al 50%» | Ajustar el reproductor mediante la integración disponible. |
+| «Abre Descargas» | Abrir la carpeta del usuario en Windows. |
+| «Cuéntame algo» | Conversar con el modelo local. |
+
+**El resultado depende de la integración.** Capri informa si no pudo confirmar una acción. No lee automáticamente las páginas abiertas ni puede operar cualquier programa de cualquier manera.
+
+### Pantalla, personaje e idiomas
+
+- Haz clic derecho sobre Capri para abrir el menú radial y cambiar de modo.
+- Arrastra al personaje y suéltalo para cambiarlo de lugar. Puede explorar ventanas, caer y sujetarse temporalmente.
+- Elige **Ajustes → Voz → Idioma de Capri** para cambiar la interfaz y el idioma de sus siguientes respuestas. Los mensajes anteriores conservan su texto.
+- El perfil de voz español se conserva al probar otros idiomas. El modelo de conversación y el motor de reconocimiento se configuran por separado.
+
+## Integraciones y requisitos
+
+| Integración | Qué necesita |
+| --- | --- |
+| Conversación | Ollama y un modelo local instalado. La primera carga y la velocidad dependen del equipo. |
+| Micrófono | Entrada seleccionada y modelos locales Whisper/Vosk preparados por el lanzador. |
+| Voz natural | Internet: el texto se envía a Microsoft para sintetizarlo. Sin ella se necesita una voz de Windows para el idioma elegido. |
+| Spotify | Aplicación de escritorio con sesión iniciada y controles accesibles. Las playlists privadas deben ser accesibles desde esa cuenta. Vincular un enlace es una alternativa, no un requisito general. |
+| Opera y YouTube | Opera/Opera GX instalado. Para controles de YouTube en segundo plano puede hacer falta el [puente con Opera](docs/CONECTAR_OPERA.md). |
+
+El **control ampliado** está desactivado inicialmente. Si lo habilitas, Capri usa tus permisos de Windows y solicita confirmación para operaciones sensibles; los archivos borrados se envían a la Papelera. El modelo genera texto y decisiones limitadas al catálogo de acciones, no código ejecutable.
+
+## Tus datos
+
+Las conversaciones se procesan con Ollama local y el historial del chat dura durante la sesión. El audio del micrófono se reconoce en el equipo y se mantiene temporalmente en memoria. La voz natural envía las respuestas a Microsoft; las búsquedas y páginas usan sus servicios respectivos.
+
+Las preferencias, playlists vinculadas, diagnósticos y modelos descargados quedan fuera de Git. La [guía de uso](docs/USO.md) explica las opciones y la solución de problemas.
+
+## Desarrollo y contribuciones
 
 ```powershell
 python -m venv .venv
@@ -81,27 +100,20 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-El empaquetado genera **`dist/Abrir Capri.pyw`** y **`dist/Capri.zip`**. No edites el código embebido del lanzador: modifica los módulos de `src/` y vuelve a generar los archivos. Las distribuciones no incluyen configuraciones personales ni pesos de modelos.
+| Carpeta | Contenido |
+| --- | --- |
+| [`src/`](src/) | Aplicación, interfaz, animación, voz y ejecutores. Consulta el [mapa de módulos](docs/ARQUITECTURA.md). |
+| [`tests/`](tests/) | Regresiones de voz, órdenes, interfaz e instalador. |
+| [`integraciones/`](integraciones/) | Puente del navegador y extensión de Opera. |
+| [`installer/`](installer/) | Plantilla del lanzador; `empaquetar.py` genera las distribuciones. |
+| [`assets/`](assets/) | Ilustraciones, sprites, iconos y tipografía. |
+| [`docs/`](docs/README.md) | Guías de uso, integraciones, arte y desarrollo. |
+| [`.github/`](.github/) | Automatización, reportes y plantilla para cambios. |
 
-```text
-Capri/
-├── src/                 # Aplicación, voz, órdenes e integraciones
-├── tests/               # Pruebas de regresión
-├── installer/           # Plantilla del lanzador
-├── assets/              # Icono distribuido y atribuido
-├── docs/                # Uso, contribuciones y publicación de versiones
-├── .github/workflows/   # Pruebas en Windows y creación de Releases
-├── empaquetar.py        # Generador de distribuciones
-├── requirements.txt
-├── README.md
-├── LICENSE
-└── THIRD_PARTY_NOTICES.md
-```
+Modifica los módulos originales y vuelve a empaquetar; `dist/` se genera y no se versiona. Las pruebas automatizadas no sustituyen probar el micrófono, las animaciones y las integraciones en Windows.
 
-Las pruebas verifican órdenes, cancelación, aislamiento de argumentos, interfaz y empaquetado, con audio y controles multimedia simulados. No sustituyen una prueba real de micrófono o Spotify. La personalidad se define en `src/core.py`.
+Las ideas, reportes y contribuciones son bienvenidos. Empieza por [CONTRIBUTING.md](CONTRIBUTING.md), revisa el [registro de cambios](CHANGELOG.md) o abre una propuesta en Issues.
 
-Para colaborar, consulta [CONTRIBUTING.md](CONTRIBUTING.md). Los cambios y limitaciones conocidos están en [CHANGELOG.md](CHANGELOG.md).
+## Licencia y créditos
 
-## Licencia y referencias
-
-El código original usa la [licencia MIT](LICENSE). El personaje, las imágenes, el icono derivado y las marcas de terceros conservan sus propios derechos y quedan excluidos de esa licencia. Consulta [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Proyecto de aficionado, independiente y no oficial. La voz es sintética y no reproduce el timbre exacto de la actriz. El código original usa [MIT](LICENSE); los personajes, marcas, ilustraciones y otros recursos de terceros conservan sus propios derechos. Consulta [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) y las [referencias](docs/REFERENCIAS.md).

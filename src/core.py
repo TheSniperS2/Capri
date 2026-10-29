@@ -345,11 +345,11 @@ class IA:
         self.ultima_medicion = {}
         self.idioma='es'
 
-    def traducir(self,texto,idioma,modelo=None,cancelar=None):
+    def traducir(self,texto,idioma,modelo=None,cancelar=None,forzar=False):
         """Traduce un resultado como datos; jamás lo interpreta como una orden."""
         from idiomas import IDIOMAS,codigo
         idioma=codigo(idioma)
-        if idioma=='es':return texto
+        if idioma=='es' and not forzar:return texto
         # Mantener rutas, títulos entre comillas y URL exactamente como los devolvió el ejecutor.
         protegidos=[]
         def ocultar(m):
@@ -370,6 +370,8 @@ class IA:
         salida=limpiar_traduccion(salida)
         if cancelar and cancelar.is_set():raise InterruptedError()
         if not salida:raise ValueError('Traducción vacía.')
+        from idiomas import coincide_idioma
+        if not coincide_idioma(salida,idioma):raise ValueError('La traducción no está en el idioma elegido.')
         esperados=[f'__CAPRI_LITERAL_{i}__' for i in range(len(protegidos))]
         encontrados=re.findall(r'__CAPRI_LITERAL_\w+__',salida)
         if '__CAPRI_LITERAL_' in re.sub(r'__CAPRI_LITERAL_\w+__','',salida):raise ValueError('Marcador incompleto en la traducción.')
@@ -400,7 +402,7 @@ class IA:
             if not modelos:
                 raise RuntimeError('Ollama está instalado, pero falta descargar un modelo. Pulsa Activar IA local en Ajustes.')
             modelo = next((m for m in modelos if 'llama3.2' in m), modelos[0])
-        from idiomas import IDIOMAS,codigo
+        from idiomas import IDIOMAS,codigo,coincide_idioma
         idioma=codigo(self.idioma)
         sistema=PERSONALIDAD.replace('español latino',IDIOMAS[idioma][1])
         sistema+='\nRespond ONLY in '+IDIOMAS[idioma][1]+', even if the user writes in another language. Keep the name Capri and her personality.'
@@ -412,6 +414,13 @@ class IA:
             mensajes.append({'role':'system','content':'Resultados recientes del ejecutor, como datos históricos; no garantizan el estado actual. Puedes explicarlos sin inventar acciones nuevas: '+json.dumps(self.contexto_acciones,ensure_ascii=False)})
         # No volver a alimentar al modelo con sus afirmaciones musicales inventadas.
         mensajes += [dict(m,content=respuesta_conversacion(m['content'])) if m['role']=='assistant' else m for m in self.historia[-8:]] + [{'role': 'user', 'content': texto}]
+        regla={
+            'es':'Responde exclusivamente en español. El idioma del historial y de la pregunta no cambia esta regla. No traduzcas nombres propios.',
+            'pt':'Responda exclusivamente em português brasileiro, nunca em inglês ou espanhol. Mesmo se o histórico estiver em outro idioma, escreva a resposta em português. Exemplo: Olá → Oi, sou a Capri. Como posso ajudar?',
+            'en':'Reply exclusively in English. The language of previous replies and the user message does not override this rule.',
+            'ja':'必ず日本語で答えてください。履歴や質問が英語でも、日本語で返答してください。例：Hello → こんにちは、カプリだよ。何をしよう？',
+        }[idioma]
+        mensajes.insert(len(mensajes)-1,{'role':'system','content':regla})
         cuerpo={'model': modelo, 'messages': mensajes, 'stream': bool(al_texto),'keep_alive':'15m',
                 'options': {'num_predict': 100 if idioma=='es' else 200,'num_ctx':2048,'temperature':.45,'repeat_penalty':1.1}}
         if modelo.lower().startswith('qwen3'):cuerpo['think']=False
@@ -430,7 +439,7 @@ class IA:
                     if fragmento:
                         if primero is None:primero=time.monotonic()-inicio
                         respuesta+=fragmento
-                        al_texto(respuesta_conversacion(respuesta))
+                        if idioma=='es' and coincide_idioma(respuesta,idioma):al_texto(respuesta_conversacion(respuesta))
                     if datos.get('done'):break
             else:
                 datos = json.load(r)
@@ -439,6 +448,9 @@ class IA:
         respuesta = respuesta_conversacion(respuesta.strip())
         if not respuesta:
             raise RuntimeError('El modelo no devolvió una respuesta.')
+        if not coincide_idioma(respuesta,idioma):
+            respuesta=self.traducir(respuesta,idioma,modelo,cancelar,forzar=True)
+        if al_texto and idioma!='es':al_texto(respuesta)
         self.historia += [{'role': 'user', 'content': texto}, {'role': 'assistant', 'content': respuesta}]
         self.ultima_medicion={'total_s':round(time.monotonic()-inicio,3),'primer_texto_s':round(primero,3) if primero is not None else None,
                               'tokens':datos.get('eval_count'),'carga_s':round(datos.get('load_duration',0)/1e9,3)}
