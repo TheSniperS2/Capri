@@ -141,10 +141,17 @@ def url_solicitada(texto):
 
 def interpretar(texto):
     texto = limpiar_peticion(texto)
+    from league import interpretar_lol
+    lol=interpretar_lol(texto)
+    if lol:return Orden(*lol)
     n=nombre_navegador(texto).strip(' .!')
     from volumen_apps import interpretar_volumen
     volumen=interpretar_volumen(texto)
     if volumen:return volumen
+    from playlists import interpretar_solicitud_playlist
+    lista=interpretar_solicitud_playlist(texto)
+    if lista:
+        return Orden('spotify_playlist_cancion' if lista['nombre'] else 'spotify_playlist_pendiente',json.dumps(lista,ensure_ascii=False))
     # Sitios y vídeos se resuelven antes de música o búsqueda general.
     from navegador import interpretar_web
     web=interpretar_web(texto)
@@ -162,9 +169,6 @@ def interpretar(texto):
         return Orden('velocidad_voz','bajar')
     if n in ('habla a velocidad normal','velocidad de voz normal'):
         return Orden('velocidad_voz','normal')
-    from playlists import interpretar_cancion_playlist
-    en_lista=interpretar_cancion_playlist(texto)
-    if en_lista:return Orden('spotify_playlist_cancion',json.dumps(en_lista,ensure_ascii=False))
     # Transporte de la cola actual ANTES de interpretar títulos o búsquedas.
     transporte=re.sub(r'\s+en\s+spotify$','',n)
     if re.fullmatch(r'(?:reproduce|reproducir|pon(?:er|me|ga|gas)?|reanuda(?:r)?|contin[uú]a|sigue)\s+(?:(?:la|mi|esa)\s+)?(?:musica|reproduccion|cancion|spotify)',transporte) or transporte in ('reanuda','reproduce','pon musica','dale play','continua la reproduccion','reproduce una cancion'):
@@ -187,6 +191,7 @@ def interpretar(texto):
     if musica:
         cancion=re.sub(r'\s+en\s+(?:el\s+)?(?:spotify|spotifai|espotifai)[.!]?$', '',musica[1],flags=re.I).strip(' .!')
         cancion=re.sub(r'^(?:la\s+)?(?:canci[oó]n|tema)\s+','',cancion,flags=re.I)
+        cancion=cancion.strip(' «»\"\'“”.!')
         cancion=re.sub(r'^m[uú]sica\s+de\s+','',cancion,flags=re.I)
         if normalizar(cancion) in ('spotify','musica','la musica','una cancion','algo de musica'):
             return Orden('spotify','')
@@ -286,7 +291,7 @@ def ejecutar(orden, spawn=subprocess.Popen, open_url=None):
     if orden.tipo=='spotify_playlist':
         from playlists import reproducir_playlist
         return reproducir_playlist(orden.valor)
-    if orden.tipo=='spotify_playlist_cancion':
+    if orden.tipo in ('spotify_playlist_cancion','spotify_playlist_pendiente'):
         from playlists import reproducir_cancion_playlist
         return reproducir_cancion_playlist(**json.loads(orden.valor))
     if orden.tipo in ('spotify','spotify_buscar','spotify_pausa'):

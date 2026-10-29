@@ -82,6 +82,7 @@ Di su nombre y la petición en una frase, o usa **F8**. Puedes cambiar esa tecla
 | Voz natural | Internet: el texto se envía a Microsoft para sintetizarlo. Sin ella se necesita una voz de Windows para el idioma elegido. |
 | Spotify | Aplicación de escritorio con sesión iniciada y controles accesibles. Las playlists privadas deben ser accesibles desde esa cuenta. Vincular un enlace es una alternativa, no un requisito general. |
 | Opera y YouTube | Opera/Opera GX instalado. Para controles de YouTube en segundo plano puede hacer falta el [puente con Opera](docs/CONECTAR_OPERA.md). |
+| League of Legends | Cliente abierto y sala preparada. Busca y acepta desde **Más → League of Legends** o mediante órdenes; consulta la [guía de colas](docs/LEAGUE_OF_LEGENDS.md). La aceptación automática es opcional. |
 
 El **control ampliado** está desactivado inicialmente. Si lo habilitas, Capri usa tus permisos de Windows y solicita confirmación para operaciones sensibles; los archivos borrados se envían a la Papelera. El modelo genera texto y decisiones limitadas al catálogo de acciones, no código ejecutable.
 

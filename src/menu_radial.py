@@ -93,7 +93,7 @@ class MenuRadial:
     def dibujar(self):
         from tkinter import font as tkfont
         from idiomas import ui,idioma_actual
-        c=self.canvas;c.delete('all');m=self.centro;r=self.radio;n=len(self.opciones);paso=2*math.pi/n
+        c=self.canvas;c.delete('all');self.fuentes=[];m=self.centro;r=self.radio;n=len(self.opciones);paso=2*math.pi/n
         c.create_oval(m-r-4,m-r-4,m+r+4,m+r+4,outline='#9d2949',width=1)
         for i,(texto,_) in enumerate(self.opciones):
             angulo=-math.pi/2+i*paso;inicio=angulo-paso/2+.025;fin=angulo+paso/2-.025
@@ -106,7 +106,11 @@ class MenuRadial:
             c.create_polygon(*puntos,fill='#4b1528' if activo else '#1c0b13',outline='#ff6486' if activo else '#8b2744',width=3,tags=f'sector_{i}')
             x=m+math.cos(angulo)*r*.72;y=m+math.sin(angulo)*r*.72
             factor=self.tamano/430
-            if not self.pila:icono(c,x,y-15*factor,8 if texto=='Escribir' else i,'#ffb5c6' if activo else '#d79cac');y+=13*factor
+            if not self.pila:
+                anteriores=set(c.find_all())
+                icono(c,x,y-22*factor,8 if texto=='Escribir' else i,'#ffb5c6' if activo else '#d79cac')
+                for creado in set(c.find_all())-anteriores:c.addtag_withtag(f'icono_{i}',creado)
+                y=c.bbox(f'icono_{i}')[3]+max(7,round(8*factor))
             familia='Yu Gothic UI' if idioma_actual()=='ja' else FAMILIA
             tamano=max(7,round(10*factor));ancho=r*.50;traducido=ui(texto)
             def envolver(fuente):
@@ -117,7 +121,8 @@ class MenuRadial:
                     else:lineas[-1]=candidato
                 return '\n'.join(lineas)
             fuente=tkfont.Font(root=c,font=(familia,tamano,'bold'))
-            item=c.create_text(x,y,text=envolver(fuente),justify='center',fill='#ffb5c6' if activo else '#e1d9ee',font=fuente,tags=f'etiqueta_{i}')
+            self.fuentes.append(fuente)
+            item=c.create_text(x,y,text=envolver(fuente),anchor='n' if not self.pila else 'center',justify='center',fill='#ffb5c6' if activo else '#e1d9ee',font=fuente,tags=f'etiqueta_{i}')
             while tamano>7:
                 bbox=c.bbox(item)
                 if bbox and all(sector(px,py,m,r-6,n)==i for px,py in ((bbox[0]-3,bbox[1]-2),(bbox[2]+3,bbox[1]-2),(bbox[0]-3,bbox[3]+2),(bbox[2]+3,bbox[3]+2))):break

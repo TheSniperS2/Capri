@@ -62,6 +62,18 @@ class PuenteOpera(unittest.TestCase):
         self.assertFalse(bridge.validar('volumen',{'operacion':'fijar:101','restaurar':50}))
         self.assertFalse(bridge.validar('volumen',{'operacion':'fijar:50','restaurar':float('nan')}))
 
+    def test_resultado_por_numero_y_error_acotado_via_http(self):
+        self.peticion('GET','/siguiente');salida=[]
+        t=threading.Thread(target=lambda:salida.append(self.p.ejecutar('resultado',{'indice':1})))
+        t.start();tarea=None
+        for _ in range(30):
+            tarea=self.peticion('GET','/siguiente')[1]['tarea']
+            if tarea:break
+            time.sleep(.01)
+        self.assertEqual(tarea['accion'],'resultado');self.assertEqual(tarea['datos'],{'indice':1})
+        self.assertEqual(self.peticion('POST','/resultado',{'id':tarea['id'],'resultado':{'ok':False,'codigo':'resultado_no_disponible','url':'dato descartado'}})[0],200)
+        t.join(2);self.assertEqual(salida,[{'ok':False,'codigo':'resultado_no_disponible'}])
+
     def test_pone_y_puente_aceptado_no_hacen_fallback_ni_mezclador(self):
         self.assertEqual(interpretar('Pone el volumen de YouTube al 50%.'),Orden('youtube_volumen','fijar:50'))
         with patch.object(bridge,'ejecutar',return_value={'ok':True,'volumen':50,'anterior':30}),patch.object(volumen_apps.subprocess,'run') as ejecutar:

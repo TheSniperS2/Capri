@@ -89,6 +89,8 @@ class Capri:
         self.cfg.setdefault('modo_visual','pantalla');self.cfg.setdefault('pasear_personaje',True);self.cfg.setdefault('control_ampliado',False)
         from control_pc import ControlPC
         self.control_pc=ControlPC(lambda:bool(self.cfg.get('control_ampliado')))
+        from league import ControlLoL
+        self.lol=ControlLoL(avisar=lambda mensaje:self.eventos.put(('lol_aviso',mensaje)))
         self.entrada_personaje=False;self.ventana_entrada=None;self.entrada_lateral=None;self.transito=None
         self.cfg.setdefault('travesuras',False);self.cfg.setdefault('travesuras_apps',False)
         from travesuras import Travesuras
@@ -137,7 +139,7 @@ class Capri:
         self.entrada_compacta=Entrada(self.root,self.enviar,self.menu)
         self.entrada_compacta.antes_foco=self.mostrar_entrada_personaje
         self.entrada_compacta.pack(fill='x')
-        self.entrada_compacta.foco_cambio=lambda foco:setattr(self.dialogo,'editando',foco)
+        self.entrada_compacta.foco_cambio=self.foco_entrada_compacta
         self.dialogo.entrada=self.entrada_compacta.entrada;self.dialogo.control_entrada=self.entrada_compacta;self.dialogo.menu=self.menu
         self.aplicar_escala(inicial=True)
         if self.intro_activa:self.iniciar_intro()
@@ -147,6 +149,7 @@ class Capri:
         self.root.protocol('WM_DELETE_WINDOW', self.cerrar)
         self.root.after(60, self.poll)
         self.root.after(30, self.animar)
+        if hotkeys and self.cfg.get('lol_aceptar_automatico',False):self.lol.activar_auto()
         if not hotkeys or not self.cfg.get('activacion_voz'):self.precalentar_ia()
 
     def precalentar_ia(self):
@@ -184,6 +187,7 @@ class Capri:
         nx = min(max(0, wx + e.x_root - x), max(0,self.root.winfo_screenwidth()-self.root.winfo_width()))
         ny = min(max(0, wy + e.y_root - y), max(0,self.root.winfo_screenheight()-self.root.winfo_height()))
         self.root.geometry(f'+{nx}+{ny}')
+        self.dialogo.posicionar((nx,ny,self.root.winfo_width(),self.root.winfo_height()))
         if self.es_personaje():self.companera.x=nx;self.companera.y=ny
 
     def _fin_arrastre(self, e):
@@ -206,6 +210,11 @@ class Capri:
         radial=getattr(self,'radial',None)
         if radial:radial.cerrar()
 
+    def alternar_escritura(self):
+        if self.dialogo.manual:
+            self.dialogo.ocultar();self.ocultar_entrada_personaje();self.root.focus_set()
+        else:self.dialogo.abrir()
+
     def abrir_menu_radial(self,e):
         from menu_radial import MenuRadial
         self.cerrar_radial()
@@ -214,9 +223,15 @@ class Capri:
         tamanos=[(f'{n}%',lambda n=n:self.guardar('escala_avatar',n/100)) for n in (75,100,125,150)]
         juegos=[('Atrápame',self.comenzar_juego),('Asomarse',lambda:self.hacer_travesura('asomar')),('Travesura',self.hacer_travesura)]
         voz=[('Hablar',self.hablar),('Activar voz' if not self.cfg.get('voz') else 'Silenciar voz',lambda:self.guardar('voz',not self.cfg.get('voz')))]
-        mas=[('Escribir',self.dialogo.abrir),('Repetir intro',self.iniciar_intro),('YouTube',self.conectar_opera),
+        lol=[(etiqueta,lambda orden=orden:self.enviar(orden)) for etiqueta,orden in
+             [('Buscar partida','busca partida en lol'),('Buscar y aceptar','busca partida en lol y acepta por mi'),
+              ('Aceptar partida','acepta partida en lol'),('Cancelar búsqueda','cancela la cola en lol')]]
+        lol.insert(0,('Desactivar aceptación automática' if self.cfg.get('lol_aceptar_automatico',False) else 'Activar aceptación automática',
+                      lambda:self.enviar('no aceptes mas partidas' if self.cfg.get('lol_aceptar_automatico',False) else 'activa la aceptacion automatica del lol')))
+        mas=[('Escribir',self.alternar_escritura),('Repetir intro',self.iniciar_intro),('YouTube',self.conectar_opera),
+             ('League of Legends',lol),
              ('Reanudar viajes' if not self.cfg.get('pasear_personaje',True) else 'Pausar viajes',lambda:self.guardar('pasear_personaje',not self.cfg.get('pasear_personaje',True))),('Cerrar Capri',self.cerrar)]
-        opciones=[('Ajustes',self.configurar),('Chat',self.abrir_chat),('Juegos' if self.es_personaje() else 'Escribir',juegos if self.es_personaje() else self.dialogo.abrir),('Aspecto',self.abrir_aspectos),
+        opciones=[('Ajustes',self.configurar),('Chat',self.abrir_chat),('Juegos' if self.es_personaje() else 'Escribir',juegos if self.es_personaje() else self.alternar_escritura),('Aspecto',self.abrir_aspectos),
                   ('Modo pantalla' if self.es_personaje() else 'Modo personaje',lambda:self.guardar('modo_visual','pantalla' if self.es_personaje() else 'personaje')),('Tamaño',tamanos),('Voz',voz),('Más',mas)]
         self.radial=MenuRadial(self.root,e.x_root,e.y_root,opciones,terminar=lambda:setattr(self,'radial',None),
                                personaje=(self.root.winfo_x(),self.root.winfo_y(),self.companera.ancho if self.es_personaje() else self.root.winfo_width(),self.companera.alto if self.es_personaje() else self.root.winfo_height()))
@@ -279,6 +294,15 @@ class Capri:
     def foco_entrada_lateral(self,foco):
         self.foco_lateral=foco;self.dialogo.editando=foco
         if not foco:self.root.after(150,lambda:self.ocultar_entrada_personaje() if not getattr(self,'foco_lateral',False) else None)
+        if not foco:self.root.after(150,self.cancelar_escritura_sin_foco)
+
+    def foco_entrada_compacta(self,foco):
+        self.dialogo.editando=foco
+        if not foco:self.root.after(150,self.cancelar_escritura_sin_foco)
+
+    def cancelar_escritura_sin_foco(self):
+        if self.dialogo.componiendo and not self.escribiendo() and not getattr(self,'radial',None):
+            self.dialogo.ocultar();self.ocultar_entrada_personaje()
 
     def escribiendo(self):
         entrada=self.dialogo.entrada
@@ -299,6 +323,7 @@ class Capri:
         geometria=f'{ancho}x{p.alto+extra}+{max(0,round(p.x))}+{max(0,round(p.y))}'
         if geometria!=getattr(self,'geometria_personaje',None):
             self.root.geometry(geometria);self.geometria_personaje=geometria
+            self.dialogo.posicionar((max(0,round(p.x)),max(0,round(p.y)),ancho,p.alto+extra))
         p.dibujar(self.canvas,self.hablando,self.boca_activa,glitch=self.cfg.get('efecto_glitch',True) and self.cfg.get('animaciones',True),halo=self.cfg.get('halo_personaje','violeta'))
 
     def interrumpir(self):
@@ -738,6 +763,14 @@ class Capri:
                 orden=Orden('equipo_cancelar_apagado')
         if orden and orden.tipo=='silencio':
             self.interrumpir(); return
+        if orden and orden.tipo in ('lol_auto_activar','lol_auto_desactivar'):
+            from league import MENSAJES
+            activar=orden.tipo=='lol_auto_activar'
+            self.guardar('lol_aceptar_automatico',activar)
+            respuesta=ui(MENSAJES['activada' if activar else 'desactivada'])
+            self.poner_chat('Capri',respuesta,mostrar=not self.puede_narrar())
+            if self.puede_narrar():self.narrar_respuesta(self.peticion,respuesta,final=True)
+            return
         if orden and orden.tipo=='velocidad_voz':
             actual=normalizar_velocidad(self.cfg.get('velocidad_voz',1.0))
             nuevo=1.0 if orden.valor=='normal' else normalizar_velocidad(actual+(.15 if orden.valor=='subir' else -.15))
@@ -780,7 +813,9 @@ class Capri:
                     resuelta=None
                 elif resuelta:
                     from control_pc import ACCIONES as PC
-                    if resuelta.tipo in PC:
+                    if resuelta.tipo.startswith('lol_'):
+                        respuesta=self.lol.ejecutar(resuelta.tipo,resuelta.valor,automatico=self.cfg.get('lol_aceptar_automatico',False),cancelar=cancelar)
+                    elif resuelta.tipo in PC:
                         respuesta=self.control_pc.ejecutar(resuelta.tipo,resuelta.valor)
                         if cancelar.is_set():self.control_pc.cancelar();return
                     else:respuesta = ejecutar(resuelta)
@@ -903,6 +938,9 @@ class Capri:
 
     def poll(self):
         if self.cerrado:return
+        if getattr(self,'lol_estado',None):
+            estado_lol=ui(self.lol.estado)
+            if self.lol_estado.get()!=estado_lol:self.lol_estado.set(estado_lol)
         for _ in range(150):
             try:tipo,valor=self.eventos.get_nowait()
             except queue.Empty:break
@@ -946,6 +984,10 @@ class Capri:
                 self.estado=estado
                 if self.panel and self.panel.winfo_exists():self.subtitulo.set(estado)
             elif tipo=='micro':self.hablar()
+            elif tipo=='lol_aviso':
+                # Ready-check no interrumpe una respuesta o dictado en curso.
+                self.poner_chat('Capri',ui(valor,codigo_idioma(self.cfg.get('idioma'))),
+                                mostrar=not (self.ocupada or self.escuchando or self.hablando or self.voz_ticket is not None))
             elif tipo=='travesura_resultado':
                 if not self.ocupada and not self.escuchando and not self.hablando:self.decir_juego(valor)
             elif tipo=='voz':
@@ -1191,6 +1233,14 @@ class Capri:
         tk.Label(f,text='Ollama ejecuta la IA en tu equipo, sin clave ni pago por uso. La activación descarga un modelo de aproximadamente 2 GB.',wraplength=420,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',10)).pack(anchor='w',pady=(7,10))
         self.boton(f,'Activar IA local',self.activar_ia,RED).pack(anchor='w')
         self.boton(f,'Vincular playlist de Spotify',self.vincular_playlist).pack(anchor='w',pady=(12,0))
+        tk.Label(f,text='League of Legends',bg=BG,fg=GREEN,font=('Chakra Petch',12,'bold')).pack(anchor='w',pady=(22,7))
+        aceptar_lol=self.lol_auto_var=tk.BooleanVar(value=bool(self.cfg.get('lol_aceptar_automatico',False)))
+        InterruptorCyber(f,text='Aceptar partidas automáticamente, también desde LoL',variable=aceptar_lol,
+                         command=lambda:self.guardar('lol_aceptar_automatico',aceptar_lol.get()),bg=BG,fg=FG,font=('Chakra Petch',10)).pack(anchor='w')
+        self.lol_estado=tk.StringVar(value=self.lol.estado)
+        tk.Label(f,textvariable=self.lol_estado,wraplength=460,justify='left',bg=BG,fg=GREEN,font=('Chakra Petch',9,'bold')).pack(anchor='w',pady=(7,0))
+        tk.Label(f,text='Actívalo una vez y busca desde LoL o Capri. Aceptaré al aparecer la partida sin esperar una orden. La vigilancia se conserva al reiniciar Capri y vuelve a conectarse si abres LoL después.',
+                 wraplength=460,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',9)).pack(anchor='w',pady=(7,0))
         tk.Label(f,text='No se guarda el audio ni el historial del chat.\nArrastra la imagen para mover a Capri. Clic para chatear.\nTecla configurable en Voz · Esc: detener voz.',wraplength=420,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',10)).pack(anchor='w',pady=20)
         for widget in (self.micro_combo,self.whisper_combo,self.perfil_voz_combo,self.modelo_combo,motor,forma):widget.configure(style='Capri.TCombobox')
         ui.conectar_rueda()
@@ -1268,6 +1318,10 @@ class Capri:
         if k=='escala_avatar':v=limitar_escala(v)
         anterior=self.cfg.get(k)
         self.cfg[k]=v
+        if k=='lol_aceptar_automatico':
+            if v:self.lol.activar_auto()
+            else:self.lol.detener_auto()
+            if getattr(self,'lol_auto_var',None):self.lol_auto_var.set(bool(v))
         if k=='control_ampliado' and not v:self.control_pc.cancelar()
         if k=='modo_visual':
             if v=='personaje' and not self.companera.originales:
@@ -1405,6 +1459,7 @@ class Capri:
         if self.cerrado:return
         if self.transito and self.transito.get('morfosis'):self.transito['morfosis'].detener()
         self.cerrar_radial()
+        self.lol.cerrar()
         if self.activacion_permitida:
             from puente_opera import cerrar
             cerrar()

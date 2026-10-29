@@ -13,6 +13,7 @@ Capri separa la interfaz Tk, el trabajo de audio y las integraciones. El código
 | Audio | `voz.py`, `reconocimiento.py`, `activacion.py`, `prueba_microfono.py` | Captura, reconocimiento, activación y síntesis. |
 | Escritorio | `aplicaciones.py`, `control_pc.py`, `escritorio.py` | Catálogo de programas y acciones verificables sobre el equipo. |
 | Multimedia | `multimedia.py`, `playlists.py`, `volumen_apps.py` | Spotify, biblioteca, sesiones y volumen interno. |
+| League of Legends | `league.py` | Conexión local limitada a sala, búsqueda y ready-check; aceptación opcional cancelable. |
 | Navegador | `navegador.py`, `puente_opera.py`, `integraciones/opera-capri/` | Sitios, YouTube y puente local del navegador. |
 | Preparación | `recursos.py`, `activar_ia.py`, `preparar_whisper.py`, `empaquetar.py`, `installer/plantilla.py` | Descargas, modelos, empaquetado y arranque. |
 

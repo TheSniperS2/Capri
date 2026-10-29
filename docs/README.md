@@ -8,6 +8,7 @@
 | [Uso y solución de problemas](USO.md) | Micrófono, voz, idiomas, modelos, preferencias y diagnósticos. |
 | [Personaje y control del equipo](PERSONAJE_Y_CONTROL.md) | Modos visuales, movimientos y permisos opcionales. |
 | [YouTube y Opera](CONECTAR_OPERA.md) | Configurar y comprobar el puente del navegador. |
+| [League of Legends](LEAGUE_OF_LEGENDS.md) | Buscar, cancelar y aceptar partidas desde el cliente local. |
 | [Comparación de modelos](COMPARACION_MODELOS.md) | Comparar reconocimiento y conversación sin perder preferencias. |
 
 ## Desarrollar

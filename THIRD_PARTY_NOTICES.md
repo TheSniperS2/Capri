@@ -24,3 +24,9 @@ Cada dependencia conserva su propia licencia y condiciones. Los modelos se desca
 - Interfaces de Windows para voz, accesibilidad y controles multimedia.
 
 Spotify, Opera y GitHub son servicios o aplicaciones de terceros. Este proyecto no concede derechos sobre sus marcas ni modifica sus condiciones de uso.
+
+## Riot Games y League of Legends
+
+Capri isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
+
+La integración utiliza únicamente el cliente local para búsqueda y aceptación de partida. Consulta [su alcance y requisitos de distribución](docs/LEAGUE_OF_LEGENDS.md).

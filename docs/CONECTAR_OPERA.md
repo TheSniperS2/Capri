@@ -2,6 +2,8 @@
 
 Esta conexión controla el vídeo de YouTube en reproducción, incluso mientras estás en otra página. Evita depender del deslizador que Opera expone a Windows. Sirve para volumen interno, silencio, pausa, continuar y los botones Siguiente/Anterior disponibles del reproductor.
 
+Desde la versión **1.0.4**, también selecciona vídeos de una página de resultados sin necesitar un reproductor cargado. Después de buscar, di **«reproduce el primer vídeo»** o el segundo, tercero, etc., hasta el décimo. Se elige la búsqueda seleccionada o la única búsqueda de YouTube abierta; si hay varias y ninguna está seleccionada, pide que elijas una. No cuenta anuncios, estantes de Shorts ni enlaces repetidos del mismo vídeo. La confirmación indica que se solicitó abrir el resultado, no que YouTube haya permitido ya el inicio del audio.
+
 ## Cargar una vez
 
 1. Cierra Capri completamente y vuelve a abrirla para cargar la actualización.
@@ -11,6 +13,8 @@ Esta conexión controla el vídeo de YouTube en reproducción, incluso mientras 
 5. Recarga la pestaña de YouTube e inicia un vídeo. El panel de Capri debe mostrar **Conectada con YouTube; puedes usar otra pestaña**.
 
 La instalación es local; no se publica nada ni se necesita cuenta de desarrollador. Después de actualizar los archivos de esta extensión, pulsa **Recargar** en su tarjeta de Opera y recarga YouTube.
+
+Para cargar esta corrección: reinicia Capri, abre `opera://extensions`, recarga la tarjeta **Capri — YouTube en Opera** y recarga la página de YouTube. Si la extensión aún no está instalada, sigue los pasos anteriores. El código que Opera ya tenía cargado no cambia solo por copiar los archivos nuevos.
 
 ## Ejemplos
 

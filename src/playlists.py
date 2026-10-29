@@ -11,6 +11,22 @@ from escritorio import HIDDEN
 
 BASE=Path(__file__).resolve().parent
 
+def interpretar_solicitud_playlist(texto):
+    """Conserva la restricción aunque falte el nombre de la lista o del tema."""
+    if re.search(r'\ben\s+youtube[.!?]*$',texto,re.I):return None
+    sin_citas=re.sub(r'"[^"]*"|«[^»]*»|“[^”]*”','TITULO',texto)
+    if not re.search(r'\b(?:de|en|dentro de|desde)\s+(?:(?:mi|mis|la|las)\s+)?(?:playlist|playlists|lista)\b',sin_citas,re.I):return None
+    texto=re.sub(r'\s+en\s+Spotify[.!?]*$','',texto.strip(),flags=re.I)
+    m=re.fullmatch(r'(?:reproduce|reproducir|pon(?:er|me|ga|gas|e)?|toca|escucha|quiero escuchar)\s+(.+?)\s+(?:de|en|dentro de|desde)\s+(?:(?:mi|mis|la|las)\s+)?(?:playlist|playlists|lista(?: de reproducci[oó]n)?)(?:\s+(?:llamada\s+)?(.+?))?[.!?]*',texto,re.I)
+    if not m:return None
+    cancion=m[1].strip(' «»\"\'“”.!')
+    nombre=(m[2] or '').strip(' «»\"\'“”.!')
+    if not nombre and re.fullmatch(r'(?:(?:la|el)\s+)?(?:siguiente|proxima|anterior)(?:\s+(?:cancion|tema|pista))?',clave(cancion)):return None
+    if clave(cancion) in ('esta cancion','esa cancion','esta','esa','la cancion actual','lo que esta sonando'):cancion=''
+    else:cancion=re.sub(r'^(?:(?:la|una)\s+)?(?:canci[oó]n|tema)\s+','',cancion,flags=re.I).strip(' «»\"\'“”.!')
+    if len(cancion)>200 or len(nombre)>200:return None
+    return {'cancion':cancion,'nombre':nombre}
+
 def interpretar_cancion_playlist(texto):
     m=re.fullmatch(r'(?:reproduce|reproducir|pon(?:er|me|ga|gas|e)?|toca|escucha|quiero escuchar)\s+(?:(?:la|una)\s+)?(?:(?:canci[oó]n|tema)\s+)?(.+?)\s+(?:de|en|dentro de)\s+(?:(?:mi|mis|la|las)\s+)?(?:playlist|playlists|lista(?: de reproducci[oó]n)?)\s+(?:llamada\s+)?(.+?)(?:\s+en\s+Spotify)?[.!]?$',texto.strip(),re.I)
     if not m:return None
@@ -346,6 +362,12 @@ try {
 
 def reproducir_cancion_playlist(cancion,nombre,carpeta=None,correr=None):
     correr=correr or subprocess.run
+    if not nombre:return '¿Cómo se llama tu playlist? Buscaré la canción solamente dentro de esa lista.'
+    if not cancion:
+        from multimedia import sesion_spotify
+        actual=sesion_spotify('estado',correr=correr)
+        if not actual.get('ok') or not actual.get('titulo'):return '¿Qué canción quieres escuchar dentro de tu playlist? Dime el título.'
+        cancion=actual['titulo']
     if not all(isinstance(v,str) and v.strip() and len(v)<=200 for v in (cancion,nombre)):
         return 'Necesito el título de la canción y el nombre de la playlist.'
     try:

@@ -46,6 +46,19 @@ Los archivos instalados quedan en **%LOCALAPPDATA%\Capri**. Allí están ajustes
 
 El icono de las ventanas y del acceso directo del escritorio usa la referencia de Capri incluida en la aplicación, convertida a un icono de Windows con varios tamaños. No se modifica su rostro. Windows puede conservar temporalmente en caché el icono anterior de un acceso anclado a la barra de tareas; desanclar ese acceso antiguo y anclar de nuevo el acceso Capri actual permite actualizarlo.
 
+## Elegir dónde reproducir y qué resultado abrir
+
+El servicio que nombras tiene prioridad sobre el tema anterior de la conversación:
+
+- **«Reproduce High Forever en Spotify»** busca y reproduce la canción en Spotify.
+- **«Reproduce High Forever en YouTube»** abre sus resultados en YouTube. Después puedes decir **«reproduce el primer video»**, **«pon el segundo resultado»** o **«reproduce el video número 3»**, hasta el décimo. El [puente con Opera](CONECTAR_OPERA.md) 1.0.4 permite seleccionarlos sin reproductor cargado: usa la búsqueda seleccionada o la única abierta. No inicia otra búsqueda ni pulsa coordenadas. Sin conexión con la extensión intenta los enlaces accesibles de la página seleccionada como respaldo.
+- **«Reproduce High Forever en mi playlist Capri»** busca exclusivamente dentro de esa playlist. Si dices solo **«en mi playlist»**, reutiliza una lista nombrada recientemente; si no conoce ninguna, pregunta su nombre. Responder **«Capri»**, **«de la playlist Capri»** o **«se llama Capri»** completa esa misma petición y conserva la canción pendiente.
+- **«Reproduce esta canción en mi playlist Capri»** consulta el título comunicado por la sesión de Spotify y lo busca dentro de esa lista. Si Spotify no comunica el título, pide que lo indiques.
+
+Si la canción no aparece dentro de la playlist o no se puede confirmar el control, Capri lo informa y conserva el alcance de la lista. No convierte esa petición en una búsqueda general de Spotify.
+
+**Escribir** abre el campo sin volver a mostrar el globo de una conversación anterior. Si cambias de idea, pulsa otra vez Escribir o deja el campo: se cierra ese modo sin enviar nada y conserva el borrador. Las conversaciones anteriores siguen disponibles en Chat.
+
 ## Elegir modelos
 
 En Ajustes puedes seleccionar el modelo de conversación instalado en Ollama. Se utiliza tanto para conversar como para interpretar peticiones con contexto. El selector muestra únicamente modelos locales instalados; cambiarlo no borra los anteriores. La primera carga del modelo seleccionado puede tardar más. «Activar IA local» conserva el modelo que hayas elegido.

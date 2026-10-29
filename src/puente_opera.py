@@ -11,6 +11,7 @@ EXTENSION_ID='hcikngipgcmgdmibkilomnedmhpgdnob'
 ORIGEN='chrome-extension://'+EXTENSION_ID
 
 def validar(accion,datos):
+    if accion=='resultado':return set(datos)=={'indice'} and type(datos['indice']) is int and 1<=datos['indice']<=10
     if accion in ('pausa','reanudar','siguiente','anterior','estado'):return datos=={}
     if accion!='volumen' or set(datos)!={'operacion','restaurar'}:return False
     op=datos['operacion'];valor=datos['restaurar']
@@ -75,7 +76,7 @@ class Puente:
                         if type(resultado['silenciado']) is not bool:raise ValueError()
                         limpio['silenciado']=resultado['silenciado']
                     if resultado.get('estado') in ('Playing','Paused','Solicitado'):limpio['estado']=resultado['estado']
-                    if resultado.get('codigo') in ('sin_video','sin_control','pagina_invalida','operacion_invalida','reproduccion_bloqueada','cambio_no_confirmado','varios_videos'):
+                    if resultado.get('codigo') in ('sin_video','sin_control','pagina_invalida','operacion_invalida','reproduccion_bloqueada','cambio_no_confirmado','varios_videos','sin_resultados','varios_resultados','resultado_no_disponible'):
                         limpio['codigo']=resultado['codigo']
                     with propietario.lock:
                         p=propietario.pendientes.get(id)
@@ -129,6 +130,9 @@ def cerrar():
 
 def mensaje_error(resultado):
     return {'sin_video':'No encontré un vídeo cargado en la pestaña de YouTube.',
+            'sin_resultados':'No encontré una página de resultados de YouTube. Haz primero una búsqueda en YouTube.',
+            'varios_resultados':'Hay varias búsquedas de YouTube abiertas. Selecciona la pestaña de resultados que quieres usar.',
+            'resultado_no_disponible':'Ese resultado no está disponible entre los vídeos de esta búsqueda de YouTube.',
             'varios_videos':'Hay varios vídeos de YouTube disponibles. Selecciona la pestaña del que quieres controlar y repite la orden.',
             'sin_control':'Ese vídeo no ofrece el control solicitado.',
             'pagina_invalida':'La pestaña seleccionada no es YouTube.',

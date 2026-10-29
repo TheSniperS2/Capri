@@ -20,7 +20,7 @@ class AppsWeb(unittest.TestCase):
                'puedes meterte a youtube':Orden('pestana','https://www.youtube.com/'),
                'busca netflix':Orden('pestana','https://www.netflix.com/'),
                'busca high forever en youtube':Orden('youtube_buscar','high forever'),
-               'pon un video de cyberpunk en youtube':Orden('youtube_video','cyberpunk'),
+               'pon un video de cyberpunk en youtube':Orden('youtube_buscar','cyberpunk'),
                'siguiente video':Orden('youtube_siguiente'),
                'pausa el video':Orden('youtube_pausa'),
                'pon high forever en spotify':Orden('spotify','high forever')}

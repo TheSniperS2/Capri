@@ -31,7 +31,13 @@ chrome.runtime.onMessage.addListener((m, sender, responder) => {
       if (sonando.length > 1) destino = sonando.find(t => t.id === activa);
       if (!sonando.length) destino = videos.find(t => t.id === ultimo) ||
         videos.find(t => t.id === activa) || (videos.length === 1 ? videos[0] : null);
-      if (!destino) resultado = {ok: false, codigo: videos.length > 1 ? 'varios_videos' : 'sin_video'};
+      let sinDestino = videos.length > 1 ? 'varios_videos' : 'sin_video';
+      if (tarea.accion === 'resultado') {
+        const busquedas = estados.filter(t => t.resultados === true && new URL(t.url).pathname === '/results');
+        destino = busquedas.find(t => t.id === activa) || (busquedas.length === 1 ? busquedas[0] : null);
+        sinDestino = busquedas.length > 1 ? 'varios_resultados' : 'sin_resultados';
+      }
+      if (!destino) resultado = {ok: false, codigo: sinDestino};
       else {
         resultado = await chrome.tabs.sendMessage(destino.id, {tipo: 'capri_ejecutar', tarea});
         if (resultado?.ok) ultimo = destino.id;

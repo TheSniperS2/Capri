@@ -9,7 +9,7 @@ from core import Orden,APPS,normalizar,url_solicitada,limpiar_peticion,ABRIR
 
 ACCIONES=('spotify','spotify_pausa','spotify_siguiente','spotify_anterior',
           'spotify_estado','spotify_playlist','spotify_playlist_cancion','spotify_buscar','spotify_volumen','abrir','buscar','pestana','carpeta',
-          'youtube_buscar','youtube_video','youtube_siguiente','youtube_anterior','youtube_pausa','youtube_reanudar','youtube_volumen')
+          'youtube_buscar','youtube_video','youtube_resultado','youtube_siguiente','youtube_anterior','youtube_pausa','youtube_reanudar','youtube_volumen','spotify_playlist_pendiente')
 SIN_ARGUMENTO=('charla','aclarar','spotify_pausa','spotify_siguiente','spotify_anterior','spotify_estado',
                'youtube_siguiente','youtube_anterior','youtube_pausa','youtube_reanudar')
 def esquema_accion(acciones,valor):
@@ -29,7 +29,8 @@ Apps: opera, opera gx, navegador, calculadora, bloc de notas, explorador, spotif
 Sitios conocidos (pestana con valor nombre): youtube, netflix, twitch, crunchyroll, disney plus, prime video, github, reddit, steam, google, wikipedia. Buscar un nombre exacto de sitio es navegar; buscar opiniones o buscar en Google es buscar. Nunca programa_abrir para una búsqueda web.
 spotify_volumen: valor subir:10 o bajar:10 (diez puntos), fijar:50 para un porcentaje explícito, silenciar, activar o consultar. Mueve el deslizador interno de Spotify.
 youtube_volumen: mismos valores para el deslizador del reproductor de YouTube. "Sube el volumen del vídeo" se refiere a YouTube; sin nombre usa el tema activo.
-youtube_buscar y youtube_video llevan consulta literal: buscar videos frente a reproducir un video en YouTube.
+youtube_buscar lleva consulta literal: una petición con «en YouTube» abre resultados para elegir. youtube_video conserva la reproducción directa de un vídeo por título cuando se pide sin esa búsqueda por servicio.
+youtube_resultado lleva un número de 1 a 10 expresamente solicitado: primer vídeo=1, segundo=2. Selecciona resultados existentes, sin buscar el ordinal como título. El servicio explícito del mensaje siempre gana frente al tema anterior. spotify_playlist_pendiente conserva la canción y pide el nombre de la playlist; nunca sustituirlo por búsqueda general.
 youtube_siguiente, youtube_anterior, youtube_pausa, youtube_reanudar llevan valor vacío. Si tema_activo=youtube, siguiente video o paúsalo controlan YouTube, no Spotify.
 Carpetas: Downloads, Documents, Desktop, Pictures, Music, Videos.
 No inventes parametros. Puedes reutilizar el valor del ultimo objetivo explicito.
@@ -72,6 +73,14 @@ def requiere_contexto(orden):
         return bool(re.match(r'^(?:otr[ao]|es[ao]|es[ao]s|la misma|lo mismo|lo de|la de|algo diferente)\b',valor) or valor in APPS)
     return False
 
+def nombre_playlist_respuesta(texto):
+    """Extrae el nombre de una aclaración sin incluir sus palabras de enlace."""
+    texto=texto.strip()
+    prefijo=r'^(?:(?:de|en|desde|dentro de)\s+)?(?:(?:mi|la|esa)\s+)?(?:playlist|lista(?: de reproducci[oó]n)?)(?:\s+(?:(?:que\s+)?se llama|llamada))?\s+'
+    texto=re.sub(prefijo,'',texto,flags=re.I)
+    texto=re.sub(r'^(?:se llama|es|la que se llama)\s+','',texto,flags=re.I)
+    return texto.strip(' «»\"\'“”.!?')
+
 def ultimo_tema(turnos):
     for turno in reversed(turnos):
         if not turno['accion'] and re.fullmatch(r'(?:gracias|muchas gracias|ok|vale|bien|perfecto|genial|listo)[.! ]*',normalizar(turno['peticion'])):continue
@@ -98,10 +107,29 @@ class Interprete:
     def ajustar_orden(self,texto,orden,control_ampliado=False):
         if protegida(texto):return orden
         t=limpiar_peticion(texto);n=normalizar(t).strip(' .!')
+        ultimo=ultimo_tema(self.contexto()['turnos'])
+        if orden and orden.tipo=='spotify_playlist_pendiente':
+            datos=json.loads(orden.valor)
+            for turno in reversed(self.contexto()['turnos']):
+                if turno['accion']=='spotify_playlist':datos['nombre']=turno['valor'];break
+                if turno['accion']=='spotify_playlist_cancion':
+                    datos['nombre']=json.loads(turno['valor'])['nombre'];break
+            return Orden('spotify_playlist_cancion' if datos['nombre'] else 'spotify_playlist_pendiente',json.dumps(datos,ensure_ascii=False))
+        if ultimo.get('accion') in ('spotify_playlist_pendiente','spotify_playlist_cancion') and orden is None:
+            datos=json.loads(ultimo['valor'])
+            nombre=nombre_playlist_respuesta(texto) if not datos['nombre'] else texto.strip(' «»\"\'“”.!?')
+            if 0<len(nombre)<=200 and normalizar(nombre) not in ('hola','gracias','ok','cancelar','olvidalo'):
+                if not datos['nombre']:datos['nombre']=nombre
+                elif not datos['cancion']:datos['cancion']=nombre
+                else:datos=None
+                if datos:return Orden('spotify_playlist_cancion',json.dumps(datos,ensure_ascii=False))
         from volumen_apps import interpretar_volumen
         volumen=interpretar_volumen(t,contexto=self.contexto()['tema_activo'])
         if volumen:return volumen
         if self.contexto()['tema_activo']=='youtube':
+            from navegador import indice_resultado
+            indice=indice_resultado(t,contexto=True)
+            if indice:return Orden('youtube_resultado',indice)
             opciones={'siguiente':'siguiente','pon otra':'siguiente','pon otro':'siguiente','la siguiente':'siguiente',
                       'el siguiente':'siguiente','la anterior':'anterior','el anterior':'anterior',
                       'pausa':'pausa','pausalo':'pausa','detenlo':'pausa','continua':'reanudar','reanuda':'reanudar','ahora sigue':'reanudar'}
@@ -118,6 +146,11 @@ class Interprete:
         if not isinstance(datos,dict) or set(datos)!={'accion','valor'}:return aclarar
         accion=datos['accion'];valor=datos['valor']
         if not all(isinstance(v,str) for v in (accion,valor)):return aclarar
+        if not protegida(texto):
+            from core import interpretar
+            directa=interpretar(texto)
+            if directa and (directa.tipo in ('youtube_buscar','youtube_video','youtube_resultado','spotify_playlist_cancion','spotify_playlist_pendiente') or (not directa.tipo.endswith('_volumen') and re.search(r'\ben\s+spotify[.!?]*$',texto,re.I))):
+                return Decision(self.ajustar_orden(texto,directa,control_ampliado))
         if accion=='charla':return Decision()
         from playlists import interpretar_cancion_playlist
         en_lista=interpretar_cancion_playlist(limpiar_peticion(texto)) if not protegida(texto) else None

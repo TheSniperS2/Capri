@@ -4,7 +4,8 @@
     if (sender.id !== chrome.runtime.id) return false;
     if (m?.tipo === 'capri_estado') {
       const v = document.querySelector('#movie_player video.html5-main-video');
-      responder({video: !!v && v.readyState > 0, reproduciendo: !!v && !v.paused && !v.ended});
+      responder({video: !!v && v.readyState > 0, reproduciendo: !!v && !v.paused && !v.ended,
+        resultados: /\/results(?:\?|$)/.test(location.href)});
       return false;
     }
     if (m?.tipo !== 'capri_ejecutar') return false;

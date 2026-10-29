@@ -18,6 +18,13 @@ class Dialogo:
         self.menu=None;self.fin_escritura=False;self.retener=lambda:False
         self.personaje=lambda:False;self.ruta_retrato=None;self.retrato=None;self.punta=80;self.estilo_personaje=None
         self.idioma=lambda:'es'
+        self.origen=None
+        self.componiendo=False
+        # El seguimiento no depende del ritmo de escritura del texto (25/180ms).
+        self.raiz.bind('<Configure>',self._seguir_raiz,add='+')
+
+    def _seguir_raiz(self,e):
+        if e.widget==self.raiz:self.posicionar((e.x,e.y,e.width,e.height))
 
     def crear(self):
         if self.ventana is not None and self.ventana.winfo_exists():return
@@ -37,10 +44,7 @@ class Dialogo:
         p.bind('<Escape>',lambda e:self.detener() if self.detener else self.ocultar())
 
     def abrir(self):
-        self.manual=True
-        if self.objetivo or self.usuario:
-            self.crear();self.vence=time.monotonic()+60;self.ventana.deiconify();self.posicionar()
-            if self.pendiente is None:self.tick()
+        self.ocultar();self.manual=True;self.componiendo=True
         if self.control_entrada:self.control_entrada.dar_foco()
 
     def revisar(self,texto):
@@ -48,6 +52,7 @@ class Dialogo:
         if self.control_entrada:self.control_entrada.poner(texto)
 
     def recibir_usuario(self,texto):
+        self.componiendo=False
         if not self.habilitado() and not self.manual:return
         self.usuario=texto;self.objetivo='';self.visible='';self.estado='PROCESANDO';self.sincronizada=False
         self.fin_escritura=False
@@ -58,6 +63,7 @@ class Dialogo:
         if self.control_entrada:self.control_entrada.enviar_actual()
 
     def mostrar(self,texto,sincronizada=False):
+        self.componiendo=False
         if (not self.habilitado() and not self.manual) or not texto:return
         self.crear()
         if sincronizada or not texto.startswith(self.objetivo):self.visible=''
@@ -80,20 +86,34 @@ class Dialogo:
         self.visible=self.objetivo;self.sincronizada=False;self.estado='ENLACE ABIERTO'
         self.fin_escritura=True;self.vence=time.monotonic()+3
 
-    def posicionar(self):
+    def posicionar(self,origen=None):
+        if origen is not None:self.origen=origen
         if not self.ventana or not self.ventana.winfo_exists():return
+        if self.ventana.state()=='withdrawn':return
+        rx,ry,rw,rh=self.origen or (self.raiz.winfo_x(),self.raiz.winfo_y(),self.raiz.winfo_width(),self.raiz.winfo_height())
         sw=self.raiz.winfo_screenwidth();sh=self.raiz.winfo_screenheight()
-        ancho=min(440,sw-16) if self.personaje() else max(280,self.raiz.winfo_width());alto=self.alto_canvas
-        self.canvas.configure(width=ancho)
-        x=self.raiz.winfo_x()+(self.raiz.winfo_width()-ancho)//2
-        y=self.raiz.winfo_y()-alto-8
+        ancho=min(440,sw-16) if self.personaje() else max(280,rw);alto=self.alto_canvas
+        if int(float(self.canvas.cget('width')))!=ancho:
+            self.canvas.configure(width=ancho);self.dibujar();alto=self.alto_canvas
+        x=rx+(rw-ancho)//2
+        y=ry-alto-8
         if y<8:
-            x=self.raiz.winfo_x()-ancho-10
-            if x<8:x=self.raiz.winfo_x()+self.raiz.winfo_width()+8
-            y=self.raiz.winfo_y()+30
+            x=rx-ancho-10
+            if x<8:x=rx+rw+8
+            y=ry+30
         x=max(8,min(x,sw-ancho-8));y=max(8,min(y,sh-alto-12))
-        self.punta=max(30,min(ancho-35,self.raiz.winfo_x()+self.raiz.winfo_width()/2-x))
-        self.ventana.geometry(f'{ancho}x{alto}+{x}+{y}')
+        punta=max(30,min(ancho-35,rx+rw/2-x))
+        if punta!=self.punta:
+            self.punta=punta
+            # Solo cambia la geometría de la punta, sin volver a maquetar texto.
+            for tag,desfase in (('globo_personaje',0),('sombra_globo',4)):
+                for item in self.canvas.find_withtag(tag):
+                    puntos=self.canvas.coords(item)
+                    for indice,valor in ((8,punta+17),(10,punta),(12,punta-12)):puntos[indice]=valor+desfase
+                    self.canvas.coords(item,*puntos)
+        geometria=f'{ancho}x{alto}+{round(x)}+{round(y)}'
+        if geometria!=getattr(self,'geometria',None):
+            self.ventana.geometry(geometria);self.geometria=geometria
 
     def dibujar(self):
         c=self.canvas;c.delete('all');ancho=max(280,int(float(c.cget('width'))));modo=self.personaje()
@@ -151,7 +171,7 @@ class Dialogo:
         fondo=c.create_polygon(13,9,ancho-22,9,ancho-10,21,ancho-10,alto-24,ancho-22,alto-12,22,alto-12,10,alto-24,10,22,
                          fill='#0d111b',outline='#a54459',width=1)
         c.tag_lower(fondo)
-        c.create_line(22,alto-11,ancho-23,alto-11,fill='#ec3c62',width=3)
+        c.create_line(23,alto-13,ancho-23,alto-13,fill='#ec3c62',width=2,tags='borde_inferior')
         c.create_rectangle(26,44,80,61,fill='#f2d959',outline='')
         c.create_text(31,53,text='CAPRI',anchor='w',fill='#151822',font=(FAMILIA,10,'bold'))
         c.create_text(92,53,text=self.estado,anchor='w',fill='#80939c',font=(FAMILIA,8))
@@ -174,5 +194,5 @@ class Dialogo:
 
     def ocultar(self):
         if self.pendiente:self.raiz.after_cancel(self.pendiente);self.pendiente=None
-        self.editando=False;self.manual=False
+        self.editando=False;self.manual=False;self.componiendo=False
         if self.ventana and self.ventana.winfo_exists():self.ventana.withdraw()

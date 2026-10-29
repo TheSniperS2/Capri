@@ -4,12 +4,23 @@
 
 ### Corregido
 
+- El puente de Opera 1.0.4 selecciona resultados de YouTube sin necesitar un vídeo ya cargado. La orden por número deja de depender exclusivamente de accesibilidad de Windows.
+- Aclaraciones como «de la playlist Capri» extraen «Capri» y conservan la canción pendiente, en lugar de buscar una lista con toda la frase como nombre.
+- Destinos explícitos Spotify/YouTube prioritarios, selección de resultados de YouTube por número y alcance de playlist conservado aunque falte su nombre.
+- Escribir deja de recuperar el globo anterior; abandonar el campo cancela la composición sin perder el borrador ni ocultar respuestas nuevas.
+- La aceptación automática puede vigilar también colas iniciadas directamente en LoL. La opción guardada se recupera al iniciar Capri, se reconecta al cliente y sigue disponible entre partidas, con estado visible en ajustes.
+- El globo sigue cada movimiento de Capri sin esperar al temporizador de texto. Escribir alterna su apertura y cierre; el borde inferior encaja en el marco.
+- Separación medida entre iconos y etiquetas del menú radial, también en portugués y japonés.
 - El foco de un campo oculto ya no mantiene al personaje suspendido al soltarlo. Escribir en un campo visible con foco sigue pausando el movimiento.
 - Las respuestas que se desvían claramente del idioma elegido se corrigen antes de narrarlas. Los mensajes extranjeros en el historial no cambian la selección actual.
 
 ### Mejorado
 
 - Entrada con revelado progresivo, indicadores en la paleta roja y rostro despejado durante la secuencia.
+
+### Añadido
+
+- Búsqueda, cancelación y aceptación de cola en el cliente local de LoL. Menú y órdenes en cuatro idiomas; aceptación automática opcional para las búsquedas iniciadas con Capri.
 - Se conserva la despedida anterior: mano roja, traslado eléctrico hacia la estrella y apagado gradual.
 - README con instalación, ejemplos, idiomas y límites de las integraciones; índice de documentación, mapa de módulos y plantillas para reportes y propuestas.
 

@@ -5,9 +5,21 @@ import re
 import subprocess
 from urllib.parse import urlencode
 
+def indice_resultado(texto,contexto=False):
+    from core import normalizar
+    n=normalizar(texto).strip(' .!?¿¡')
+    ordinales={'primer':1,'primero':1,'segundo':2,'tercer':3,'tercero':3,'cuarto':4,'quinto':5,'sexto':6,'septimo':7,'octavo':8,'noveno':9,'decimo':10}
+    m=re.fullmatch(r'(?:reproduce|reproducir|pon|ponme|abre)\s+(?:el\s+)?(primer[o]?|segundo|tercer[o]?|cuarto|quinto|sexto|septimo|octavo|noveno|decimo|[1-9]|10)(?:\s+(video|resultado))?(?:\s+(?:de|en)\s+youtube)?',n)
+    if m and (m[2] or contexto or n.endswith('youtube')):return str(ordinales.get(m[1],int(m[1]) if m[1].isdigit() else 0))
+    m=re.fullmatch(r'(?:reproduce|pon|abre)\s+(?:el\s+)?(?:video|resultado)\s+(?:numero\s+)?([1-9]|10)(?:\s+(?:de|en)\s+youtube)?',n)
+    return m[1] if m else None
+
 def interpretar_web(texto):
     from core import Orden,normalizar,url_solicitada,ABRIR,BUSCAR,APPS
     n=normalizar(texto).strip(' .!')
+    if re.search(r'\ben\s+spotify$',n):return None
+    indice=indice_resultado(texto)
+    if indice:return Orden('youtube_resultado',indice)
     # Nombre exacto de un sitio significa navegar; Google explícito conserva búsqueda.
     sitio_buscado=re.fullmatch(BUSCAR+r'\s+(?:la\s+p[aá]gina\s+(?:de\s+)?)?(.+?)[.!]?',texto,re.I)
     if sitio_buscado:
@@ -20,10 +32,11 @@ def interpretar_web(texto):
     consulta=re.fullmatch(r'('+BUSCAR+r'|pon|ponme|reproduce|abre)\s+(?:un\s+|el\s+)?(?:video\s+(?:de\s+)?)?(.+?)\s+en\s+youtube[.!]?',texto,re.I)
     if consulta:
         if re.search(r'\bpesta[nñ]a\b',consulta[2],re.I):return None
-        return Orden('youtube_buscar' if re.fullmatch(BUSCAR,consulta[1],re.I) else 'youtube_video',consulta[2].strip())
+        titulo=re.sub(r'^(?:la\s+)?(?:canci[oó]n|tema)\s+','',consulta[2],flags=re.I)
+        return Orden('youtube_buscar',titulo.strip(' «»\"\'“”.!'))
     consulta=re.fullmatch(BUSCAR+r'\s+en\s+youtube\s+(.+?)[.!]?',texto,re.I)
     if consulta:return Orden('youtube_buscar',consulta[1])
-    consulta=re.fullmatch(r'(?:pon|reproduce|abre)\s+(?:un\s+|el\s+)video\s+(?:de\s+)?(.+?)[.!]?',texto,re.I)
+    consulta=re.fullmatch(r'(?:pon|reproduce|abre)\s+(?:un\s+|el\s+)?v[ií]deo\s+(?:de\s+)?(.+?)[.!]?',texto,re.I)
     if consulta:return Orden('youtube_video',consulta[1])
     entrada=re.fullmatch(r'(?:'+ABRIR+r'|entra(?:r)?(?:te)?(?:\s+a)?|(?:m[eé]tete|meterte|(?:te\s+)?metas)(?:\s+a)?|ve(?:\s+a)?|navega(?:\s+a)?)\s+(?:la\s+p[aá]gina\s+(?:de\s+)?|a\s+)?(.+?)(?:\s+en\s+(?:el\s+)?opera(?:\s+gx)?)?[.!]?',texto,re.I)
     if entrada:
@@ -67,12 +80,21 @@ try {
   }
   if($docs.Count -gt 1){throw 'Hay varias páginas YouTube visibles; selecciona una sola.'}
   if($docs.Count -eq 1){
+   if($d.accion -eq 'resultado' -and (Valor $docs[0]) -notmatch '^https://(www\.)?youtube\.com/results\?'){
+    @{ok=$false;error='Abre los resultados de búsqueda de YouTube en Opera antes de elegir un vídeo por número.'}|ConvertTo-Json -Compress;exit 0
+   }
    $items=$docs[0].FindAll([Windows.Automation.TreeScope]::Descendants,[Windows.Automation.Condition]::TrueCondition)
+   $vistos=@{};$numero=0
    foreach($e in $items){
     $n=$e.Current.Name;$elegido=$false
-    if($d.accion -eq 'video' -and $e.Current.ControlType -eq [Windows.Automation.ControlType]::Hyperlink){
+    if($d.accion -in @('video','resultado') -and $e.Current.ControlType -eq [Windows.Automation.ControlType]::Hyperlink){
      $url=Valor $e
      $elegido=$url -match '^https://(www\.)?youtube\.com/watch\?v=[\w-]+'
+     if($elegido){
+      $id=[regex]::Match($url,'[?&]v=([\w-]+)').Groups[1].Value
+      if(-not $vistos.ContainsKey($id)){$numero++;$vistos[$id]=$numero}
+      $elegido=$vistos[$id] -eq $(if($d.accion -eq 'resultado'){[int]$d.indice}else{1})
+     }
     }
     if($e.Current.ControlType -eq [Windows.Automation.ControlType]::Button){
      switch($d.accion){
@@ -94,6 +116,15 @@ try {
 def ejecutar_youtube(orden,spawn=None,correr=None):
     from core import abrir_opera
     accion=orden.tipo.removeprefix('youtube_')
+    if accion=='resultado' and not re.fullmatch(r'[1-9]|10',orden.valor):raise ValueError('Resultado de YouTube inválido.')
+    if accion=='resultado' and correr is None:
+        from puente_opera import ejecutar,mensaje_error
+        directo=ejecutar('resultado',{'indice':int(orden.valor)})
+        if directo is not None:
+            if directo.get('ok'):return 'Solicité reproducir el resultado '+orden.valor+' de YouTube.'
+            # Solo usar el respaldo cuando la extensión confirma que no actuó.
+            # Un timeout o una navegación incierta nunca repiten el clic.
+            if directo.get('codigo') not in ('sin_video','sin_resultados','operacion_invalida'):return mensaje_error(directo)
     if accion in ('buscar','video'):
         if not orden.valor.strip():raise ValueError('Falta el nombre del vídeo.')
         pagina='https://www.youtube.com/results?'+urlencode({'search_query':orden.valor})
@@ -101,8 +132,8 @@ def ejecutar_youtube(orden,spawn=None,correr=None):
         if spawn is not None:kwargs['spawn']=spawn
         abrir_opera(**kwargs)
         if accion=='buscar':return 'Busqué «'+orden.valor+'» dentro de YouTube en Opera GX.'
-    if accion not in ('video','siguiente','anterior','pausa','reanudar'):raise ValueError('Control YouTube desconocido.')
-    if correr is None and accion!='video':
+    if accion not in ('video','resultado','siguiente','anterior','pausa','reanudar'):raise ValueError('Control YouTube desconocido.')
+    if correr is None and accion not in ('video','resultado'):
         from puente_opera import ejecutar,mensaje_error
         directo=ejecutar(accion)
         if directo is not None:
@@ -111,7 +142,7 @@ def ejecutar_youtube(orden,spawn=None,correr=None):
                     'siguiente':'Solicité el siguiente vídeo de YouTube.','anterior':'Solicité el vídeo anterior de YouTube.',
                     'video':'Solicité reproducir el primer vídeo de los resultados de YouTube.'}[accion]
     fallo_sesion=''
-    if accion!='video':
+    if accion not in ('video','resultado'):
         from multimedia import sesion_youtube
         estado=sesion_youtube(accion,correr=correr)
         if estado.get('ok'):
@@ -121,12 +152,14 @@ def ejecutar_youtube(orden,spawn=None,correr=None):
         fallo_sesion=estado.get('error','')
     codigo=base64.b64encode(YOUTUBE_UI.encode('utf-16le')).decode()
     r=(correr or subprocess.run)(['powershell.exe','-NoProfile','-NonInteractive','-EncodedCommand',codigo],
-             input=json.dumps({'accion':accion}),text=True,encoding='utf8',errors='replace',capture_output=True,timeout=14,
+             input=json.dumps({'accion':accion,**({'indice':int(orden.valor)} if accion=='resultado' else {})}),text=True,encoding='utf8',errors='replace',capture_output=True,timeout=14,
              creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
     try:datos=json.loads(r.stdout)
     except ValueError:datos={}
     if r.returncode==0 and datos.get('ok'):
+        if accion=='resultado':return 'Solicité reproducir el resultado '+orden.valor+' de YouTube.'
         return {'video':'Solicité reproducir el primer vídeo de los resultados de YouTube.',
                 'siguiente':'Solicité el siguiente vídeo de YouTube.','anterior':'Solicité el vídeo anterior de YouTube.',
                 'pausa':'Solicité pausar YouTube.','reanudar':'Solicité continuar el vídeo de YouTube.'}[accion]
+    if accion=='resultado':return 'No pude abrir ese resultado desde Opera. Recarga la extensión Capri y la pestaña de YouTube para activar la selección de vídeos.'
     return ('No pude controlar YouTube. '+fallo_sesion+' También falló el control accesible de la página.') if fallo_sesion else (datos.get('error') or 'YouTube no confirmó el control. No envié teclas a otras aplicaciones.')
