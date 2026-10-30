@@ -13,12 +13,18 @@ ARCHIVOS.append('league.py')
 ARCHIVOS.extend(['apagado.py','discord_control.py'])
 ARCHIVOS.append('llamadas.py')
 ARCHIVOS.append('audio_llamada.py')
+ARCHIVOS.extend(['asomo.py','invitados.py','assets/capri-asomo-curioso-v1.png'])
+ARCHIVOS.extend(['PROMPT_ASOMO.md','VOCES_INVITADAS.md'])
+ARCHIVOS.extend(['assets/capri-despedida-sonrisa-v1.png','PROMPT_DESPEDIDA.md'])
+ARCHIVOS.extend(['despedida_camara.py','assets/capri-asomo-tierno-v2.png','assets/capri-despedida-camara-v2.png','PROMPTS_CAPRI_V2.md'])
+ARCHIVOS.extend(['assets/capri-despedida-camara-v3.png','PROMPT_DESPEDIDA_V3.md'])
+ARCHIVOS.extend(['assets/capri-asomo-fiel-v3.png','assets/capri-despedida-expresiones-v4.png','PROMPTS_GESTOS_V4.md'])
 ARCHIVOS.append('traducciones.json')
 ARCHIVOS.append('REFERENCIAS_VOZ.md')
 ARCHIVOS.extend(['despedida.py','assets/capri-base-hd-v1.png','PROMPT_HD.md'])
 
 def origen(nombre):
-    if nombre in ('PROMPT_SALUDO.md','PROMPT_HD.md','REFERENCIAS_VOZ.md'):return BASE/'docs'/nombre
+    if nombre in ('PROMPT_SALUDO.md','PROMPT_HD.md','REFERENCIAS_VOZ.md','PROMPT_ASOMO.md','VOCES_INVITADAS.md','PROMPT_DESPEDIDA.md','PROMPTS_CAPRI_V2.md','PROMPT_DESPEDIDA_V3.md','PROMPTS_GESTOS_V4.md'):return BASE/'docs'/nombre
     if nombre.startswith(('assets/','integraciones/')):return BASE/nombre
     if nombre=='capri.ico':return BASE/'assets'/nombre
     if nombre=='LEEME.md':return BASE/'docs/USO.md'

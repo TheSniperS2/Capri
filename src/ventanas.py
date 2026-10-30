@@ -2,6 +2,39 @@
 import os
 import ctypes
 from ctypes import wintypes as w
+APOYOS_PROPIOS=set()
+
+
+def registrar_apoyo(ventana):
+    if os.name!='nt':return
+    ventana.update_idletasks();u=ctypes.windll.user32
+    u.GetAncestor.argtypes=[w.HWND,w.UINT];u.GetAncestor.restype=w.HWND
+    hwnd=int(u.GetAncestor(w.HWND(ventana.winfo_id()),2) or ventana.winfo_id())
+    APOYOS_PROPIOS.add(hwnd)
+    def retirar(evento):
+        if evento.widget==ventana:APOYOS_PROPIOS.discard(hwnd)
+    ventana.bind('<Destroy>',retirar,add='+')
+
+def preparar_no_activar(ventana):
+    """Windows no debe activar este aviso ni añadirlo a Alt+Tab."""
+    if os.name!='nt':return None
+    ventana.update_idletasks();u=ctypes.windll.user32
+    u.GetAncestor.argtypes=[w.HWND,w.UINT];u.GetAncestor.restype=w.HWND
+    hwnd=u.GetAncestor(w.HWND(ventana.winfo_id()),2) or ventana.winfo_id()
+    get=u.GetWindowLongPtrW;set_=u.SetWindowLongPtrW
+    get.argtypes=[w.HWND,ctypes.c_int];get.restype=ctypes.c_ssize_t
+    set_.argtypes=[w.HWND,ctypes.c_int,ctypes.c_ssize_t];set_.restype=ctypes.c_ssize_t
+    set_(hwnd,-20,(get(hwnd,-20)|0x08000000|0x80)&~0x40000)
+    return hwnd
+
+
+def mostrar_no_activar(ventana):
+    hwnd=preparar_no_activar(ventana);ventana.deiconify()
+    if hwnd and ventana.state()!='withdrawn':
+        u=ctypes.windll.user32;u.ShowWindow.argtypes=[w.HWND,ctypes.c_int]
+        u.SetWindowPos.argtypes=[w.HWND,w.HWND,ctypes.c_int,ctypes.c_int,ctypes.c_int,ctypes.c_int,w.UINT]
+        u.ShowWindow(hwnd,4)
+        u.SetWindowPos(hwnd,w.HWND(-1),0,0,0,0,0x0010|0x0001|0x0002|0x0040)
 
 
 def area_trabajo():
@@ -12,7 +45,11 @@ def area_trabajo():
     return (0,0,ctypes.windll.user32.GetSystemMetrics(0),ctypes.windll.user32.GetSystemMetrics(1))
 
 
-def visibles():
+def apoyo_propio_permitido(titulo):
+    return titulo.startswith(('Capri · Ajustes','Capri · Aspectos','Capri // Aspectos','Capri · Conversación','Capri · Playlists','Capri · YouTube','Conectar YouTube con Opera'))
+
+
+def visibles(incluir_propias=False):
     if os.name!='nt':return []
     u=ctypes.windll.user32;salida=[]
     u.IsWindowVisible.argtypes=[w.HWND];u.IsIconic.argtypes=[w.HWND]
@@ -24,7 +61,8 @@ def visibles():
     def ver(hwnd,param):
         if not u.IsWindowVisible(hwnd) or u.IsIconic(hwnd):return True
         pid=w.DWORD();u.GetWindowThreadProcessId(hwnd,ctypes.byref(pid))
-        if pid.value==os.getpid():return True
+        propia=pid.value==os.getpid()
+        if propia and not incluir_propias:return True
         clase=ctypes.create_unicode_buffer(256);u.GetClassNameW(hwnd,clase,256)
         if clase.value in ('Progman','WorkerW','Shell_TrayWnd','Shell_SecondaryTrayWnd'):return True
         oculto=w.DWORD()
@@ -32,6 +70,7 @@ def visibles():
         r=w.RECT()
         if not u.GetWindowRect(hwnd,ctypes.byref(r)) or r.right-r.left<180 or r.bottom-r.top<100:return True
         n=u.GetWindowTextLengthW(hwnd);texto=ctypes.create_unicode_buffer(n+1);u.GetWindowTextW(hwnd,texto,n+1)
+        if propia and int(hwnd) not in APOYOS_PROPIOS and not apoyo_propio_permitido(texto.value):return True
         if texto.value:salida.append({'id':int(hwnd),'titulo':texto.value,'rect':(r.left,r.top,r.right,r.bottom)})
         return True
     cb=callback(ver);u.EnumWindows.argtypes=[callback,w.LPARAM];u.EnumWindows(cb,0)

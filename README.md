@@ -142,3 +142,5 @@ Las ideas, reportes y contribuciones son bienvenidos. Empieza por [CONTRIBUTING.
 Proyecto de aficionado, independiente y no oficial. La voz es sintética y no reproduce el timbre exacto de la actriz. El código original usa [MIT](LICENSE); los personajes, marcas, ilustraciones y otros recursos de terceros conservan sus propios derechos. Consulta [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) y las [referencias](docs/REFERENCIAS.md).
 
 La ilustración experimental de apagado se conserva como recurso de referencia, con su [prompt documentado](docs/PROMPT_APAGADO.md). El efecto actual usa circuitos, interferencia y texto, sin retrato.
+
+La forma de [asomo curioso](docs/PROMPTS_GESTOS_V4.md) conserva el cabello en grandes bloques y los ojos asimétricos de Capri, con núcleos blancos que siguen el cursor y parpadeo. Al cerrar, Capri viaja al centro y dice «Cuídate mucho, choom» con su voz habitual y gestos de sonrisa dentro del visor, antes de la mano y la estrella. Las [llamadas invitadas](docs/VOCES_INVITADAS.md) usan voces sintéticas y diálogos escritos para este proyecto.

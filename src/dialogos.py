@@ -20,6 +20,7 @@ class Dialogo:
         self.idioma=lambda:'es'
         self.origen=None
         self.componiendo=False
+        self.autor='CAPRI'
         # El seguimiento no depende del ritmo de escritura del texto (25/180ms).
         self.raiz.bind('<Configure>',self._seguir_raiz,add='+')
 
@@ -28,7 +29,7 @@ class Dialogo:
 
     def crear(self):
         if self.ventana is not None and self.ventana.winfo_exists():return
-        p=self.ventana=tk.Toplevel(self.raiz);p.title('Capri · Enlace');p.overrideredirect(True);p.attributes('-topmost',True)
+        p=self.ventana=tk.Toplevel(self.raiz);p.withdraw();p.title('Capri · Enlace');p.overrideredirect(True);p.attributes('-topmost',True)
         p.configure(bg=TRANS)
         if os.name=='nt':p.wm_attributes('-transparentcolor',TRANS)
         self.canvas=CanvasUI(p,width=364,height=self.alto_canvas,bg=TRANS,highlightthickness=0)
@@ -42,6 +43,8 @@ class Dialogo:
             except OSError:pass
         self.canvas.bind('<Button-3>',lambda e:self.menu(e) if self.menu else None)
         p.bind('<Escape>',lambda e:self.detener() if self.detener else self.ocultar())
+        from ventanas import preparar_no_activar
+        preparar_no_activar(p)
 
     def abrir(self):
         self.ocultar();self.manual=True;self.componiendo=True
@@ -153,10 +156,13 @@ class Dialogo:
             sombra=c.create_polygon(*[v+4 for v in puntos],fill='#bd2147',outline='',tags='sombra_globo')
             fondo=c.create_polygon(*puntos,fill='#120f1d',outline='#dd4262',width=2,tags='globo_personaje')
             c.tag_lower(fondo);c.tag_lower(sombra)
-            if self.retrato:
+            if self.retrato and self.autor=='CAPRI':
                 c.create_rectangle(24,26,86,88,fill='#38121e',outline='#ef446b',width=2)
                 c.create_image(26,28,image=self.retrato,anchor='nw',tags='retrato')
-            c.create_text(104,29,text='CAPRI',anchor='w',fill='#e8def9',font=(FAMILIA,11,'bold'))
+            elif self.autor!='CAPRI':
+                c.create_rectangle(24,26,86,88,fill='#38121e',outline='#ef446b')
+                c.create_text(55,57,text=self.autor[0],fill='#f5d9df',font=(FAMILIA,24,'bold'))
+            c.create_text(104,29,text=self.autor,anchor='w',fill='#e8def9',font=(FAMILIA,11,'bold'))
             c.create_rectangle(ancho-125,17,ancho-23,37,fill='#89243f',outline='')
             etiqueta={'GENERANDO RESPUESTA':'PENSANDO','PREPARANDO VOZ':'PREPARANDO','ENLACE ABIERTO':'EN LÍNEA','REVISA EL DICTADO':'REVISAR'}.get(self.estado,self.estado)
             from idiomas import ui
@@ -175,7 +181,7 @@ class Dialogo:
         c.create_line(10,alto-12,ancho-22,alto-12,ancho-10,alto-24,
                       fill='#d64b64',width=1,tags='borde_inferior')
         c.create_rectangle(26,44,80,61,fill='#f2d959',outline='')
-        c.create_text(31,53,text='CAPRI',anchor='w',fill='#151822',font=(FAMILIA,10,'bold'))
+        c.create_text(31,53,text=self.autor,anchor='w',fill='#151822',font=(FAMILIA,10,'bold'))
         c.create_text(92,53,text=self.estado,anchor='w',fill='#80939c',font=(FAMILIA,8))
         c.create_text(29,25,text=pregunta,anchor='w',fill='#8d98a4',font=self.fuente_pregunta,tags='pregunta')
         if escribiendo and self.glitch() and self.fase%9==0:
@@ -198,3 +204,10 @@ class Dialogo:
         if self.pendiente:self.raiz.after_cancel(self.pendiente);self.pendiente=None
         self.editando=False;self.manual=False;self.componiendo=False
         if self.ventana and self.ventana.winfo_exists():self.ventana.withdraw()
+
+    def retirar(self,texto):
+        """Retira un mensaje terminado para que un traslado no lo vuelva a abrir."""
+        if self.objetivo!=texto:return False
+        self.ocultar();self.objetivo='';self.visible='';self.sincronizada=False;self.vence=0
+        self.autor='CAPRI'
+        self.fin_escritura=True;return True

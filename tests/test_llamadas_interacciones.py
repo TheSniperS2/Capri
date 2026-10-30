@@ -36,7 +36,7 @@ class Interacciones(PruebasTk):
             c.cfg['modo_visual']='personaje';c.companera.redimensionar(1);c.abrir_menu_radial(Mock(x_root=500,y_root=300))
             juegos=[t for t,_ in dict(c.radial.opciones)['Juegos']]
             self.assertNotIn('Atrápame',juegos)
-            self.assertIn('Activar asomos automáticos',juegos)
+            self.assertIn('Desactivar asomos automáticos',juegos);self.assertNotIn('Probar asomo',juegos)
 
     def test_simulacion_muestra_llamada_y_respuesta_tiene_contexto_sin_efectos(self):
         original=tk.Toplevel
@@ -79,16 +79,16 @@ class Interacciones(PruebasTk):
                 self.assertTrue(l.cerrada);aceptar.assert_not_called();terminar.assert_called_once_with(False)
         finally:root.destroy()
 
-    def test_asomo_va_a_esquina_y_prepara_regreso_con_llamada(self):
+    def test_asomo_tiene_forma_propia_sin_salto_ni_llamada(self):
         with self.capri() as (c,_),patch('ventanas.area_trabajo',return_value=(0,0,1000,800)),patch.object(c,'salto_juego') as salto,patch.object(c,'llamar_capri') as llamada:
             c.cfg['modo_visual']='personaje';c.companera.redimensionar(1)
             c.hacer_travesura('asomar')
-            x,y=salto.call_args.args[0]
-            self.assertIn(x,(8,1000-c.companera.ancho-8))
-            self.assertIn(y,(8,800-c.companera.alto*.48))
+            curioso=c.asomo['curioso']
+            self.assertIn(curioso.x,(0,1000-curioso.w))
+            if curioso.borde=='abajo':self.assertEqual(curioso.y,800-curioso.h)
+            else:self.assertEqual(curioso.y,(800-curioso.h)//2)
             self.assertGreater(c.asomo['hasta'],time.monotonic())
-            self.assertEqual(c.asomo['volver'][1],800-c.companera.alto)
-            llamada.assert_called_once_with('asomar')
+            salto.assert_not_called();llamada.assert_not_called();c.terminar_asomo()
 
     def test_apagado_sin_retrato_ni_lectura_de_imagenes(self):
         with self.capri() as (c,base),patch('apagado.SecuenciaApagado') as secuencia,patch.object(c.control_pc,'apagar_ahora') as apagar,patch('app.Image.open') as imagen:

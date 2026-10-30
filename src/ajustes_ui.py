@@ -32,6 +32,8 @@ class VentanaCyber:
         ventana.bind('<Escape>',lambda e:self.cerrar(),add='+')
         self.dibujar()
         separar_bordes(ventana)
+        from ventanas import registrar_apoyo
+        registrar_apoyo(ventana)
 
     def dibujar(self,e=None):
         c=self.canvas;w=max(100,c.winfo_width());h=max(100,c.winfo_height());c.delete('chrome')

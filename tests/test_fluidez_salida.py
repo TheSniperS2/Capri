@@ -62,9 +62,10 @@ class SalidaYFluidez(PruebasTk):
         with self.capri() as (c,_):
             c.animacion_cierre=True;c.cerrar()
             self.assertTrue(c.saliendo);self.assertFalse(c.cerrado)
-            self.assertTrue(c.canvas.find_withtag('capri_al_centro'));self.assertTrue(c.canvas.find_withtag('estrella'))
+            self.assertTrue(c.canvas.find_withtag('fragmento_viaje'))
             from despedida import DURACION
-            c.inicio_salida=time.monotonic()-DURACION-.1;c.pintar_despedida();self.assertTrue(c.cerrado)
+            from despedida_camara import TRASLADO
+            c.inicio_salida=time.monotonic()-TRASLADO-DURACION-1.9;c.pintar_despedida();self.assertTrue(c.cerrado)
 
     def test_f8_durante_despedida_cierra_sin_reabrir_microfono(self):
         with self.capri() as (c,_),patch.object(c,'hablar') as hablar:

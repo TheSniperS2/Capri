@@ -1,0 +1,24 @@
+# Pelo y ojos del asomo; gestos de despedida
+
+Modo: **imagegen integrado**. Assets nuevos:
+
+- `assets/capri-asomo-fiel-v3.png`, transparente 1448 × 1086.
+- `assets/capri-despedida-expresiones-v4.png`, hoja 2 × 2 de 1448 × 1086; cuatro planos alineados de 724 × 543.
+
+El asomo se contrastó con `capri-base-hd-v1.png`, tomando esa imagen como identidad principal. Se recuperan bloques de pelo más grandes, flequillo diagonal y ojos de tamaños diferentes. Los centros blancos siguen el cursor sin añadir pupilas negras ni reflejos que cambien el diseño. Centros en el PNG: (737,46; 751,35) y (957,98; 620,16). El recorte en bordes, clic persistente y arrastre se conservan.
+
+La despedida pasa de la mirada suave a una sonrisa de ojos cerrados. Durante la reproducción, los eventos de voz y actividad de palabra habilitan la animación de boca; las pausas vuelven al gesto cerrado. Al terminar conserva la sonrisa 300 ms antes de formar la mano. El dibujo de la mano nace del último gesto, evitando volver al rostro inicial.
+
+Se restaura la voz habitual configurada: mismo perfil, acento, velocidad, volumen y elección natural/Windows que para Capri. Se retira el perfil temporal y el tratamiento de audio de grabación. La frase es fija y localizada: **«Cuídate mucho, choom»**. Se retira el campo de nombre, sin borrar valores previos del archivo de ajustes. La cámara visual, el grano y el traslado al centro permanecen.
+
+## Prompt exacto: asomo
+
+Correct ONLY the character design of the peeking Capri sprite (second image) using the FIRST image as the strict authoritative original identity. Preserve cute peeking pose, hands at bottom edge, transparent background. The previous second image is OFF MODEL: hair has too many thin small spikes and two similar round eyes. REPLACE hair with the original's ENORMOUS mostly solid asymmetric red/pink jagged slab, very broad connected chunks, only a few huge triangular spikes, sweeping long diagonal fringe hiding much of the LEFT eye. Match exact eye system from FIRST reference: right eye LARGE, left eye much SMALLER and partly obscured, in tall BLACK pointed sockets inside a horizontal GREEN BAND; concentric BLUE/CYAN ring and flat WHITE CENTER, no dark pupil, no catchlight, no anime eyelashes. Do NOT invent symmetrical cute anime eyes. Keep lower face BLACK and fine closed WHITE zigzag smile, NOT teeth or fangs. Retain original extremely angular silhouette and thin violet edge accents, no violet border around all hair, no rounded hair strands. Tenderness comes only from a small curious head tilt and black hands resting gently at screen bottom. Keep both visible white eye centers unobstructed enough for tiny cursor motion at runtime. This is Capri, not an anime girl, mascot, or green-faced monster. 4:3 landscape sprite, all hair inside sides/top, chest cuts at bottom, no frame/text/logos/watermark, actual transparent background.
+
+Entradas: `capri-base-hd-v1.png` como identidad y `capri-asomo-tierno-v2.png` como pose a corregir.
+
+## Prompt exacto: expresiones
+
+Create an animation sprite sheet: EXACT 2-by-2 grid, FOUR EQUAL rectangular frames, no gaps, no borders, no writing. Each frame must show the SAME Capri close-up recording from reference1, same camera position, head placement, scale, hair silhouette, BLACK lower face, green eye band, muted red/pink hair, blue-gray cloudy sky/rooftop background, washed grainy anime camera quality. No change to identity. References2/3 D are ONLY acting/expression guides, do NOT turn Capri into D. Expressions reading order: TOP LEFT: calm affectionate half-open cyan/blue eyes, small closed white zigzag smile, like D's relaxed smile in reference3. TOP RIGHT: warm larger happy smile and eyes fully closed in soft crescent shapes, cheeks/eyelids lift like reference2, single white zigzag mouth line on black face, no human teeth. BOTTOM LEFT: same eyes-closed smiling face but mouth opens just a little as she says 'Cuídate', an angular small white mouth opening with black interior notch, no fangs. BOTTOM RIGHT: eyes-closed very tender satisfied smile after speaking, closed fine white zigzag mouth and relaxed eyes. Mouth position MUST align across all four cells, head does not move between frames. Upper hair crop and lower neck crop identical. Capri original abstract geometric styling; NO nose, NO skin-colored face, NO human facial reconstruction. Soft sincere farewell feeling, NOT angry or sinister. Sheet overall 4:3 landscape, each cell also4:3. One face per cell, four cells total, perfectly aligned, high enough resolution for each cell to be used at520x390. No text/captions or interface.
+
+Entradas: `capri-despedida-camara-v3.png` para la cámara/personaje y `Pictures/Capri/images (6).jfif` / `images (2).jfif` para la actuación y la sonrisa. Los sprites se recortan por celdas en ejecución; se conserva el PNG generado original.

@@ -4,6 +4,29 @@
 
 ### Corregido
 
+- Restaurada la voz habitual de Capri al cerrar, con «Cuídate mucho, choom» y sin el tratamiento grave de grabación ni sustitución del nombre.
+- Despedida con cuatro gestos: mirada suave, sonrisa, boca al hablar y sonrisa final conservada antes de la mano. Asomo con pelo en bloques grandes, ojos asimétricos y núcleos blancos sin pupilas añadidas.
+
+- Despedida con fondo de cielo nocturno y siluetas oscuras, más detalle, colores lavados y grano de cámara animado. «Cuídate mucho» admite nombre opcional en Ajustes → Escritorio.
+- Interpretación de despedida más baja y pausada, con caída del remate y tratamiento de grabación ya incluido en la caché; conserva las pausas del nombre sin alterar la voz normal.
+
+- Capri viaja al centro con su descarga y teselas antes de la despedida; la voz espera hasta llegar. El plano se presenta como reproducción de cámara 4:3 y después forma la mano.
+- Nuevas ilustraciones de asomo tierno y despedida basadas en fotogramas de la serie: cara inferior negra, franja verde, cabello asimétrico y boca fina sin dientes. Interpretación temporal más suave con la base sintética de Roman.
+
+- El rostro inicial de despedida recupera la opacidad de la ventana desde su primer fotograma; antes quedaba transparente hasta empezar la mano.
+
+- El cuadro de subtítulos de las llamadas crece con las líneas que se van pronunciando, sin reservar al inicio el espacio del guion completo.
+
+- Despedida con retrato de Capri sonriente y ojos cerrados, frase localizada antes de la mano y la estrella y ritmo suavizado sin cambiar preferencias.
+- Asomo recortado y pegado a un lateral o abajo; permanece al hacer clic y se desprende al arrastrar, con ojos transformados según el borde.
+- Subtítulos invitados dentro del aviso telefónico, sin atribuir su diálogo al personaje de Capri. Perfiles invitados independientes de la opción de voz natural y sin sustitución silenciosa por Windows.
+- Comentario de Capri preparado desde el aviso entrante para reducir la espera al colgar.
+
+- Se invierte la pose sentada tras la corrección visual del usuario: original en el borde derecho y espejo en el izquierdo, incluida la llegada por traslado.
+- Avisos y globos de llamada con estilo Windows sin activación; las llamadas se aplazan durante juegos o pantalla completa para evitar sacar el primer plano.
+- Teléfono entrante centrado con sus ondas y módulo CALL con biseles superiores simétricos y trazos interiores dentro del borde.
+- La pose sentada mira hacia fuera en cada esquina, también al llegar por traslado y al apoyarse durante la caída.
+- Las llamadas pausan saltos pendientes, el regreso de los asomos y los saltos para seguir ventanas; su mensaje ya no reaparece al terminar un traslado en modo personaje.
 - Al terminar una llamada se oculta también su mensaje y se cancela su temporizador, sin ocultar respuestas posteriores.
 - La llamada se cierra al recibir el fin de reproducción de su voz, sin esperar doce segundos. Colgar también cancela la síntesis o reproducción pendiente y evita mensajes tardíos.
 - Bordes de llamada sin el acento inferior izquierdo suelto, recorte izquierdo en el módulo CALL y arista inferior del globo alineada con sus biseles.
@@ -24,6 +47,9 @@
 
 ### Mejorado
 
+- Roman pasa a una base latina juvenil y D a una voz mexicana; King conserva su voz. Las reacciones se sintetizan mientras habla el invitado y se reutilizan al cortar, evitando otra espera de red en el remate.
+- Capri puede sentarse sobre sus propias ventanas de Ajustes, Aspectos y Conversación, mediante un registro de superficies independiente del idioma.
+- Glitch durante el arrastre manual de pantalla o personaje, respetando las opciones de animación e interferencias.
 - Paleta carmesí para la llamada entrante, sin botón crema ni tonos dorados, y vibración breve del auricular sin mover los botones.
 - Llamadas con 24 bromas completas y absurdas en lugar de preguntas o propuestas de descanso; asomos y minimizaciones también tienen remates propios. Seis bromas incluyen voz temporal de ardilla, villana o robot, con sincronía ajustada a la duración del efecto y sin modificar preferencias.
 - Llamada con tres esquinas recortadas, auricular diagonal y colores diferenciados: nombre blanco, aviso ámbar y conexión verde suave, con módulo de señal animado al contestar.
@@ -35,6 +61,10 @@
 
 ### Añadido
 
+- Simular asomo en Escritorio, Más y Juegos, sin cambiar el modo guardado.
+- Despedida hablada «Nos vemos, choom» con la mano formada; el viaje a la estrella espera al fin de la voz y conserva su dibujo original.
+- Llamadas ficticias de King, D, Roman y Talia, con perfiles de voz sintéticos, nombres propios, ocho guiones y una reacción contextual de Capri al terminar.
+- Nueva forma curiosa de asomo automático en ambos modos, con seguimiento del cursor y parpadeo; conserva la forma y configuración anteriores. Se retira el botón Probar asomo.
 - Tono breve de desconexión al colgar una llamada contestada, respetando volumen y silencio; no altera el estado de narración ni su generación.
 - Voz telefónica durante llamadas, breve sonido de conexión y cuatro saludos localizados. El filtro es temporal y conserva la voz/acento elegidos. Las ondas siguen el audio reproducido, con posición real del reproductor y reposo en los silencios; el aviso espera durante la preparación y reproducción.
 - Llamadas espontáneas con 24 diálogos seleccionados sin repeticiones hasta agotar la lista, respuesta hablada al contestar y simulación desde Más o Ajustes. Intervalo inicial de 15 minutos con variación aleatoria y configurable.

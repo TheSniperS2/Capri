@@ -303,6 +303,30 @@ class Microfono:
                     if texto: parcial(texto)
             return json.loads(reconocedor.FinalResult()).get('text', '').strip()
 
+class AudioPreparado:
+    def __init__(self,clave):
+        self.clave=clave;self.listo=threading.Event();self.cancelada=False
+        self.archivo=None;self.marcas=None;self.sintetizador=None;self._lock=threading.RLock()
+
+    def capturar(self,archivo,marcas):
+        import shutil
+        with self._lock:
+            if self.cancelada:return False
+            with tempfile.NamedTemporaryFile(suffix=Path(archivo).suffix,delete=False) as f:destino=Path(f.name)
+            try:shutil.copyfile(archivo,destino)
+            except Exception:destino.unlink(missing_ok=True);raise
+            self.archivo=destino;self.marcas=marcas;return True
+
+    def descartar(self):
+        with self._lock:
+            self.cancelada=True
+            if self.sintetizador:self.sintetizador.parar()
+            if self.archivo:
+                try:self.archivo.unlink(missing_ok=True)
+                except OSError:pass
+                else:self.archivo=None
+
+
 class Voz:
     def __init__(self, estado):
         self.idioma='es'
@@ -315,6 +339,7 @@ class Voz:
         self._control = threading.RLock()
         self._alias = None
         self.bandas_salida=(0.,)*28
+        self.destino_preparado=None
 
     def _vigente(self,token,cancelar):
         return token==self.generacion and not cancelar.is_set()
@@ -345,12 +370,46 @@ class Voz:
                 self._mci('close '+alias)
             self.estado(False)
 
-    def hablar(self, texto, natural=True, perfil='capri',velocidad=1.0,volumen=100,efecto=None,mascara=None):
+    def clave_audio(self,texto,natural=True,perfil='capri',velocidad=1.,volumen=100):
+        return (texto[:1800],natural,perfil,normalizar_velocidad(velocidad),normalizar_volumen(volumen),self.idioma,self.acento)
+
+    def preparar(self,texto,natural=True,perfil='capri',velocidad=1.,volumen=100):
+        preparado=AudioPreparado(self.clave_audio(texto,natural,perfil,velocidad,volumen))
+        sintetizador=Voz(lambda _:None);sintetizador.idioma=self.idioma;sintetizador.acento=self.acento
+        sintetizador.destino_preparado=preparado;preparado.sintetizador=sintetizador
+        def generar():
+            try:sintetizador._hablar(texto[:1800],natural,sintetizador.generacion,sintetizador.cancelar,perfil,velocidad,volumen)
+            finally:preparado.listo.set()
+        threading.Thread(target=generar,name='CapriPrepararVoz',daemon=True).start();return preparado
+
+    def _usar_preparado(self,preparado,texto,natural,token,cancelar,perfil,velocidad,volumen):
+        activo=False
+        try:
+            limite=time.monotonic()+25
+            while not preparado.listo.wait(.04):
+                if not self._vigente(token,cancelar):return
+                if time.monotonic()>=limite:break
+            if not self._vigente(token,cancelar):return
+            if preparado.listo.is_set() and preparado.archivo and not preparado.cancelada:
+                activo=self._reproducir_archivo(preparado.archivo,token,cancelar,volumen,marcas=preparado.marcas,texto=texto)
+            else:self._hablar(texto,natural,token,cancelar,perfil,velocidad,volumen)
+        except Exception:
+            from idiomas import texto as mensaje
+            self._emitir(mensaje('voz_error',self.idioma),token,cancelar)
+        finally:
+            if activo:self._emitir(False,token,cancelar)
+            preparado.descartar()
+
+    def hablar(self, texto, natural=True, perfil='capri',velocidad=1.0,volumen=100,efecto=None,mascara=None,invitado=None,preparado=None):
         self.parar()
         with self._control:
             self.cancelar = threading.Event()
             token = self.generacion;cancelar=self.cancelar
-        threading.Thread(target=self._hablar, args=(texto[:1800], natural, token, cancelar,perfil,velocidad,volumen,efecto,mascara), daemon=True).start()
+        if preparado and preparado.clave==self.clave_audio(texto,natural,perfil,velocidad,volumen) and not (efecto or mascara or invitado):
+            threading.Thread(target=self._usar_preparado,args=(preparado,texto[:1800],natural,token,cancelar,perfil,velocidad,volumen),daemon=True).start()
+        else:
+            if preparado:preparado.descartar()
+            threading.Thread(target=self._hablar, args=(texto[:1800], natural, token, cancelar,perfil,velocidad,volumen,efecto,mascara,invitado), daemon=True).start()
 
     def sonido_colgar(self,volumen=100):
         volumen=normalizar_volumen(volumen)
@@ -384,6 +443,7 @@ class Voz:
         self.frases.put(None)
 
     def _reproducir_archivo(self,archivo,token,cancelar,volumen=100,marcas=None,texto=None,telefono=False,conectar=False,mascara=None):
+        if self.destino_preparado is not None:return self.destino_preparado.capturar(archivo,marcas)
         if not telefono:return self._reproducir_archivo_base(archivo,token,cancelar,volumen,marcas,texto)
         if not self._vigente(token,cancelar):return False
         from audio_llamada import preparar,factor_mascara
@@ -462,7 +522,7 @@ class Voz:
                 if self.proceso is proceso:self.proceso=None
         return True
 
-    def _hablar(self, texto, natural, token, cancelar,perfil='capri',velocidad=1.0,volumen=100,efecto=None,mascara=None):
+    def _hablar(self, texto, natural, token, cancelar,perfil='capri',velocidad=1.0,volumen=100,efecto=None,mascara=None,invitado=None):
         if os.name != 'nt' or not self._vigente(token,cancelar):
             return
         from idiomas import codigo
@@ -478,12 +538,16 @@ class Voz:
         if canal and mascara in ('ardilla','villana','robot'):canal['mascara']=mascara
         try:
             acento=getattr(self,'acento','auto')
-            if natural and (acento!='auto' or time.monotonic() >= self.natural_no_hasta):
+            from invitados import VOCES,voz as voz_invitada
+            if invitado not in VOCES:invitado=None
+            if invitado:acento='invitado'
+            if (natural or invitado) and (acento!='auto' or time.monotonic() >= self.natural_no_hasta):
                 try:
                     import edge_tts
                     with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f: archivo = Path(f.name)
                     eventos=[]
                     nombre,tono=elegir_voz(perfil,idioma,acento)
+                    if invitado:nombre,tono,ritmo=voz_invitada(invitado,idioma)
                     candidatos=[nombre]
                     if acento=='pt-BR':candidatos.append('pt-BR-FranciscaNeural')
                     fase='sintesis'
@@ -521,12 +585,17 @@ class Voz:
                     # ni depender de que Windows tenga instalado ese acento.
                     self.natural_no_hasta = time.monotonic()+10 if acento=='auto' else 0
                     if archivo:archivo.unlink(missing_ok=True);archivo=None
+                    # Nunca sustituir al invitado por la voz genérica de Capri/Windows.
+                    if invitado:
+                        from idiomas import texto as mensaje
+                        self._emitir(mensaje('voz_error',idioma),token,cancelar);return
             # El texto viaja como datos base64, nunca interpolado como PowerShell.
             codificado = base64.b64encode(texto.encode('utf8')).decode('ascii')
             with tempfile.NamedTemporaryFile(suffix='.wav',delete=False) as f:archivo=Path(f.name)
             destino=base64.b64encode(str(archivo).encode('utf8')).decode('ascii')
             script = "$ErrorActionPreference='Stop';Add-Type -AssemblyName System.Speech;$v=New-Object System.Speech.Synthesis.SpeechSynthesizer;$v.Volume=100;$v.Rate="+str(rapidez_windows)+";$es=$v.GetInstalledVoices()|Where-Object {$_.VoiceInfo.Culture.Name -like 'es-*'}|Select-Object -First 1;if($es){$v.SelectVoice($es.VoiceInfo.Name)};$v.SetOutputToWaveFile([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('"+destino+"')));$v.Speak([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + codificado + "')));$v.Dispose()"
             acento=getattr(self,'acento','auto')
+            if invitado:acento='invitado'
             cultura=acento if acento in ACENTOS_VOZ and acento!='auto' else idioma+'-*'
             script=script.replace("-like 'es-*'","-like '"+cultura+"'")
             if cultura!='es-*':script=script.replace(';if($es){$v.SelectVoice($es.VoiceInfo.Name)}',";if(!$es){throw 'No Windows voice installed for selected language'};$v.SelectVoice($es.VoiceInfo.Name)")

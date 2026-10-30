@@ -23,11 +23,13 @@ El glitch es transitorio: seis variantes con franjas de distinta altura, fragmen
 
 ## Entrada, transformación y salida
 
+El [asomo curioso](PROMPT_ASOMO.md) es una forma diferente en ambos modos: el retrato queda recortado contra un lateral o el borde inferior, con el cuerpo continuando fuera de pantalla. Las coordenadas de los ojos se transforman junto con la ilustración; las pupilas siguen el cursor y parpadean. No se retira al hacer clic ni por un temporizador: se puede arrastrar para recuperar la forma habitual. El PNG original y la selección de modo guardada permanecen intactos.
+
 La intro de arranque dura 6,8 segundos. Revela el avatar desde el centro, usa marcas angulares y una paleta roja, y mantiene el rostro despejado del rótulo de conexión. Después el avatar se fragmenta y viaja a su posición, conservando parte de su textura y color. Es una secuencia visual; no representa el avance real de descarga o carga del modelo.
 
 La transformación de pantalla a personaje dura unos 2,7 segundos: el panel se centra, aparece la pose de bienvenida y se reduce antes de llegar a su ubicación. La vuelta es directa y más breve. Se preparan 85 estados de ida y 31 de vuelta mediante un trabajador de Pillow y una cola acotada. Tk recibe las imágenes en el hilo de interfaz; se reutilizan las dos direcciones de la caché. En Windows, los fotogramas usan RGB con el color transparente de la ventana para reducir el coste de transferencia. La preparación y el monitor pueden afectar la fluidez.
 
-La despedida dura unos 4,4 segundos. Las piezas de Capri convergen en una mano roja centrada, basada en la silueta de referencia. El antebrazo se descompone y una descarga compacta, con puntas convergentes, viaja hasta la estrella. La punta alcanza su núcleo antes de la absorción y del apagado gradual. La mano y la estrella son vectoriales. Se usa `#f60031` para la mano; no se captura el escritorio para preparar la secuencia.
+La despedida comienza con un traslado eléctrico de 1,1 segundos desde la posición actual hasta el centro. Después aparece la [grabación con cuatro gestos](PROMPTS_GESTOS_V4.md): mirada suave, sonrisa, boca al hablar y sonrisa final. Los eventos de reproducción y actividad de palabra controlan el rostro. La frase «Cuídate mucho, choom» se localiza y usa exactamente la voz habitual configurada, sin el tratamiento grave experimental. Tras terminar conserva la sonrisa 300 ms y después forma la mano desde ese último gesto. La mano y la estrella mantienen sus trazos originales. No se captura el escritorio ni se utiliza una cámara real.
 
 F8, Esc con foco o una segunda solicitud de cierre permiten terminar la despedida inmediatamente. Desactivar las animaciones omite el cierre animado.
 

@@ -17,14 +17,16 @@ def suave(t):
 
 class TrasladoTeselas:
     """El propio sprite se desarma y recompone; no usa lenguas rojas externas."""
-    def __init__(self,origen,destino,inicio,fin):
-        self.inicio=inicio;self.fin=fin;self.piezas=[]
-        destino=destino.resize(origen.size,Image.Resampling.LANCZOS)
+    def __init__(self,origen,destino,inicio,fin,tamanos_propios=False):
+        self.inicio=inicio;self.fin=fin;self.piezas=[];self.offset_destinos=[]
+        if not tamanos_propios:destino=destino.resize(origen.size,Image.Resampling.LANCZOS)
         w,h=origen.size
+        dw,dh=destino.size
         for fila in range(8):
             for col in range(6):
                 caja=(col*w//6,fila*h//8,(col+1)*w//6,(fila+1)*h//8)
-                a=origen.crop(caja);b=destino.crop(caja)
+                caja_destino=(col*dw//6,fila*dh//8,(col+1)*dw//6,(fila+1)*dh//8)
+                a=origen.crop(caja);b=destino.crop(caja_destino)
                 if not a.getbbox() and not b.getbbox():continue
                 def rojo(im):
                     tinta=Image.new('RGBA',im.size,'#f60031')
@@ -32,12 +34,14 @@ class TrasladoTeselas:
                 fotos=[ImageTk.PhotoImage(im) for im in (a,rojo(a),rojo(b),b)]
                 offset=((caja[0]+caja[2]-w)/2,(caja[1]+caja[3]-h)/2)
                 self.piezas.append((fotos,offset,fila,col))
+                self.offset_destinos.append(((caja_destino[0]+caja_destino[2]-dw)/2,(caja_destino[1]+caja_destino[3]-dh)/2))
 
     def dibujar(self,c,p):
-        for fotos,(ox,oy),fila,col in self.piezas:
+        for (fotos,(ox,oy),fila,col),(dx,dy) in zip(self.piezas,self.offset_destinos):
             retraso=(fila%3)*.025+col*.009
             u=max(0,min(1,(p-retraso)/(1-retraso)));t=suave(u)
             arco=math.sin(math.pi*u)
+            ox+=(dx-ox)*t;oy+=(dy-oy)*t
             x=self.inicio[0]+(self.fin[0]-self.inicio[0])*t+ox+(col-2.5)*7*arco
             y=self.inicio[1]+(self.fin[1]-self.inicio[1])*t+oy-35*arco+(fila-3.5)*5*arco
             indice=0 if u<.16 else (1 if u<.48 else (2 if u<.78 else 3))

@@ -73,9 +73,10 @@ class ControlArchivos(unittest.TestCase):
 class ModoPersonaje(PruebasTk):
     @contextmanager
     def capri(self):
-        with tempfile.TemporaryDirectory() as d,patch.object(app,'BASE',Path(d)),patch.object(app.Voz,'parar'),patch.object(app.Voz,'sonido_colgar'):
+        with tempfile.TemporaryDirectory() as d,patch.object(app,'BASE',Path(d)),patch.object(app.Voz,'parar'),patch.object(app.Voz,'sonido_colgar'),patch.object(app.Voz,'preparar',return_value=None),patch('escritorio.proteger_foco',return_value=False),patch('invitados.elegir',return_value=None):
             assets=Path(d)/'assets';assets.mkdir();origen=Path(__file__).resolve().parents[1]/'assets'
-            for n in ('capri-base-v2.png','capri-bocas-v2.png','capri-personaje-v1.png','capri-caminar-v1.png','capri-saludo-v1.png'):shutil.copy2(origen/n,assets/n)
+            for n in ('capri-base-v2.png','capri-bocas-v2.png','capri-personaje-v1.png','capri-caminar-v1.png','capri-saludo-v1.png','capri-asomo-curioso-v1.png','capri-despedida-sonrisa-v1.png','capri-asomo-tierno-v2.png','capri-despedida-camara-v2.png','capri-despedida-camara-v3.png'):shutil.copy2(origen/n,assets/n)
+            for n in ('capri-asomo-fiel-v3.png','capri-despedida-expresiones-v4.png'):shutil.copy2(origen/n,assets/n)
             c=app.Capri(hotkeys=False);c.root.withdraw();c.cfg['voz']=False
             try:yield c,Path(d)
             finally:c.cerrar()
@@ -105,8 +106,8 @@ class ModoPersonaje(PruebasTk):
             self.assertEqual(p.soporte,7)
             movida=dict(ventana,rect=(250,450,950,750))
             with patch('companera.visibles',return_value=[movida]):p.tick(pausa=True,ahora=p.ultimo+1)
-            self.assertIsNotNone(p.salto);self.assertEqual(p.salto['id'],7)
-            self.assertAlmostEqual(p.salto['destino'][1],450-p.alto*.64)
+            self.assertIsNone(p.salto);self.assertEqual(p.soporte,7)
+            self.assertAlmostEqual(p.y,450-p.alto*.64)
             p.soporte=7;p.salto=None
             y=p.y;p.proxima_accion=p.ultimo+100
             with patch('companera.visibles',return_value=[]),patch('companera.random.random',return_value=1):p.tick(ahora=p.ultimo+1)

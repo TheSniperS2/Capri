@@ -2193,5 +2193,125 @@
     "Capri is plotting something…",
     "Capri está tramando alguma coisa…",
     "カプリが何かたくらんでいる…"
+  ],
+  "King al aparato. Un veterano sabe cuándo retirarse. Yo me retiré del gimnasio cuando la cinta empezó a perseguirme. Decisión táctica. Fin de la llamada.": [
+    "King speaking. A veteran knows when to retreat. I retreated from the gym when the treadmill started chasing me. Tactical decision. End of call.",
+    "King falando. Um veterano sabe quando recuar. Recuou da academia quando a esteira começou a me perseguir. Decisão tática. Fim da ligação.",
+    "キングだ。ベテランは退く時を知っている。ランニングマシンに追われたのでジムから撤退した。戦略的判断だ。通信終了。"
+  ],
+  "King acaba de perder una pelea contra una cinta de correr. Ni siquiera estaba en modo difícil.": [
+    "King just lost a fight against a treadmill. It was not even on hard mode.",
+    "King acabou de perder uma luta contra uma esteira. Nem estava no modo difícil.",
+    "キングがランニングマシンに負けた。しかもハードモードじゃなかったのに。"
+  ],
+  "Habla King. He cambiado mis implantes por experiencia. Ahora las rodillas me hacen el sonido de inicio de Windows. Cuelgo antes de que pidan actualizarse.": [
+    "This is King. I traded my implants for experience. Now my knees play the Windows startup sound. Hanging up before they request an update.",
+    "Aqui é King. Troquei meus implantes por experiência. Agora meus joelhos fazem o som de inicialização do Windows. Vou desligar antes que peçam atualização.",
+    "キングだ。インプラントと引き換えに経験を得た。今では膝からウィンドウズの起動音がする。更新を要求される前に切るぞ。"
+  ],
+  "Vale, el chiste de las rodillas me hizo gracia. No se lo digas a King o lo repite durante seis meses.": [
+    "Fine, the knee joke made me laugh. Do not tell King or he will repeat it for six months.",
+    "Tá bom, a piada dos joelhos me fez rir. Não conta ao King ou ele repete por seis meses.",
+    "膝のジョークは笑っちゃった。キングには内緒ね。六か月は繰り返すから。"
+  ],
+  "Soy D. He encontrado al responsable de la caída de la red. Era el cable. Lo interrogué. No soltó una palabra. Investigación cerrada.": [
+    "It is D. I found who brought down the network. The cable. I interrogated it. It did not say a word. Case closed.",
+    "Sou D. Encontrei o responsável pela queda da rede. Era o cabo. Interroguei. Não disse uma palavra. Investigação encerrada.",
+    "Dだ。ネットワーク障害の犯人がわかった。ケーブルだ。尋問したが一言も話さなかった。捜査終了。"
+  ],
+  "D acaba de interrogar a un cable. Ese es oficialmente el peor chiste que he escuchado esta noche.": [
+    "D just interrogated a cable. Officially the worst joke I have heard tonight.",
+    "D acabou de interrogar um cabo. Oficialmente a pior piada que ouvi esta noite.",
+    "Dがケーブルを尋問したんだって。今夜聞いた中で、公式に最低のジョークです。"
+  ],
+  "D en línea. Entré en una red supuestamente impenetrable. La contraseña era impenetrable. Un trabajo exigente para el ego. Cambio y fuera.": [
+    "D on the line. I entered a supposedly impenetrable network. The password was impenetrable. A demanding job for the ego. Over and out.",
+    "D na linha. Entrei numa rede supostamente impenetrável. A senha era impenetrável. Trabalho exigente para o ego. Câmbio, desligo.",
+    "Dだ。鉄壁のはずのネットワークに侵入した。パスワードが鉄壁だった。自尊心には大仕事だったな。通信終了。"
+  ],
+  "Un aplauso para D, que ha derrotado al enemigo más peligroso: una contraseña escrita en una nota adhesiva.": [
+    "A round of applause for D, who defeated the most dangerous enemy: a password written on a sticky note.",
+    "Uma salva de palmas para D, que derrotou o inimigo mais perigoso: uma senha escrita num post-it.",
+    "Dに拍手。最強の敵、付箋に書いてあったパスワードを倒しました。"
+  ],
+  "Roman al habla. Rodé una película de suspense sobre una carpeta vacía. No pasa nada durante dos horas. La crítica dice que el archivo tiene profundidad. Corte. Cuelgo.": [
+    "Roman speaking. I shot a suspense film about an empty folder. Nothing happens for two hours. Critics say the file has depth. Cut. Hanging up.",
+    "Roman falando. Filmei um suspense sobre uma pasta vazia. Nada acontece por duas horas. A crítica diz que o arquivo tem profundidade. Corta. Desligando.",
+    "ロマンです。空のフォルダーを題材にサスペンスを撮りました。二時間何も起きません。批評家はファイルに深みがあると。カット。電話を切ります。"
+  ],
+  "Roman ha inventado el cine sin película. Me enfada muchísimo que eso pueda ganar un premio.": [
+    "Roman invented cinema without a movie. It really annoys me that this could win an award.",
+    "Roman inventou cinema sem filme. Me irrita muito que isso possa ganhar um prêmio.",
+    "ロマンが映画なしの映画を発明した。これで賞を取れそうなのが本当に腹立たしい。"
+  ],
+  "Soy Roman. Mi documental sobre una tostadora tiene un final quemado. La secuela está en producción, pero el protagonista exige mantequilla. Esto merece un primer plano.": [
+    "It is Roman. My toaster documentary has a burnt ending. The sequel is in production, but the star demands butter. This deserves a close-up.",
+    "Sou Roman. Meu documentário sobre uma torradeira tem um final queimado. A continuação está em produção, mas a estrela exige manteiga. Isso merece um close.",
+    "ロマンです。トースターのドキュメンタリーは焦げた結末でした。続編を制作中ですが主演がバターを要求しています。これはアップで撮らないと。"
+  ],
+  "Lo admito: pagaría por ver esa tostadora. Roman, como cobres la entrada en criptomonedas, te muerdo el objetivo.": [
+    "I admit it: I would pay to see that toaster. Roman, charge in crypto and I will bite your lens.",
+    "Admito: eu pagaria para ver essa torradeira. Roman, se cobrar em criptomoeda, eu mordo sua lente.",
+    "認めるよ。そのトースターならお金を払って見たい。ロマン、暗号資産で請求したらレンズにかみつくからね。"
+  ],
+  "Talia aquí. Le puse cromo a una cuchara. Ahora la sopa necesita mantenimiento y la cuchara me cobra suscripción. Gran avance tecnológico. Ya puedes colgar.": [
+    "Talia here. I chromed a spoon. Now the soup needs maintenance and the spoon charges a subscription. Technological progress. You can hang up now.",
+    "Talia aqui. Coloquei cromo numa colher. Agora a sopa precisa de manutenção e a colher cobra assinatura. Grande avanço tecnológico. Já pode desligar.",
+    "タリアよ。スプーンをクローム化したらスープに整備が必要になって、スプーンから月額料金を請求された。技術の進歩ね。もう切っていいわ。"
+  ],
+  "Talia ha logrado que hasta la sopa tenga gastos mensuales. Arasaka estará tomando notas, seguro.": [
+    "Talia managed to give even soup a monthly bill. Arasaka is surely taking notes.",
+    "Talia conseguiu fazer até a sopa ter gastos mensais. A Arasaka deve estar anotando.",
+    "タリアはスープまで月額制にしたんだ。アラサカがメモしてるに違いないね。"
+  ],
+  "Habla Talia. Mi nuevo brazo tiene tanta potencia que abrí un tarro y también una pequeña crisis diplomática. El pepinillo está bien. Yo estoy espectacular. Fin.": [
+    "This is Talia. My new arm is so powerful I opened a jar and a small diplomatic crisis. The pickle is fine. I look spectacular. End of call.",
+    "Talia falando. Meu braço novo é tão potente que abri um pote e uma pequena crise diplomática. O pepino está bem. Eu estou espetacular. Fim.",
+    "タリアよ。新しい腕が強力すぎて、瓶を開けたら小さな外交危機も開幕した。ピクルスは無事。私は最高。以上。"
+  ],
+  "Talia contra un tarro de pepinillos. Por fin una pelea con consecuencias geopolíticas. Me encanta este desastre.": [
+    "Talia versus a jar of pickles. Finally, a fight with geopolitical consequences. I love this disaster.",
+    "Talia contra um pote de pepinos. Finalmente uma luta com consequências geopolíticas. Adoro esse desastre.",
+    "タリア対ピクルスの瓶。ついに地政学的な影響のある戦いが始まった。この惨事、最高。"
+  ],
+  "Transmisión entrante desde Night City…": [
+    "Incoming transmission from Night City…",
+    "Transmissão recebida de Night City…",
+    "ナイトシティから着信…"
+  ],
+  "Simular asomo": [
+    "Simulate peek",
+    "Simular espiada",
+    "のぞく動作を試す"
+  ],
+  "Nombre en la despedida (opcional)": [
+    "Farewell name (optional)",
+    "Nome na despedida (opcional)",
+    "別れの言葉で呼ぶ名前（任意）"
+  ],
+  "Cuídate mucho, choom.": [
+    "Take care, choom.",
+    "Cuide-se bem, choom.",
+    "元気でね、チューム。"
+  ],
+  "Cuídate mucho.": [
+    "Take good care of yourself.",
+    "Cuide-se bem.",
+    "元気でね。"
+  ],
+  "Cuídate mucho, {nombre}.": [
+    "Take good care of yourself, {nombre}.",
+    "Cuide-se bem, {nombre}.",
+    "{nombre}、元気でね。"
+  ],
+  "Nos vemos.": [
+    "I'll see you around.",
+    "Até mais.",
+    "また会おうね。"
+  ],
+  "Nos vemos, choom.": [
+    "See you, choom.",
+    "Até mais, choom.",
+    "またね、チューム。"
   ]
 }

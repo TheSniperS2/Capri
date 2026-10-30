@@ -43,8 +43,10 @@ class CierreMensaje(PruebasTk):
             def deiconify(self):pass
             def lift(self,*a):pass
         with self.capri() as (c,_),patch('llamadas.tk.Toplevel',Oculta):
-            c.cfg['voz']=True;c.dialogo.mostrar('Una respuesta anterior.');c.llamar_capri();c.llamada_ui.rechazar()
-            c.voz.sonido_colgar.assert_not_called();self.assertNotEqual(c.dialogo.ventana.state(),'withdrawn')
+            c.cfg['voz']=True;c.dialogo.mostrar('Una respuesta anterior.');c.llamar_capri()
+            with patch.object(c.dialogo,'ocultar') as ocultar:
+                c.llamada_ui.rechazar();ocultar.assert_not_called()
+            c.voz.sonido_colgar.assert_not_called()
 
     def test_colgar_no_borra_una_respuesta_posterior(self):
         original=tk.Toplevel
@@ -53,7 +55,8 @@ class CierreMensaje(PruebasTk):
             def lift(self,*a):pass
         with self.capri() as (c,_),patch('llamadas.tk.Toplevel',Oculta),patch.object(c.voz,'hablar'):
             c.cfg['voz']=True;c.llamar_capri();c.llamada_ui.aceptar();c.revisar_interacciones()
-            c.dialogo.mostrar('Una respuesta nueva.');c.llamada_ui.terminar_voz()
-            self.assertNotEqual(c.dialogo.ventana.state(),'withdrawn')
+            c.dialogo.mostrar('Una respuesta nueva.')
+            with patch.object(c.dialogo,'ocultar') as ocultar:
+                c.llamada_ui.terminar_voz();ocultar.assert_not_called()
             self.assertEqual(c.dialogo.objetivo,'Una respuesta nueva.')
             c.voz.sonido_colgar.assert_called_once()

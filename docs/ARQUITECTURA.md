@@ -6,7 +6,7 @@ Capri separa la interfaz Tk, el trabajo de audio y las integraciones. El código
 | --- | --- | --- |
 | Aplicación | `app.py` | Estado de la sesión, eventos, cancelación y coordinación. |
 | Interfaz | `ajustes_ui.py`, `dialogos.py`, `entrada.py`, `menu_radial.py` | Ajustes, conversación, escritura y menú del personaje. |
-| Personaje | `companera.py`, `ventanas.py`, `travesuras.py`, `llamadas.py` | Física, apoyo sobre ventanas, anclajes, llamadas ocasionales y juegos opcionales. |
+| Personaje | `companera.py`, `ventanas.py`, `travesuras.py`, `llamadas.py`, `asomo.py`, `invitados.py` | Física, apoyo sobre ventanas, avisos sin activación, llamadas invitadas y forma curiosa temporal con seguimiento del cursor. |
 | Animación | `avatar.py`, `intro.py`, `despedida.py`, `sincronia.py` | Expresiones, transiciones, cierre y sincronización con voz. |
 | Idiomas | `idiomas.py`, `traducciones.json` | Catálogo de interfaz y comprobación del idioma de las respuestas. |
 | Conversación y órdenes | `core.py`, `intenciones.py`, `nombres.py` | Ollama, interpretación, contexto y nombres de aplicaciones. |

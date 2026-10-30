@@ -42,12 +42,11 @@ class LlamadasYFluidez(PruebasTk):
                 l.terminar_voz();self.assertTrue(l.cerrada)
         finally:root.destroy()
 
-    def test_boton_asomo_cierra_ajustes_y_no_activa_juego_automatico(self):
-        with self.capri() as (c,_),patch.object(c,'hacer_travesura') as hacer:
-            c.cfg['modo_visual']='personaje';c.companera.redimensionar(1);c.configurar()
-            c.simular_asomo();self.assertFalse(c.ajustes.winfo_exists())
-            c.root.after(140,c.root.quit);c.root.mainloop()
-            hacer.assert_called_once_with('asomar');self.assertFalse(c.cfg['asomos_automaticos'])
+    def test_asomo_automatico_no_ofrece_boton_de_prueba(self):
+        with self.capri() as (c,_):
+            c.configurar()
+            def textos(w):return [getattr(w,'texto','')]+[s for h in w.winfo_children() for s in textos(h)]
+            self.assertNotIn('Probar asomo',textos(c.ajustes));self.assertTrue(c.cfg['asomos_curiosos'])
 
     def test_apagado_deja_atender_eventos_y_final_solo_tras_animacion(self):
         root=tk.Tk();root.withdraw();original=tk.Toplevel

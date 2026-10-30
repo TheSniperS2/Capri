@@ -141,7 +141,7 @@ class Companera:
         self.y=b-self.alto;self.soporte=None;self.salto=None;self.velocidad=0.;self.ultimo=time.monotonic();self.proxima_accion=self.ultimo+5
 
     def refrescar(self,ahora):
-        if ahora>=self.revisar:self.ventanas=visibles();self.revisar=ahora+.7
+        if ahora>=self.revisar:self.ventanas=visibles(incluir_propias=True);self.revisar=ahora+.7
 
     def borde_libre(self,ventana,x):
         y=ventana['rect'][1]
@@ -187,6 +187,15 @@ class Companera:
         if destino:
             self.salto={'inicio':ahora,'x':self.x,'y':self.y,'destino':destino[:2],'id':v['id'],'izquierda':v['rect'][0],'lado':destino[2]}
 
+    def direccion_sentada(self,ventana=None,lado=None,x=None):
+        # Orientación corregida según la referencia real del usuario.
+        if lado not in ('izquierda','derecha') and ventana:
+            lado='izquierda' if (self.x if x is None else x)+self.ancho/2<=(ventana['rect'][0]+ventana['rect'][2])/2 else 'derecha'
+        return (-1 if lado=='izquierda' else 1) if lado in ('izquierda','derecha') else self.direccion
+
+    def orientar_sentada(self,ventana=None,lado=None):
+        self.direccion=self.direccion_sentada(ventana,lado)
+
     def elegir_viaje(self,ahora,evitar=None):
         l,t,r,b=area_trabajo();cx=self.x+self.ancho/2
         candidatos=[v for v in self.ventanas if v['id']!=evitar and t+self.alto*.64<v['rect'][1]<b-self.alto*.25
@@ -226,6 +235,7 @@ class Companera:
                     and self.borde_libre(v,cx)):
                 self.y=top-self.alto*.64;self.soporte=v['id'];self.soporte_dx=self.x-a
                 self.soporte_lado='libre';self.quieta_hasta=ahora+random.uniform(3,6)
+                self.orientar_sentada(v)
                 self.velocidad_caida=0.;self.estado='sentada';return
 
     def tick(self,pausa=False,pasear=True,ahora=None):
@@ -238,18 +248,21 @@ class Companera:
                 esquina=(max(l,min(r-self.ancho,v['rect'][0]+self.soporte_dx)),v['rect'][1]-self.alto*.64,'libre')
             else:esquina=self.esquina(v,self.soporte_lado) if v else None
             if v and esquina and v['rect'][1]>=t+self.alto*.64:
-                if abs(esquina[0]-self.x)+abs(esquina[1]-self.y)>3:
+                if not pausa and abs(esquina[0]-self.x)+abs(esquina[1]-self.y)>3:
                     self.soporte=None
                     self.salto={'inicio':ahora,'x':self.x,'y':self.y,'destino':esquina[:2],
                                 'id':v['id'],'izquierda':v['rect'][0],'lado':esquina[2]}
                     return
                 self.x=esquina[0];self.soporte_dx=self.x-v['rect'][0];self.soporte_lado=esquina[2]
                 self.y=v['rect'][1]-self.alto*.64;self.estado='sentada'
+                self.orientar_sentada(v,self.soporte_lado)
                 if not pausa and pasear and ahora>=self.quieta_hasta:
                     self.soporte=None;self.elegir_viaje(ahora,evitar=v['id'])
                 return
             self.soporte=None;self.gracia_fisica=0.;self.velocidad_caida=0.
-        if pausa:self.velocidad*=math.exp(-dt*10);self.estado='quieta';return
+        if pausa:
+            if self.salto:self.salto['inicio']=ahora
+            self.velocidad*=math.exp(-dt*10);self.estado='quieta';return
         if self.salto:
             s=self.salto;u=min(1,(ahora-s['inicio'])/.85);avance=u*u*(3-2*u)
             self.x=s['x']+(s['destino'][0]-s['x'])*avance
@@ -257,6 +270,7 @@ class Companera:
             self.estado='saltando'
             if u>=1:
                 self.soporte=s['id'];self.soporte_dx=s['destino'][0]-s['izquierda'];self.soporte_lado=s.get('lado');self.salto=None;self.quieta_hasta=ahora+random.uniform(5,9)
+                if self.soporte:self.orientar_sentada(next((v for v in self.ventanas if v['id']==self.soporte),None),self.soporte_lado)
                 self.gracia_fisica=0.;self.ancla=None;self.velocidad_caida=0.
             return
         if not pasear:self.estado='quieta';return

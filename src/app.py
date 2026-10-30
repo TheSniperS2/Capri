@@ -97,8 +97,13 @@ class Capri:
         self.cfg.setdefault('llamadas_capri',True);self.cfg.setdefault('asomos_automaticos',False);self.cfg.setdefault('bromas_ventanas',False)
         self.cfg.setdefault('intervalo_interacciones',15)
         self.llamada_ui=None;self.mensaje_llamada_pendiente=None;self.ventana_broma=None
+        self.llamada_aplazada=False
+        self.reaccion_pendiente=None
+        self.audio_reaccion=None
         from travesuras import Travesuras
         self.juego=Travesuras();self.juego.programar(self.cfg.get('intervalo_interacciones',15));self.asomo=None
+        self.cfg.setdefault('asomos_curiosos',True)
+        self.ultima_interaccion=time.monotonic();self.proximo_asomo=self.ultima_interaccion+random.uniform(180,360)
         self.escala_avatar=limitar_escala(self.cfg.get('escala_avatar',1))
         self.intro_activa=bool(hotkeys and self.cfg.get('intro_inicio',True));self.inicio_intro=time.monotonic()
         self.micro.modelo_whisper=self.cfg.get('modelo_whisper','base')
@@ -209,11 +214,22 @@ class Capri:
             except (OSError, ValueError): pass
 
     def _inicio_arrastre(self, e):
+        self.ultima_interaccion=time.monotonic()
+        if self.asomo and self.asomo.get('curioso'):
+            self.drag_asomo=(e.x_root,e.y_root);self.drag=None;return
         if self.es_personaje() and not self.intro_activa:
             self.companera.salto=None;self.companera.soporte=None;self.companera.ancla=None
         self.drag = (e.x_root, e.y_root, self.root.winfo_x(), self.root.winfo_y(), time.monotonic())
 
     def _arrastrar(self, e):
+        inicio=getattr(self,'drag_asomo',None)
+        if inicio:
+            if abs(e.x_root-inicio[0])+abs(e.y_root-inicio[1])<12:return
+            self.terminar_asomo();self.drag_asomo=None
+            nx=max(0,e.x_root-self.root.winfo_width()//2);ny=max(0,e.y_root-self.root.winfo_height()//2)
+            self.root.geometry(f'+{nx}+{ny}')
+            if self.es_personaje():self.companera.soporte=None;self.companera.ancla=None
+            self.drag=(inicio[0],inicio[1],nx-e.x_root+inicio[0],ny-e.y_root+inicio[1],time.monotonic())
         if not self.drag: return
         x,y,wx,wy,_ = self.drag
         nx = min(max(0, wx + e.x_root - x), max(0,self.root.winfo_screenwidth()-self.root.winfo_width()))
@@ -221,8 +237,12 @@ class Capri:
         self.root.geometry(f'+{nx}+{ny}')
         self.dialogo.posicionar((nx,ny,self.root.winfo_width(),self.root.winfo_height()))
         if self.es_personaje():self.companera.x=nx;self.companera.y=ny
+        if self.cfg.get('efecto_glitch',True) and self.cfg.get('animaciones',True):
+            senal=self.companera if self.es_personaje() else self.avatar
+            senal.glitch_hasta=max(senal.glitch_hasta,time.monotonic()+.14)
 
     def _fin_arrastre(self, e):
+        if getattr(self,'drag_asomo',None):self.drag_asomo=None;self.drag=None;return
         if self.drag and abs(e.x_root-self.drag[0])+abs(e.y_root-self.drag[1])<6:
             if not self.es_personaje() and e.y<42*self.escala_avatar and e.x>self.canvas.winfo_width()-36*self.escala_avatar:self.menu(e)
             else:self.entrada_compacta.dar_foco()
@@ -246,21 +266,23 @@ class Capri:
         else:self.dialogo.abrir()
 
     def abrir_menu_radial(self,e):
+        self.ultima_interaccion=time.monotonic()
+        if self.asomo and self.asomo.get('curioso'):self.terminar_asomo()
         from menu_radial import MenuRadial
         self.cerrar_radial()
         estilos=[(nombre,lambda valor=valor:self.guardar('halo_personaje',valor)) for nombre,valor in
                  [('Violeta','violeta'),('Neón','neon'),('Hielo','hielo'),('Rojo','rojo'),('Sin sombra','ninguno')]]
         tamanos=[(f'{n}%',lambda n=n:self.guardar('escala_avatar',n/100)) for n in (75,100,125,150)]
-        juegos=[('Desactivar asomos automáticos' if self.cfg.get('asomos_automaticos') else 'Activar asomos automáticos',lambda:self.guardar('asomos_automaticos',not self.cfg.get('asomos_automaticos'))),
+        juegos=[('Desactivar asomos automáticos' if self.cfg.get('asomos_curiosos') else 'Activar asomos automáticos',lambda:self.guardar('asomos_curiosos',not self.cfg.get('asomos_curiosos'))),
                 ('Desactivar bromas de ventanas' if self.cfg.get('bromas_ventanas') else 'Activar bromas de ventanas',lambda:self.guardar('bromas_ventanas',not self.cfg.get('bromas_ventanas'))),
-                ('Probar asomo',self.simular_asomo),('Simular llamada',self.llamar_capri)]
+                ('Simular asomo',self.simular_asomo),('Simular llamada',self.llamar_capri)]
         voz=[('Hablar',self.hablar),('Activar voz' if not self.cfg.get('voz') else 'Silenciar voz',lambda:self.guardar('voz',not self.cfg.get('voz')))]
         lol=[(etiqueta,lambda orden=orden:self.enviar(orden)) for etiqueta,orden in
              [('Buscar partida','busca partida en lol'),('Buscar y aceptar','busca partida en lol y acepta por mi'),
               ('Aceptar partida','acepta partida en lol'),('Cancelar búsqueda','cancela la cola en lol')]]
         lol.insert(0,('Desactivar aceptación automática' if self.cfg.get('lol_aceptar_automatico',False) else 'Activar aceptación automática',
                       lambda:self.enviar('no aceptes mas partidas' if self.cfg.get('lol_aceptar_automatico',False) else 'activa la aceptacion automatica del lol')))
-        mas=[('Simular llamada',self.llamar_capri),('YouTube',self.conectar_opera),('League of Legends',lol),('Cerrar Capri',self.cerrar)]
+        mas=[('Simular llamada',self.llamar_capri),('Simular asomo',self.simular_asomo),('YouTube',self.conectar_opera),('League of Legends',lol),('Cerrar Capri',self.cerrar)]
         opciones=[('Ajustes',self.configurar),('Chat',self.abrir_chat),('Juegos' if self.es_personaje() else 'Escribir',juegos if self.es_personaje() else self.alternar_escritura),('Aspecto',self.abrir_aspectos),
                   ('Modo pantalla' if self.es_personaje() else 'Modo personaje',lambda:self.guardar('modo_visual','pantalla' if self.es_personaje() else 'personaje')),('Tamaño',tamanos),('Voz',voz),('Más',mas)]
         self.radial=MenuRadial(self.root,e.x_root,e.y_root,opciones,terminar=lambda:setattr(self,'radial',None),
@@ -341,11 +363,12 @@ class Capri:
 
     def dibujar_personaje(self,mover=True):
         p=self.companera
-        if self.asomo and time.monotonic()>=self.asomo['hasta'] and not self.transito and not self.escuchando and not self.ocupada:
+        en_llamada=bool(self.llamada_ui and not self.llamada_ui.cerrada)
+        if self.asomo and time.monotonic()>=self.asomo['hasta'] and not self.transito and not self.escuchando and not self.ocupada and not en_llamada:
             destino=self.asomo['volver'];self.asomo=None;self.salto_juego(destino);return
         if mover:p.tick(pausa=bool(getattr(self,'radial',None) or self.asomo or self.drag or self.escuchando or self.hablando or self.ocupada or self.escribiendo() or self.control_pc.pendiente or (self.llamada_ui and not self.llamada_ui.cerrada)),
                         pasear=self.cfg.get('pasear_personaje',True))
-        if mover and p.salto:
+        if mover and p.salto and not en_llamada:
             salto=p.salto;p.salto=None;self.iniciar_transito('salto',salto=salto);self.dibujar_transito();return
         ancho=p.ancho;extra=0
         self.entrada_compacta.pack_forget()
@@ -364,16 +387,25 @@ class Capri:
         self.juego.programar(self.cfg.get('intervalo_interacciones',15))
         if self.llamada_ui and not self.llamada_ui.cerrada:self.llamada_ui.rechazar()
         if self.asomo:
-            self.asomo=None;self.companera.iniciar()
+            if self.asomo.get('curioso'):self.terminar_asomo()
+            else:self.asomo=None;self.companera.iniciar()
         if self.es_personaje():
             self.ocultar_entrada_personaje();self.entrada_compacta.pack_forget()
 
-    def juego_ocupada(self):
-        return bool(getattr(self,'radial',None) or self.transito or self.intro_activa or self.asomo or self.ocupada or self.escuchando or self.hablando or self.voz_ticket is not None or self.drag or self.escribiendo() or self.control_pc.pendiente or (self.ajustes and self.ajustes.winfo_exists()) or (self.llamada_ui and not self.llamada_ui.cerrada) or (self.apagado_ui and not self.apagado_ui.cerrada))
+    def juego_ocupada(self,ignorar_asomo=False):
+        asomo=self.asomo and not (ignorar_asomo and self.asomo.get('curioso'))
+        return bool(getattr(self,'radial',None) or self.transito or self.intro_activa or asomo or self.ocupada or self.escuchando or self.hablando or self.voz_ticket is not None or self.drag or self.escribiendo() or self.control_pc.pendiente or (self.ajustes and self.ajustes.winfo_exists()) or (self.llamada_ui and not self.llamada_ui.cerrada) or (self.apagado_ui and not self.apagado_ui.cerrada))
 
-    def decir_juego(self,texto):
-        self.dialogo.usuario='';self.poner_chat('Capri',texto,mostrar=not self.puede_narrar())
+    def decir_juego(self,texto,autor='Capri'):
+        invitado=bool(self.llamada_ui and not self.llamada_ui.cerrada and getattr(self.llamada_ui,'invitado',None))
+        self.dialogo.usuario='';self.dialogo.autor=autor.upper();self.poner_chat(autor,texto,mostrar=not self.puede_narrar() and not invitado)
+        if invitado and not self.puede_narrar():
+            self.dialogo.ocultar();self.llamada_ui.preparar_voz(texto);self.llamada_ui.revelar(texto,len(texto))
         if self.puede_narrar():self.narrar_respuesta(self.peticion,texto,final=True)
+
+    def descartar_reaccion(self):
+        self.reaccion_pendiente=None
+        if self.audio_reaccion:self.audio_reaccion.descartar();self.audio_reaccion=None
 
     def salto_juego(self,destino=None):
         from ventanas import area_trabajo
@@ -389,13 +421,36 @@ class Capri:
         try:restaurar_travesura(ventana,activar)
         except OSError:pass
 
-    def llamar_capri(self,tipo='llamada'):
+    def llamar_capri(self,tipo='llamada',invitado='azar'):
+        if self.cerrado or self.saliendo:return
         if self.llamada_ui and not self.llamada_ui.cerrada:return
+        if self.asomo and self.asomo.get('curioso'):self.terminar_asomo()
+        from escritorio import proteger_foco
+        if proteger_foco():
+            if not self.llamada_aplazada:
+                self.llamada_aplazada=True
+                def reintentar():
+                    self.llamada_aplazada=False;self.llamar_capri(tipo,invitado)
+                self.root.after(2000,reintentar)
+            return
+        if self.transito:
+            self.root.after(80,lambda:self.llamar_capri(tipo,invitado));return
         from llamadas import LlamadaCapri
+        self.descartar_reaccion()
         idioma=codigo_idioma(self.cfg.get('idioma'))
-        broma=self.juego.frase(tipo);mascara=self.juego.disfraz(broma)
-        mensaje=ui(self.juego.frase('saludo'),idioma)+' '+ui(broma,idioma)
+        from invitados import elegir,guion,NOMBRES
+        invitado=elegir() if invitado=='azar' and tipo=='llamada' else invitado
+        if invitado not in NOMBRES:invitado=None
+        comentario=None;mascara=None
+        if invitado:
+            broma,comentario=guion(invitado);mensaje=ui(broma,idioma)
+        else:
+            broma=self.juego.frase(tipo);mascara=self.juego.disfraz(broma)
+            mensaje=ui(self.juego.frase('saludo'),idioma)+' '+ui(broma,idioma)
+        if comentario and self.puede_narrar():
+            self.audio_reaccion=self.voz.preparar(ui(comentario,idioma),self.cfg.get('voz_natural',True),perfil=self.cfg.get('voz_perfil','capri'),velocidad=self.cfg.get('velocidad_voz',1.),volumen=self.cfg.get('volumen_voz',100))
         def contestar():
+            self.ultima_interaccion=time.monotonic()
             self.restaurar_broma();self.mensaje_llamada_pendiente=mensaje
         def terminar(activar):
             self.restaurar_broma(activar);self.mensaje_llamada_pendiente=None
@@ -403,27 +458,42 @@ class Capri:
             if ticket is not None and ticket==self.voz_ticket:
                 self.voz.parar();self.voz_ticket=None;self.narracion_activa=False
             if self.llamada_ui and self.llamada_ui.conectada:
-                if self.dialogo.objetivo==mensaje:self.dialogo.ocultar()
+                self.dialogo.retirar(mensaje)
                 if self.cfg.get('voz'):self.voz.sonido_colgar(self.cfg.get('volumen_voz',100))
+                if invitado and comentario and self.llamada_ui.completa and not self.saliendo and not self.cerrado:
+                    self.reaccion_pendiente=(time.monotonic()+.24,ui(comentario,idioma))
+                else:self.descartar_reaccion()
         self.juego.programar(self.cfg.get('intervalo_interacciones',15))
         self.llamada_ui=LlamadaCapri(self.root,contestar,terminar,
                                      restaurar=self.restaurar_broma if self.ventana_broma else None,
                                      senal=lambda:self.voz.bandas_salida,
-                                     ocupada=lambda:bool(self.mensaje_llamada_pendiente or self.ocupada or self.voz_ticket is not None or self.hablando or self.escuchando))
-        self.llamada_ui.mascara=mascara
+                                     ocupada=lambda:bool(self.mensaje_llamada_pendiente or self.ocupada or self.voz_ticket is not None or self.hablando or self.escuchando),
+                                     nombre=NOMBRES.get(invitado,'CAPRI'))
+        self.llamada_ui.mascara=mascara;self.llamada_ui.invitado=invitado
 
     def revisar_interacciones(self):
+        if self.cerrado or self.saliendo:return
         voz_ocupada=self.ocupada or self.escuchando or self.hablando or self.voz_ticket is not None or self.transito or self.intro_activa or self.escribiendo() or (self.apagado_ui and not self.apagado_ui.cerrada)
         if self.mensaje_llamada_pendiente and not voz_ocupada:
             mensaje=self.mensaje_llamada_pendiente;self.mensaje_llamada_pendiente=None
             self.peticion+=1;self.respuesta_stop=threading.Event();self.narracion_activa=False
-            self.ia.historia.append({'role':'assistant','content':mensaje})
-            self.interprete.registrar('[Llamada de Capri]',None,mensaje);self.decir_juego(mensaje)
+            autor=self.llamada_ui.nombre.title() if self.llamada_ui else 'Capri'
+            self.ia.historia.append({'role':'assistant','content':mensaje if autor=='Capri' else f'[{autor} // llamada] {mensaje}'})
+            self.interprete.registrar('[Llamada de '+autor+']',None,mensaje);self.decir_juego(mensaje,autor)
             if not self.puede_narrar() and self.llamada_ui and not self.llamada_ui.cerrada:
                 self.llamada_ui.fin_lectura=time.monotonic()+max(5,min(18,len(mensaje)/24))
+        if self.reaccion_pendiente and not voz_ocupada and time.monotonic()>=self.reaccion_pendiente[0]:
+            from escritorio import proteger_foco
+            if not proteger_foco():
+                _,comentario=self.reaccion_pendiente;self.reaccion_pendiente=None
+                self.peticion+=1;self.respuesta_stop=threading.Event();self.narracion_activa=False
+                self.ia.historia.append({'role':'assistant','content':comentario});self.decir_juego(comentario)
         globo=bool(self.dialogo.ventana and self.dialogo.ventana.winfo_exists() and self.dialogo.ventana.state()!='withdrawn')
-        evento=self.juego.tick(self.cfg.get('llamadas_capri',True),self.juego_ocupada() or globo,
-                                asomos=self.cfg.get('asomos_automaticos',False),minimizar=self.cfg.get('bromas_ventanas',False),
+        if self.cfg.get('asomos_curiosos') and time.monotonic()>=self.proximo_asomo and time.monotonic()-self.ultima_interaccion>=120 and not self.juego_ocupada() and not globo:
+            from escritorio import proteger_foco
+            if not proteger_foco():self.iniciar_asomo()
+        evento=self.juego.tick(self.cfg.get('llamadas_capri',True),self.juego_ocupada(ignorar_asomo=True) or globo,
+                                asomos=False,minimizar=self.cfg.get('bromas_ventanas',False),
                                 personaje=self.es_personaje(),minutos=self.cfg.get('intervalo_interacciones',15))
         if evento=='llamada':self.llamar_capri()
         elif evento:self.hacer_travesura(evento)
@@ -437,23 +507,34 @@ class Capri:
             ventana=activa()
             if not ventana or not minimizar_travesura(ventana):return
             self.ventana_broma=ventana;self.llamar_capri('minimizar')
-        elif tipo=='asomar' and self.es_personaje():
-            from ventanas import area_trabajo
-            p=self.companera;l,t,r,b=area_trabajo();volver=(l+8 if random.choice((True,False)) else r-p.ancho-8,b-p.alto)
-            self.asomo={'hasta':time.monotonic()+random.uniform(9,15),'volver':volver}
-            superior=random.choice((True,False)) and volver[0]>(l+r)/2
-            self.salto_juego((volver[0],t+8 if superior else b-p.alto*.48))
-            self.llamar_capri('asomar')
+        elif tipo=='asomar':self.iniciar_asomo()
+
+    def iniciar_asomo(self):
+        if self.asomo or self.juego_ocupada():return
+        from escritorio import proteger_foco
+        if proteger_foco():return
+        rutas=[b/'assets/capri-asomo-fiel-v3.png' for b in (BASE,BASE.parent)]
+        ruta=next((r for r in rutas if r.exists()),None)
+        if not ruta:return
+        from asomo import AsomoCurioso
+        self.dialogo.ocultar();self.entrada_compacta.pack_forget()
+        curioso=AsomoCurioso(self.root,self.canvas,ruta)
+        self.asomo={'curioso':curioso,'hasta':curioso.hasta}
+
+    def terminar_asomo(self):
+        if not self.asomo:return
+        curioso=self.asomo.get('curioso');self.asomo=None
+        self.proximo_asomo=time.monotonic()+random.uniform(180,360)
+        if curioso:
+            curioso.cerrar()
+            if not self.es_personaje():self.entrada_compacta.pack(fill='x')
+            self.aplicar_escala(inicial=False)
 
     def simular_asomo(self):
         self.interrumpir()
         if self.ajustes and self.ajustes.winfo_exists():self.ajustes.destroy()
-        if not self.es_personaje():self.guardar('modo_visual','personaje')
-        def probar():
-            if self.cerrado or self.saliendo:return
-            if self.transito:self.root.after(80,probar)
-            else:self.hacer_travesura('asomar')
-        self.root.after(80,probar)
+        if self.transito:self.finalizar_transito()
+        self.iniciar_asomo()
 
     def iniciar_transito(self,tipo,anterior=None,salto=None):
         self.cerrar_radial()
@@ -474,7 +555,11 @@ class Capri:
         if tipo=='salto':
             fin=(salto['destino'][0]+p.ancho/2,salto['destino'][1]+p.alto/2)
             izquierda=salto.get('lado')=='izquierda' or (not salto.get('lado') and salto['destino'][0]<salto['x'])
-            destino_fotos=p.espejos if izquierda else p.fotos
+            direccion=-1 if izquierda else 1
+            if salto.get('id'):
+                ventana=next((v for v in p.ventanas if v['id']==salto['id']),None)
+                direccion=p.direccion_sentada(ventana,salto.get('lado'),salto['destino'][0])
+            destino_fotos=p.espejos if direccion<0 else p.fotos
             imagen=destino_fotos[3 if salto.get('id') else 0]
         elif self.es_personaje():
             from ventanas import area_trabajo
@@ -529,6 +614,9 @@ class Capri:
             salto=t['salto'];p=self.companera;p.x,p.y=salto['destino'];p.soporte=salto['id'] or None
             p.soporte_dx=p.x-salto.get('izquierda',p.x);p.soporte_lado=salto.get('lado')
             p.direccion=-1 if p.soporte_lado=='izquierda' or (not p.soporte_lado and p.x<salto['x']) else 1;p.quieta_hasta=time.monotonic()+random.uniform(5,9)
+            if p.soporte:
+                ventana=next((v for v in p.ventanas if v['id']==p.soporte),None)
+                p.orientar_sentada(ventana,p.soporte_lado)
             p.estado='sentada' if p.soporte else 'quieta';p.ultimo=time.monotonic()
             p.gracia_fisica=0.;p.proxima_accion=p.ultimo+random.uniform(6,11)
             self.aplicar_escala(inicial=False)
@@ -668,6 +756,10 @@ class Capri:
         if self.cerrado or self.saliendo: return
         if self.apagado_ui and not self.apagado_ui.cerrada:
             self.root.after(100,self.animar);return
+        if self.asomo and self.asomo.get('curioso'):
+            from escritorio import proteger_foco
+            if proteger_foco() or not self.asomo['curioso'].dibujar():self.terminar_asomo()
+            self.root.after(33,self.animar);return
         self.entrada_compacta.activacion=bool(self.cfg.get('activacion_voz'))
         inicio_frame=time.perf_counter();self.actualizar_indicador_voz()
         if self.transito and self.dibujar_transito():
@@ -775,7 +867,9 @@ class Capri:
 
     def poner_chat(self, autor, texto,mostrar=True):
         if autor=='Capri':texto=ui(texto,self.cfg.get('idioma'))
-        if autor=='Capri' and mostrar:self.dialogo.mostrar(texto)
+        if autor!='Tú':
+            self.dialogo.autor=autor.upper()
+            if mostrar:self.dialogo.mostrar(texto)
         self.historial.append((autor,texto))
         self.pintar_historial()
 
@@ -784,7 +878,7 @@ class Capri:
         self.chat.configure(state='normal')
         self.chat.delete('1.0','end')
         for i,(autor,texto) in enumerate(self.historial):
-            if autor=='Capri' and i==len(self.historial)-1 and self.voz_ticket==self.peticion:
+            if autor!='Tú' and i==len(self.historial)-1 and self.voz_ticket==self.peticion:
                 texto=self.dialogo.visible
             if not texto.strip():texto=texto_idioma('preparando',self.cfg.get('idioma'))
             self.chat.insert('end',(texto_idioma('tu',self.cfg.get('idioma')) if autor=='Tú' else autor.upper())+' //\n','yo' if autor=='Tú' else 'capri')
@@ -810,6 +904,8 @@ class Capri:
         self.enviar(texto)
 
     def enviar(self, texto,origen='texto'):
+        self.ultima_interaccion=time.monotonic()
+        if self.asomo and self.asomo.get('curioso'):self.terminar_asomo()
         if self.apagado_ui and not self.apagado_ui.cerrada:
             from core import normalizar
             if normalizar(texto).strip(' .!?¿¡') in ('cancelar','cancela el apagado','cancelar el apagado','no apagues','no lo hagas'):
@@ -833,7 +929,7 @@ class Capri:
             if juego in ('asomate','asomate por una esquina','haz una travesura'):
                 self.control_pc.cancelar();self.root.after(80,lambda:self.hacer_travesura('asomar' if juego.startswith('asomate') else None));return
             if juego in ('para de jugar','deja de jugar','basta de travesuras'):
-                self.guardar('asomos_automaticos',False);self.guardar('bromas_ventanas',False);self.interrumpir();self.decir_juego('Listo, choom. Me porto bien. Por ahora.');return
+                self.guardar('asomos_curiosos',False);self.guardar('bromas_ventanas',False);self.interrumpir();self.decir_juego('Listo, choom. Me porto bien. Por ahora.');return
         if self.cfg.get('control_ampliado'):
             from core import normalizar,Orden
             if normalizar(texto).strip(' .!¡¿?') in ('cancela el apagado','cancelar el apagado','cancela apagado'):
@@ -938,6 +1034,8 @@ class Capri:
             if self.panel: self.subtitulo.set('El modelo local está tardando más de lo previsto.')
 
     def hablar(self):
+        self.ultima_interaccion=time.monotonic()
+        if self.asomo and self.asomo.get('curioso'):self.terminar_asomo()
         if hasattr(self,'panel_prueba') and not self.panel_prueba.cerrado:self.panel_prueba.stop.set()
         if self.escuchando:
             if self.capturando_activacion:self.activacion_fin.set()
@@ -996,6 +1094,8 @@ class Capri:
         self.activacion_hilo.start()
 
     def parar(self,preservar_activacion=False):
+        self.descartar_reaccion()
+        if self.asomo and self.asomo.get('curioso'):self.terminar_asomo()
         llamada=getattr(self,'llamada_ui',None)
         if llamada and llamada.conectada and not llamada.cerrada:llamada.terminar_voz()
         self.cerrar_radial()
@@ -1026,6 +1126,14 @@ class Capri:
             except queue.Empty:break
             if self.saliendo:
                 if tipo=='micro':self.cerrar_inmediato();return
+                if tipo=='voz' and isinstance(valor,tuple) and valor[0]==getattr(self,'salida_generacion',None):
+                    dato=valor[1]
+                    if dato is True:self.salida_voz_empezada=True;self.salida_boca_activa=True
+                    elif dato is False and getattr(self,'salida_voz_empezada',False):
+                        self.salida_voz_terminada=True;self.salida_boca_activa=False;self.salida_sonrisa_hasta=time.monotonic()+.3
+                    elif isinstance(dato,tuple) and dato[0]=='avance_voz':
+                        if len(dato[1])>2:self.salida_boca_activa=dato[1][2]
+                    elif isinstance(dato,str):self.salida_voz_terminada=True
                 continue
             if tipo=='activacion_lista':
                 if valor!=self.activacion_ticket:continue
@@ -1082,12 +1190,17 @@ class Capri:
                 if self.escuchando:continue
                 if isinstance(valor,tuple) and valor[0]=='avance_voz':
                     if self.voz_ticket==self.peticion:
-                        datos=valor[1];self.dialogo.revelar(*datos[:2])
+                        datos=valor[1]
+                        llamada=self.llamada_ui
+                        if llamada and not llamada.cerrada and llamada.conectada and getattr(llamada,'invitado',None):llamada.revelar(*datos[:2])
+                        else:self.dialogo.revelar(*datos[:2])
                         if len(datos)>2:self.boca_activa=datos[2]
+                        if self.llamada_ui and not self.llamada_ui.cerrada and getattr(self.llamada_ui,'invitado',None):self.boca_activa=False
                         self.pintar_historial()
                     continue
                 if isinstance(valor,bool):
                     anterior=self.hablando;self.hablando=valor;self.boca_activa=valor
+                    if self.llamada_ui and not self.llamada_ui.cerrada and getattr(self.llamada_ui,'invitado',None):self.boca_activa=False
                     self.estado='Hablando…' if valor else ('Respondiendo…' if self.ocupada else 'Lista para ti')
                     if valor and self.voz_ticket==self.peticion:self.narracion_activa=True
                     elif not valor and self.narracion_activa:
@@ -1095,7 +1208,7 @@ class Capri:
                         fin_llamada=bool(llamada and not llamada.cerrada and llamada.conectada and getattr(llamada,'ticket_voz',None)==self.voz_ticket)
                         self.dialogo.terminar_voz();self.narracion_activa=False;self.voz_ticket=None
                         self.pintar_historial()
-                        if fin_llamada:llamada.terminar_voz()
+                        if fin_llamada:llamada.terminar_voz(completa=True)
                     if anterior and not valor:self.avatar.sonreir()
                 else:
                     self.voz_ticket=None;self.estado=valor[:37];self.poner_chat('Capri',valor)
@@ -1171,20 +1284,29 @@ class Capri:
         from voz import texto_para_voz
         if not texto_para_voz(texto):
             self.dialogo.mostrar(texto);return
-        self.voz_ticket=ticket;self.narracion_activa=False;self.dialogo.preparar_voz(texto)
+        self.voz_ticket=ticket;self.narracion_activa=False
+        llamada=self.llamada_ui
+        if llamada and not llamada.cerrada and llamada.conectada and getattr(llamada,'invitado',None):
+            self.dialogo.ocultar();llamada.preparar_voz(texto)
+        else:self.dialogo.preparar_voz(texto)
         self.estado='Preparando voz…'
         canal={}
         llamada=self.llamada_ui
         if llamada and not llamada.cerrada and llamada.conectada:
             canal={'efecto':'llamada' if getattr(llamada,'audio_iniciado',False) else 'llamada_inicio'}
             if getattr(llamada,'mascara',None):canal['mascara']=llamada.mascara
+            if getattr(llamada,'invitado',None):canal['invitado']=llamada.invitado
             llamada.audio_iniciado=True;llamada.ticket_voz=ticket
+        elif self.audio_reaccion:
+            canal['preparado']=self.audio_reaccion;self.audio_reaccion=None
         self.voz.hablar(texto,self.cfg.get('voz_natural',True),perfil=self.cfg.get('voz_perfil','capri'),velocidad=self.cfg.get('velocidad_voz',1.0),volumen=self.cfg.get('volumen_voz',100),**canal)
         self.pintar_historial()
 
     def puede_narrar(self):return bool(self.cfg.get('voz')) and normalizar_volumen(self.cfg.get('volumen_voz',100))>0
 
     def configurar(self):
+        self.ultima_interaccion=time.monotonic()
+        if self.asomo and self.asomo.get('curioso'):self.terminar_asomo()
         self.finalizar_intro()
         self.detener_activacion()
         if self.ajustes and self.ajustes.winfo_exists():self.ajustes.lift();return
@@ -1217,7 +1339,7 @@ class Capri:
         paseo=tk.BooleanVar(value=self.cfg.get('pasear_personaje',True))
         InterruptorCyber(f,text='Teletransportarse, explorar ventanas y sujetarse',variable=paseo,command=lambda:self.guardar('pasear_personaje',paseo.get()),
                        bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,font=('Chakra Petch',10)).pack(anchor='w')
-        for clave,etiqueta in (('llamadas_capri','Llamadas ocasionales de Capri'),('asomos_automaticos','Asomarse desde una esquina de vez en cuando'),('bromas_ventanas','Permitir bromas que minimizan la ventana activa')):
+        for clave,etiqueta in (('llamadas_capri','Llamadas ocasionales de Capri'),('asomos_curiosos','Asomarse desde una esquina de vez en cuando'),('bromas_ventanas','Permitir bromas que minimizan la ventana activa')):
             var=tk.BooleanVar(value=self.cfg.get(clave,False))
             InterruptorCyber(f,text=etiqueta,variable=var,command=lambda k=clave,v=var:self.guardar(k,v.get()),bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,font=('Chakra Petch',10)).pack(anchor='w',pady=2)
         tk.Label(f,text='Intervalo de interacciones · minutos',bg=BG,fg=GREEN,font=('Chakra Petch',10,'bold')).pack(anchor='w',pady=(8,0))
@@ -1225,7 +1347,7 @@ class Capri:
         frecuencia.set(self.cfg.get('intervalo_interacciones',15));frecuencia.pack(fill='x')
         frecuencia.bind('<ButtonRelease-1>',lambda e:self.guardar('intervalo_interacciones',int(frecuencia.get())))
         self.boton(f,'Simular llamada',self.llamar_capri).pack(anchor='w',pady=(6,6))
-        self.boton(f,'Probar asomo',self.simular_asomo).pack(anchor='w',pady=(0,6))
+        self.boton(f,'Simular asomo',self.simular_asomo).pack(anchor='w',pady=(0,6))
         self.boton(f,'Ver aspectos de Capri',self.abrir_aspectos).pack(anchor='w',pady=(8,12))
         f=permisos
         control=tk.BooleanVar(value=self.cfg.get('control_ampliado',False))
@@ -1424,6 +1546,7 @@ class Capri:
         self.cerrar()
 
     def guardar(self,k,v):
+        if k=='modo_visual' and self.asomo and self.asomo.get('curioso'):self.terminar_asomo()
         if k=='intervalo_interacciones':v=max(3,min(60,int(float(v))))
         if k=='voz_acento':
             from voz import ACENTOS_VOZ
@@ -1436,6 +1559,9 @@ class Capri:
         if k=='escala_avatar':v=limitar_escala(v)
         anterior=self.cfg.get(k)
         self.cfg[k]=v
+        if k=='asomos_curiosos':
+            self.proximo_asomo=time.monotonic()+random.uniform(180,360)
+            if not v:self.terminar_asomo()
         if k in ('llamadas_capri','asomos_automaticos','bromas_ventanas','intervalo_interacciones'):self.juego.programar(self.cfg.get('intervalo_interacciones',15))
         if k=='bromas_ventanas' and not v:self.restaurar_broma(activar=False)
         if k=='lol_aceptar_automatico':
@@ -1545,12 +1671,15 @@ class Capri:
         actualizar()
 
     def cerrar(self):
+        if self.asomo and self.asomo.get('curioso'):self.terminar_asomo()
         if self.animacion_cierre and self.cfg.get('animaciones',True) and not self.saliendo:
             self.iniciar_despedida();return
         self.cerrar_inmediato()
 
     def iniciar_despedida(self):
         from despedida import Despedida
+        self.descartar_reaccion()
+        if self.llamada_ui and not self.llamada_ui.cerrada:self.llamada_ui.cerrar()
         self.saliendo=True;self.cerrar_radial();self.dialogo.ocultar();self.ocultar_entrada_personaje()
         self.actualizar_indicador_voz()
         self.respuesta_stop.set();self.micro_stop.set();self.detener_activacion();self.voz.parar()
@@ -1562,21 +1691,76 @@ class Capri:
             fotos=self.companera.fotos if self.es_personaje() else self.avatar.fotos
             if fotos:imagen=fotos[0]
         sw=self.root.winfo_screenwidth();sh=self.root.winfo_screenheight()
-        self.salida=Despedida(sw,sh,origen,imagen);self.inicio_salida=time.monotonic()
+        self.salida=Despedida(sw,sh,origen,imagen)
+        self.salida_rostro=None;self.salida_camara=None;self.salida_traslado=None
+        ruta=next((b/'assets/capri-despedida-expresiones-v4.png' for b in (BASE,BASE.parent) if (b/'assets/capri-despedida-expresiones-v4.png').exists()),None)
+        if ruta:
+            from despedida_camara import GrabacionDespedida
+            from intro import TrasladoTeselas
+            self.salida_camara=GrabacionDespedida(ruta,sw,sh)
+            self.salida_rostro=self.salida_camara.foto
+            fuente=ImageTk.getimage(imagen).convert('RGBA') if imagen is not None else self.avatar.vistas[0]
+            self.salida_traslado=TrasladoTeselas(fuente,self.salida_camara.imagen,origen,self.salida_camara.centro,tamanos_propios=True)
+            self.salida=Despedida(sw,sh,self.salida_camara.centro,self.salida_rostro)
+        self.salida_audio=None;self.salida_generacion=None;self.salida_voz_empezada=False;self.salida_voz_terminada=False;self.salida_reanudar=None
+        self.frase_despedida=ui('Cuídate mucho, choom.',self.cfg.get('idioma'))
+        self.salida_velocidad=self.cfg.get('velocidad_voz',1.)
+        self.salida_perfil=self.cfg.get('voz_perfil','capri');self.salida_natural=self.cfg.get('voz_natural',True)
+        self.salida_boca_activa=False;self.salida_sonrisa_hasta=0
+        if self.puede_narrar():
+            self.salida_audio=self.voz.preparar(self.frase_despedida,self.salida_natural,perfil=self.salida_perfil,velocidad=self.salida_velocidad,volumen=self.cfg.get('volumen_voz',100))
         self.ocultar_reubicacion_intro();self.entrada_compacta.pack_forget()
         self.canvas.configure(width=sw,height=sh);self.root.geometry(f'{sw}x{sh}+0+0');self.pasar_clics_intro(True)
+        self.inicio_salida=time.monotonic()
         self.pintar_despedida()
 
     def pintar_despedida(self):
         from despedida import DURACION
+        from fuentes import FAMILIA
+        from despedida_camara import TRASLADO
         if self.cerrado:return
-        p=(time.monotonic()-self.inicio_salida)/DURACION
+        ahora=time.monotonic();tiempo=ahora-self.inicio_salida
+        traslado=TRASLADO if self.salida_traslado is not None else 0
+        if tiempo<traslado:
+            from intro import dibujar_viaje,VIAJE
+            progreso=tiempo/traslado;self.canvas.delete('all')
+            dibujar_viaje(self.canvas,VIAJE+(1-VIAJE)*progreso,inicio=self.salida_traslado.inicio,fin=self.salida_traslado.fin)
+            self.salida_traslado.dibujar(self.canvas,progreso)
+            self.restaurar_reubicacion();self.root.after(16,self.pintar_despedida);return
+        tiempo-=traslado
+        if self.salida_audio is not None:
+            if self.salida_generacion is None and tiempo>=.25:
+                if self.salida_audio.listo.is_set() and self.salida_audio.archivo:
+                    self.voz.hablar(self.frase_despedida,self.salida_natural,perfil=self.salida_perfil,velocidad=self.salida_velocidad,volumen=self.cfg.get('volumen_voz',100),preparado=self.salida_audio)
+                    self.salida_generacion=self.voz.generacion
+                elif tiempo>6:
+                    self.salida_audio.descartar();self.salida_voz_terminada=True
+            if self.salida_generacion is not None and tiempo>12:self.salida_voz_terminada=True
+        esperando=tiempo<1.8 or ahora<self.salida_sonrisa_hasta or (self.salida_audio is not None and not self.salida_voz_terminada)
+        if esperando:
+            if self.salida_camara:
+                self.salida_camara.dibujar(self.canvas,tiempo,self.frase_despedida,hablando=self.salida_voz_empezada and not self.salida_voz_terminada,boca=self.salida_boca_activa,finalizada=self.salida_voz_terminada)
+            else:
+                self.canvas.delete('all');self.canvas.create_text(self.salida.ancho/2,self.salida.alto/2,text=self.frase_despedida,fill='#eef3f5',font=(FAMILIA,19,'bold'),tags='frase_despedida')
+            self.restaurar_reubicacion()
+            self.root.after(16,self.pintar_despedida);return
+        if self.salida_reanudar is None:
+            if self.salida_camara:
+                self.salida.imagen=self.salida_camara.fotos[3]
+                self.salida.piezas=self.salida.preparar_formacion()
+            # Silencio: reloj determinista. Con voz: la mano empieza al terminar la frase.
+            self.salida_reanudar=ahora if self.salida_audio is not None else self.inicio_salida+traslado+1.8
+        p=(ahora-self.salida_reanudar)/DURACION
         if p>=1:self.cerrar_inmediato();return
         self.salida.dibujar(self.canvas,p);self.restaurar_reubicacion()
         self.root.after(16,self.pintar_despedida)
 
     def cerrar_inmediato(self):
         if self.cerrado:return
+        self.voz.parar()
+        self.descartar_reaccion()
+        audio=getattr(self,'salida_audio',None)
+        if audio:audio.descartar();self.salida_audio=None
         if self.llamada_ui:self.llamada_ui.cerrar()
         self.restaurar_broma(activar=False)
         if self.apagado_ui and not self.apagado_ui.cerrada:self.apagado_ui.cerrar()
@@ -1587,7 +1771,7 @@ class Capri:
             from puente_opera import cerrar
             cerrar()
         self.detener_activacion()
-        self.cerrado=True;self.respuesta_stop.set();self.micro_stop.set();self.voz.parar()
+        self.cerrado=True;self.respuesta_stop.set();self.micro_stop.set()
         if self.atajo:self.atajo.cerrar()
         for pendiente in self.root.tk.splitlist(self.root.tk.call('after','info')):
             try:self.root.after_cancel(pendiente)
