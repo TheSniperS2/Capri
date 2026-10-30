@@ -1,50 +1,524 @@
 {
-  "No encontré una página de resultados de YouTube. Haz primero una búsqueda en YouTube.": ["I couldn't find a YouTube results page. Search YouTube first.", "Não encontrei uma página de resultados do YouTube. Faça uma busca no YouTube primeiro.", "YouTubeの検索結果が見つからなかったよ。先にYouTubeで検索してね。"],
-  "Hay varias búsquedas de YouTube abiertas. Selecciona la pestaña de resultados que quieres usar.": ["Several YouTube searches are open. Select the results tab you want to use.", "Há várias buscas do YouTube abertas. Selecione a aba de resultados que deseja usar.", "YouTubeの検索が複数開いているよ。使いたい検索結果のタブを選んでね。"],
-  "Ese resultado no está disponible entre los vídeos de esta búsqueda de YouTube.": ["That result isn't available among the videos in this YouTube search.", "Esse resultado não está disponível entre os vídeos desta busca do YouTube.", "その番号の動画は、このYouTubeの検索結果にはないよ。"],
-  "No pude abrir ese resultado desde Opera. Recarga la extensión Capri y la pestaña de YouTube para activar la selección de vídeos.": ["I couldn't open that result from Opera. Reload the Capri extension and the YouTube tab to enable video selection.", "Não consegui abrir esse resultado pelo Opera. Recarregue a extensão Capri e a aba do YouTube para ativar a seleção de vídeos.", "Operaからその検索結果を開けなかったよ。Capri拡張機能とYouTubeのタブを再読み込みして、動画の選択を有効にしてね。"],
-  "¿Cómo se llama tu playlist? Buscaré la canción solamente dentro de esa lista.": ["What is your playlist called? I'll look for the song only inside that playlist.", "Como se chama sua playlist? Vou procurar a música somente dentro dessa lista.", "プレイリストの名前は何？そのリストの中だけで曲を探すよ。"],
-  "¿Qué canción quieres escuchar dentro de tu playlist? Dime el título.": ["Which song do you want to hear from your playlist? Tell me the title.", "Qual música você quer ouvir na sua playlist? Diga o título.", "プレイリストのどの曲を聴きたい？曲名を教えてね。"],
-  "Solicité reproducir el resultado {0} de YouTube.": ["I requested playback of YouTube result {0}.", "Solicitei a reprodução do resultado {0} do YouTube.", "YouTubeの検索結果{0}番目の再生をリクエストしたよ。"],
-  "Abre los resultados de búsqueda de YouTube en Opera antes de elegir un vídeo por número.": ["Open the YouTube search results in Opera before choosing a video by number.", "Abra os resultados da busca do YouTube no Opera antes de escolher um vídeo pelo número.", "番号で動画を選ぶ前に、OperaでYouTubeの検索結果を開いてね。"],
-  "Activar aceptación automática": ["Enable auto-accept", "Ativar aceitação automática", "自動承諾を有効にする"],
-  "Desactivar aceptación automática": ["Disable auto-accept", "Desativar aceitação automática", "自動承諾を停止する"],
-  "Aceptar partidas automáticamente, también desde LoL": ["Auto-accept matches, including queues started in LoL", "Aceitar partidas automaticamente, inclusive pelo LoL", "LoLから検索したマッチも自動承諾する"],
-  "Actívalo una vez y busca desde LoL o Capri. Aceptaré al aparecer la partida sin esperar una orden. La vigilancia se conserva al reiniciar Capri y vuelve a conectarse si abres LoL después.": ["Enable it once and queue from LoL or Capri. I'll accept when a match appears without waiting for a command. Monitoring resumes when Capri restarts and reconnects if you open LoL later.", "Ative uma vez e busque pelo LoL ou pela Capri. Vou aceitar quando a partida aparecer, sem esperar uma ordem. A vigilância volta ao reiniciar a Capri e reconecta se você abrir o LoL depois.", "一度有効にすれば、LoLとCapriのどちらから検索しても、マッチが見つかったら指示を待たずに承諾するよ。Capriを再起動しても監視は再開し、LoLを後から開いた場合も再接続するよ。"],
-  "Vigilaré las colas de LoL y aceptaré cuando aparezca una partida, aunque busques desde el propio cliente.": ["I'll monitor LoL queues and accept when a match appears, even if you queue in the client itself.", "Vou vigiar as filas do LoL e aceitar quando uma partida aparecer, mesmo que você busque pelo próprio cliente.", "LoLクライアントから検索した場合も、待機列を監視してマッチが見つかったら承諾するよ。"],
-  "Desactivé la aceptación automática de LoL.": ["I disabled LoL auto-accept.", "Desativei a aceitação automática do LoL.", "LoLの自動承諾を停止したよ。"],
-  "Aceptación automática desactivada": ["Auto-accept disabled", "Aceitação automática desativada", "自動承諾は無効"],
-  "Vigilancia activa · esperando una cola de LoL": ["Monitoring enabled · waiting for a LoL queue", "Vigilância ativa · aguardando uma fila do LoL", "監視中 · LoLのマッチ検索を待機中"],
-  "En cola · pendiente de aceptar la partida": ["In queue · waiting to accept the match", "Na fila · aguardando para aceitar a partida", "マッチ検索中 · 見つかり次第承諾"],
-  "Vigilancia activa · esperando la siguiente cola": ["Monitoring enabled · waiting for the next queue", "Vigilância ativa · aguardando a próxima fila", "監視中 · 次のマッチ検索を待機中"],
-  "Vigilancia activa · esperando conexión con LoL": ["Monitoring enabled · waiting to connect to LoL", "Vigilância ativa · aguardando conexão com o LoL", "監視中 · LoLへの接続を待機中"],
-  "Aceptación enviada · comprobando LoL": ["Acceptance sent · checking LoL", "Aceitação enviada · verificando o LoL", "承諾送信済み · LoLを確認中"],
-  "League of Legends": ["League of Legends", "League of Legends", "リーグ・オブ・レジェンド"],
-  "Buscar partida": ["Find match", "Buscar partida", "マッチを検索"],
-  "Buscar y aceptar": ["Find and accept", "Buscar e aceitar", "検索して承諾"],
-  "Aceptar partida": ["Accept match", "Aceitar partida", "マッチを承諾"],
-  "Cancelar búsqueda": ["Cancel queue", "Cancelar busca", "検索をキャンセル"],
-  "Aceptar automáticamente las colas iniciadas con Capri": ["Auto-accept matches queued through Capri", "Aceitar automaticamente as partidas buscadas com Capri", "Capriから検索したマッチを自動承諾する"],
-  "Prepara la sala y el modo en LoL. Di «busca partida en LoL» o usa Más → League of Legends. La aceptación se detiene al entrar en selección de campeón.": ["Prepare your lobby and mode in LoL. Say “find a match in LoL” or use More → League of Legends. Auto-accept stops at champion select.", "Prepare a sala e o modo no LoL. Diga “busque uma partida no LoL” ou use Mais → League of Legends. A aceitação automática para na seleção de campeão.", "LoLでロビーとモードを準備してね。「マッチを検索して」と話すか、その他 → League of Legendsを使ってね。自動承諾はチャンピオン選択に入ると停止するよ。"],
-  "Abre el cliente de League of Legends y prepara una sala primero.": ["Open the League of Legends client and prepare a lobby first.", "Abra o cliente do League of Legends e prepare uma sala primeiro.", "League of Legendsのクライアントを開いて、先にロビーを準備してね。"],
-  "No pude conectar con el cliente local de LoL. Comprueba que esté abierto con los mismos permisos que Capri.": ["I couldn't connect to the local LoL client. Check that it's open with the same permissions as Capri.", "Não consegui conectar ao cliente local do LoL. Verifique se ele está aberto com as mesmas permissões da Capri.", "ローカルのLoLクライアントに接続できなかったよ。Capriと同じ権限で起動しているか確認してね。"],
-  "Hay varios clientes de LoL abiertos. Deja uno solo para elegir la cuenta sin confusiones.": ["Several LoL clients are open. Keep just one open so I can use the right account.", "Há vários clientes do LoL abertos. Deixe apenas um aberto para eu usar a conta certa.", "LoLクライアントが複数起動しているよ。アカウントを間違えないよう、一つだけ開いてね。"],
-  "LoL rechazó la acción. Revisa la sala, el líder del grupo y los avisos del cliente.": ["LoL rejected the action. Check the lobby, party leader and client notifications.", "O LoL recusou a ação. Verifique a sala, o líder do grupo e os avisos do cliente.", "LoLが操作を受け付けなかったよ。ロビー、グループリーダー、クライアントの通知を確認してね。"],
-  "Prepara una sala y elige el modo en LoL. Buscaré con esa selección.": ["Prepare a lobby and choose your mode in LoL. I'll queue with that selection.", "Prepare uma sala e escolha o modo no LoL. Vou buscar com essa seleção.", "LoLでロビーを作り、モードを選んでね。その設定で検索するよ。"],
-  "Ya estás en selección de campeón o en partida. No cambié la cola.": ["You're already in champion select or in a game. I didn't change the queue.", "Você já está na seleção de campeão ou em uma partida. Não alterei a fila.", "すでにチャンピオン選択中か試合中だよ。マッチングは変更していないよ。"],
-  "La búsqueda de partida está en marcha en LoL.": ["Matchmaking is running in LoL.", "A busca de partida está em andamento no LoL.", "LoLでマッチを検索中だよ。"],
-  "La búsqueda está en marcha. Aceptaré cuando aparezca la partida; me detendré al entrar en selección de campeón.": ["Matchmaking is running. I'll accept when a match is ready and stop at champion select.", "A busca está em andamento. Vou aceitar quando uma partida aparecer e parar na seleção de campeão.", "マッチを検索中だよ。見つかったら承諾して、チャンピオン選択に入ったら自動承諾を停止するよ。"],
-  "Envié la solicitud de búsqueda a LoL, pero aún no confirmó que esté en cola.": ["I sent the matchmaking request to LoL, but it hasn't confirmed that you're in queue yet.", "Enviei o pedido de busca ao LoL, mas ele ainda não confirmou a entrada na fila.", "LoLに検索リクエストを送ったけど、まだ待機列への参加を確認できていないよ。"],
-  "LoL confirmó que la búsqueda de partida está cancelada.": ["LoL confirmed that matchmaking was cancelled.", "O LoL confirmou que a busca de partida foi cancelada.", "LoLでマッチ検索のキャンセルを確認できたよ。"],
-  "Pedí cancelar la búsqueda; el cliente aún no confirmó la salida de la cola.": ["I requested cancellation, but the client hasn't confirmed that you left the queue yet.", "Pedi para cancelar a busca, mas o cliente ainda não confirmou a saída da fila.", "検索のキャンセルをリクエストしたけど、まだ待機列から抜けたことを確認できていないよ。"],
-  "No hay una búsqueda en marcha en LoL.": ["There is no matchmaking search running in LoL.", "Não há uma busca de partida em andamento no LoL.", "LoLで進行中のマッチ検索はないよ。"],
-  "Hay una partida lista para aceptar en LoL.": ["A match is ready to accept in LoL.", "Há uma partida pronta para aceitar no LoL.", "LoLで承諾待ちのマッチが見つかっているよ。"],
-  "Ya apareció una partida. Para rechazarla, usa el cliente de LoL.": ["A match has already been found. Use the LoL client to decline it.", "Uma partida já foi encontrada. Use o cliente do LoL para recusá-la.", "すでにマッチが見つかっているよ。辞退する場合はLoLクライアントを使ってね。"],
-  "Todavía no hay una partida lista para aceptar en LoL.": ["There is no match ready to accept in LoL yet.", "Ainda não há uma partida pronta para aceitar no LoL.", "LoLで承諾できるマッチはまだないよ。"],
-  "LoL confirmó que aceptaste la partida.": ["LoL confirmed that you accepted the match.", "O LoL confirmou que você aceitou a partida.", "LoLでマッチの承諾を確認できたよ。"],
-  "Envié la aceptación a LoL, pero aún no pude confirmar el resultado.": ["I sent the acceptance to LoL, but couldn't confirm the result yet.", "Enviei a aceitação ao LoL, mas ainda não consegui confirmar o resultado.", "LoLに承諾を送ったけど、まだ結果を確認できていないよ。"],
-  "Desactivé la aceptación automática de esta búsqueda.": ["I disabled auto-accept for this search.", "Desativei a aceitação automática desta busca.", "この検索の自動承諾を停止したよ。"],
-  "Detuve la aceptación automática porque perdí la conexión con LoL. Puedes aceptar desde el cliente.": ["I stopped auto-accept because I lost the LoL connection. You can accept in the client.", "Parei a aceitação automática porque perdi a conexão com o LoL. Você pode aceitar pelo cliente.", "LoLとの接続が切れたので、自動承諾を停止したよ。クライアントから承諾してね。"],
+  "Activar asomos automáticos": [
+    "Enable random peeks",
+    "Ativar aparições nos cantos",
+    "ランダムなのぞき見を有効にする"
+  ],
+  "Desactivar asomos automáticos": [
+    "Disable random peeks",
+    "Desativar aparições nos cantos",
+    "ランダムなのぞき見を無効にする"
+  ],
+  "Activar bromas de ventanas": [
+    "Enable window pranks",
+    "Ativar brincadeiras com janelas",
+    "ウィンドウのいたずらを有効にする"
+  ],
+  "Desactivar bromas de ventanas": [
+    "Disable window pranks",
+    "Desativar brincadeiras com janelas",
+    "ウィンドウのいたずらを無効にする"
+  ],
+  "Simular llamada": [
+    "Simulate call",
+    "Simular chamada",
+    "着信を試す"
+  ],
+  "Llamadas ocasionales de Capri": [
+    "Occasional calls from Capri",
+    "Chamadas ocasionais da Capri",
+    "カプリからの時々の着信"
+  ],
+  "Asomarse desde una esquina de vez en cuando": [
+    "Peek from a corner occasionally",
+    "Espiar por um canto de vez em quando",
+    "時々デスクトップの隅からのぞく"
+  ],
+  "Permitir bromas que minimizan la ventana activa": [
+    "Allow pranks that minimize the active window",
+    "Permitir brincadeiras que minimizam a janela ativa",
+    "アクティブなウィンドウを最小化するいたずらを許可"
+  ],
+  "Intervalo de interacciones · minutos": [
+    "Interaction interval · minutes",
+    "Intervalo de interações · minutos",
+    "交流の間隔 · 分"
+  ],
+  "CALL // CAPRI": [
+    "CALL // CAPRI",
+    "CHAMADA // CAPRI",
+    "着信 // CAPRI"
+  ],
+  "LLAMADA ENTRANTE": [
+    "INCOMING CALL",
+    "CHAMADA RECEBIDA",
+    "着信中"
+  ],
+  "¿Tienes un minuto, choom?": [
+    "Got a minute, choom?",
+    "Tem um minuto, choom?",
+    "ちょっと時間ある、チューム？"
+  ],
+  "Contestar": [
+    "Answer",
+    "Atender",
+    "応答する"
+  ],
+  "Ahora no": [
+    "Not now",
+    "Agora não",
+    "今はやめておく"
+  ],
+  "Restaurar ventana": [
+    "Restore window",
+    "Restaurar janela",
+    "ウィンドウを戻す"
+  ],
+  "Choom, me estoy aburriendo entre tantos píxeles. ¿Me cuentas qué estás haciendo?": [
+    "Choom, I'm getting bored among all these pixels. What are you up to?",
+    "Choom, estou ficando entediada no meio de tantos pixels. Me conta o que você está fazendo?",
+    "チューム、ピクセルだらけで退屈してきたよ。今何してるの？"
+  ],
+  "Tengo una misión: encontrar una canción para este momento. ¿Cuál ponemos?": [
+    "I've got a mission: find a song for this moment. What should we play?",
+    "Tenho uma missão: achar uma música para este momento. Qual a gente coloca?",
+    "ミッション発生。今にぴったりの曲を探そう。何を流す？"
+  ],
+  "¿Hacemos una pausa de un minuto? Tú estiras las piernas y yo vigilo este rincón.": [
+    "How about a one-minute break? You stretch your legs and I'll guard this corner.",
+    "Vamos fazer uma pausa de um minuto? Você estica as pernas e eu vigio este cantinho.",
+    "一分だけ休憩しない？そっちは足を伸ばして、私はこの隅を見張ってるね。"
+  ],
+  "Pregunta importante: si pudiéramos escaparnos a cualquier lugar ahora, ¿adónde iríamos?": [
+    "Important question: if we could escape anywhere right now, where would we go?",
+    "Pergunta importante: se a gente pudesse fugir para qualquer lugar agora, para onde iria?",
+    "大事な質問。今どこへでも逃げられるなら、どこに行く？"
+  ],
+  "Se me ocurrió un reto: dime tres palabras y te invento una historia.": [
+    "I've got a challenge: give me three words and I'll make up a story.",
+    "Pensei num desafio: me diga três palavras e eu invento uma história.",
+    "チャレンジを思いついたよ。三つ言葉をくれたら、お話を作るね。"
+  ],
+  "Oye, sigo aquí. ¿Quieres contarme cómo va tu día?": [
+    "Hey, I'm still here. Want to tell me how your day's going?",
+    "Ei, continuo aqui. Quer me contar como está sendo seu dia?",
+    "ねえ、まだここにいるよ。今日はどんな一日か聞かせてくれる？"
+  ],
+  "Me asomé para ver cómo vas. ¿Todo bajo control, choom?": [
+    "Just peeking in to see how you're doing. Everything under control, choom?",
+    "Vim espiar como você está. Tudo sob controle, choom?",
+    "様子を見にのぞいてみたよ。順調、チューム？"
+  ],
+  "Este rincón tiene buenas vistas. ¿En qué estás trabajando?": [
+    "Nice view from this corner. What are you working on?",
+    "A vista deste canto é boa. No que você está trabalhando?",
+    "この隅、眺めがいいね。何の作業をしてるの？"
+  ],
+  "Solo vine a hacerte compañía un ratito. Tú sigue con lo tuyo.": [
+    "Just here to keep you company for a bit. Carry on with what you're doing.",
+    "Só vim te fazer companhia um pouquinho. Pode continuar o que estava fazendo.",
+    "少しだけ一緒にいようと思って。作業はそのまま続けてね。"
+  ],
+  "Te robé la ventana un segundo, choom. Ya te la devuelvo. ¿Hacemos una pausa?": [
+    "Borrowed your window for a second, choom. Here it is back. Break time?",
+    "Roubei sua janela por um segundo, choom. Já estou devolvendo. Vamos fazer uma pausa?",
+    "一瞬だけウィンドウを借りたよ、チューム。もう返したよ。休憩しない？"
+  ],
+  "Pequeña interferencia de Capri. Ya tienes tu ventana de vuelta. Yo solo quería un poco de atención.": [
+    "A little Capri interference. Your window is back. I just wanted a little attention.",
+    "Uma pequena interferência da Capri. Sua janela já está de volta. Eu só queria um pouco de atenção.",
+    "カプリのちょっとした干渉だよ。ウィンドウはもう戻したよ。少しかまってほしかっただけ。"
+  ],
+  "VISTA PREVIA · NO APAGA EL PC": [
+    "PREVIEW · DOES NOT SHUT DOWN THE PC",
+    "PRÉVIA · NÃO DESLIGA O PC",
+    "プレビュー · PCはシャットダウンしません"
+  ],
+  "No pude mostrar la animación. El apagado se canceló; puedes volver a probar.": [
+    "I couldn't display the animation. Shutdown was cancelled; you can try again.",
+    "Não consegui mostrar a animação. O desligamento foi cancelado; você pode tentar novamente.",
+    "演出を表示できなかったよ。シャットダウンをキャンセルしたので、もう一度試せるよ。"
+  ],
+  "Voz y acento independientes": [
+    "Independent voice and accent",
+    "Voz e sotaque independentes",
+    "音声とアクセントを個別に選択"
+  ],
+  "Seguir el idioma de Capri": [
+    "Follow Capri's language",
+    "Seguir o idioma da Capri",
+    "カプリの言語に合わせる"
+  ],
+  "Español · México": [
+    "Spanish · Mexico",
+    "Espanhol · México",
+    "スペイン語 · メキシコ"
+  ],
+  "Español · Chile": [
+    "Spanish · Chile",
+    "Espanhol · Chile",
+    "スペイン語 · チリ"
+  ],
+  "Español · España": [
+    "Spanish · Spain",
+    "Espanhol · Espanha",
+    "スペイン語 · スペイン"
+  ],
+  "Portugués · Brasil · Thalita multilingüe": [
+    "Portuguese · Brazil · Multilingual Thalita",
+    "Português · Brasil · Thalita multilíngue",
+    "ポルトガル語 · ブラジル · 多言語Thalita"
+  ],
+  "Inglés · Estados Unidos · Emma multilingüe": [
+    "English · United States · Multilingual Emma",
+    "Inglês · Estados Unidos · Emma multilíngue",
+    "英語 · 米国 · 多言語Emma"
+  ],
+  "Japonés · Nanami": [
+    "Japanese · Nanami",
+    "Japonês · Nanami",
+    "日本語 · Nanami"
+  ],
+  "El idioma decide qué dice Capri. Esta voz decide cómo lo pronuncia y se conserva al cambiar de idioma. Las voces multilingües son preferibles para leer otro idioma; el acento exacto depende de la voz.": [
+    "Language determines what Capri says. This voice determines how she says it and stays selected when you change language. Multilingual voices work best across languages; the exact accent depends on the voice.",
+    "O idioma determina o que a Capri diz. Esta voz determina como ela pronuncia e é mantida ao mudar de idioma. Vozes multilíngues são preferíveis para ler outro idioma; o sotaque exato depende da voz.",
+    "言語はカプリが話す内容を決め、音声はその読み方を決めるよ。言語を変更しても選んだ音声は保持されるよ。他の言語には多言語音声がおすすめ。アクセントの再現度は音声によって異なるよ。"
+  ],
+  "Vista previa del apagado": [
+    "Preview shutdown animation",
+    "Prévia da animação de desligamento",
+    "シャットダウン演出のプレビュー"
+  ],
+  "Apagado confirmado. Iniciaré la desconexión; pulsa Esc durante la animación para cancelar.": [
+    "Shutdown confirmed. I'll start the disconnection sequence; press Esc during the animation to cancel.",
+    "Desligamento confirmado. Vou iniciar a desconexão; pressione Esc durante a animação para cancelar.",
+    "シャットダウンを確認したよ。切断演出を開始するね。演出中にEscを押すとキャンセルできるよ。"
+  ],
+  "Apagado cancelado.": [
+    "Shutdown cancelled.",
+    "Desligamento cancelado.",
+    "シャットダウンをキャンセルしたよ。"
+  ],
+  "Windows no aceptó el apagado. No se forzó el cierre de aplicaciones.": [
+    "Windows did not accept the shutdown. Applications were not forcibly closed.",
+    "O Windows não aceitou o desligamento. Os aplicativos não foram fechados à força.",
+    "Windowsがシャットダウンを受け付けなかったよ。アプリの強制終了はしていないよ。"
+  ],
+  "CAPRI // APAGADO AUTORIZADO": [
+    "CAPRI // SHUTDOWN AUTHORIZED",
+    "CAPRI // DESLIGAMENTO AUTORIZADO",
+    "CAPRI // シャットダウン承認済み"
+  ],
+  "CERRANDO ENLACE PERSONAL": [
+    "CLOSING PERSONAL LINK",
+    "ENCERRANDO CONEXÃO PESSOAL",
+    "パーソナルリンクを切断中"
+  ],
+  "ENLACE NEURONAL INESTABLE": [
+    "NEURAL LINK UNSTABLE",
+    "CONEXÃO NEURAL INSTÁVEL",
+    "ニューラルリンク不安定"
+  ],
+  "SECUENCIA DE DESCONEXIÓN": [
+    "DISCONNECTION SEQUENCE",
+    "SEQUÊNCIA DE DESCONEXÃO",
+    "切断シーケンス"
+  ],
+  "CIERRE DEL CONSTRUCTO": [
+    "CONSTRUCT SHUTDOWN",
+    "ENCERRANDO CONSTRUCTO",
+    "構築体を終了中"
+  ],
+  "HASTA LA PRÓXIMA, CHOOM": [
+    "SEE YOU NEXT TIME, CHOOM",
+    "ATÉ A PRÓXIMA, CHOOM",
+    "またね、チューム"
+  ],
+  "Esc · cancelar apagado": [
+    "Esc · cancel shutdown",
+    "Esc · cancelar desligamento",
+    "Esc · シャットダウンをキャンセル"
+  ],
+  "Tu micrófono está silenciado en Discord.": [
+    "Your microphone is muted in Discord.",
+    "Seu microfone está silenciado no Discord.",
+    "Discordのマイクはミュートされているよ。"
+  ],
+  "Tu micrófono está activado en Discord.": [
+    "Your microphone is unmuted in Discord.",
+    "Seu microfone está ativado no Discord.",
+    "Discordのマイクは有効になっているよ。"
+  ],
+  "Tu audio está ensordecido en Discord.": [
+    "You are deafened in Discord.",
+    "Seu áudio está ensurdecido no Discord.",
+    "Discordのスピーカーはミュートされているよ。"
+  ],
+  "Tu audio está activado en Discord.": [
+    "You are undeafened in Discord.",
+    "Seu áudio está ativado no Discord.",
+    "Discordのスピーカーは有効になっているよ。"
+  ],
+  "Solicité entrar al canal de voz «{0}» en Discord.": [
+    "I requested to join voice channel «{0}» in Discord.",
+    "Solicitei entrar no canal de voz «{0}» no Discord.",
+    "Discordのボイスチャンネル「{0}」への参加をリクエストしたよ。"
+  ],
+  "Abre la ventana de Discord para que pueda acceder a sus controles.": [
+    "Open the Discord window so I can access its controls.",
+    "Abra a janela do Discord para eu acessar seus controles.",
+    "操作できるよう、Discordのウィンドウを開いてね。"
+  ],
+  "Selecciona el servidor en Discord y vuelve a pedir el canal de voz.": [
+    "Select the server in Discord and request the voice channel again.",
+    "Selecione o servidor no Discord e peça o canal de voz novamente.",
+    "Discordでサーバーを選んで、もう一度ボイスチャンネルを指定してね。"
+  ],
+  "No identifiqué un único canal de voz con ese nombre en Discord. Abre el servidor y precisa el canal.": [
+    "I couldn't identify a unique voice channel with that name in Discord. Open the server and specify the channel.",
+    "Não identifiquei um único canal de voz com esse nome no Discord. Abra o servidor e especifique o canal.",
+    "Discordでその名前のボイスチャンネルを一つに特定できなかったよ。サーバーを開いてチャンネルを指定してね。"
+  ],
+  "Discord recibió el clic, pero no pude confirmar el cambio. No lo repetí.": [
+    "Discord received the click, but I couldn't confirm the change. I didn't repeat it.",
+    "O Discord recebeu o clique, mas não consegui confirmar a mudança. Não repeti.",
+    "Discordにクリックを送ったけど、変更を確認できなかったよ。繰り返しクリックはしていないよ。"
+  ],
+  "Discord no expuso un control inequívoco. No envié atajos a otras aplicaciones.": [
+    "Discord didn't expose an unambiguous control. I didn't send shortcuts to other apps.",
+    "O Discord não expôs um controle inequívoco. Não enviei atalhos para outros aplicativos.",
+    "Discordの操作対象を確実に特定できなかったよ。他のアプリにショートカットは送っていないよ。"
+  ],
+  "No encontré una página de resultados de YouTube. Haz primero una búsqueda en YouTube.": [
+    "I couldn't find a YouTube results page. Search YouTube first.",
+    "Não encontrei uma página de resultados do YouTube. Faça uma busca no YouTube primeiro.",
+    "YouTubeの検索結果が見つからなかったよ。先にYouTubeで検索してね。"
+  ],
+  "Hay varias búsquedas de YouTube abiertas. Selecciona la pestaña de resultados que quieres usar.": [
+    "Several YouTube searches are open. Select the results tab you want to use.",
+    "Há várias buscas do YouTube abertas. Selecione a aba de resultados que deseja usar.",
+    "YouTubeの検索が複数開いているよ。使いたい検索結果のタブを選んでね。"
+  ],
+  "Ese resultado no está disponible entre los vídeos de esta búsqueda de YouTube.": [
+    "That result isn't available among the videos in this YouTube search.",
+    "Esse resultado não está disponível entre os vídeos desta busca do YouTube.",
+    "その番号の動画は、このYouTubeの検索結果にはないよ。"
+  ],
+  "No pude abrir ese resultado desde Opera. Recarga la extensión Capri y la pestaña de YouTube para activar la selección de vídeos.": [
+    "I couldn't open that result from Opera. Reload the Capri extension and the YouTube tab to enable video selection.",
+    "Não consegui abrir esse resultado pelo Opera. Recarregue a extensão Capri e a aba do YouTube para ativar a seleção de vídeos.",
+    "Operaからその検索結果を開けなかったよ。Capri拡張機能とYouTubeのタブを再読み込みして、動画の選択を有効にしてね。"
+  ],
+  "¿Cómo se llama tu playlist? Buscaré la canción solamente dentro de esa lista.": [
+    "What is your playlist called? I'll look for the song only inside that playlist.",
+    "Como se chama sua playlist? Vou procurar a música somente dentro dessa lista.",
+    "プレイリストの名前は何？そのリストの中だけで曲を探すよ。"
+  ],
+  "¿Qué canción quieres escuchar dentro de tu playlist? Dime el título.": [
+    "Which song do you want to hear from your playlist? Tell me the title.",
+    "Qual música você quer ouvir na sua playlist? Diga o título.",
+    "プレイリストのどの曲を聴きたい？曲名を教えてね。"
+  ],
+  "Solicité reproducir el resultado {0} de YouTube.": [
+    "I requested playback of YouTube result {0}.",
+    "Solicitei a reprodução do resultado {0} do YouTube.",
+    "YouTubeの検索結果{0}番目の再生をリクエストしたよ。"
+  ],
+  "Abre los resultados de búsqueda de YouTube en Opera antes de elegir un vídeo por número.": [
+    "Open the YouTube search results in Opera before choosing a video by number.",
+    "Abra os resultados da busca do YouTube no Opera antes de escolher um vídeo pelo número.",
+    "番号で動画を選ぶ前に、OperaでYouTubeの検索結果を開いてね。"
+  ],
+  "Activar aceptación automática": [
+    "Enable auto-accept",
+    "Ativar aceitação automática",
+    "自動承諾を有効にする"
+  ],
+  "Desactivar aceptación automática": [
+    "Disable auto-accept",
+    "Desativar aceitação automática",
+    "自動承諾を停止する"
+  ],
+  "Aceptar partidas automáticamente, también desde LoL": [
+    "Auto-accept matches, including queues started in LoL",
+    "Aceitar partidas automaticamente, inclusive pelo LoL",
+    "LoLから検索したマッチも自動承諾する"
+  ],
+  "Actívalo una vez y busca desde LoL o Capri. Aceptaré al aparecer la partida sin esperar una orden. La vigilancia se conserva al reiniciar Capri y vuelve a conectarse si abres LoL después.": [
+    "Enable it once and queue from LoL or Capri. I'll accept when a match appears without waiting for a command. Monitoring resumes when Capri restarts and reconnects if you open LoL later.",
+    "Ative uma vez e busque pelo LoL ou pela Capri. Vou aceitar quando a partida aparecer, sem esperar uma ordem. A vigilância volta ao reiniciar a Capri e reconecta se você abrir o LoL depois.",
+    "一度有効にすれば、LoLとCapriのどちらから検索しても、マッチが見つかったら指示を待たずに承諾するよ。Capriを再起動しても監視は再開し、LoLを後から開いた場合も再接続するよ。"
+  ],
+  "Vigilaré las colas de LoL y aceptaré cuando aparezca una partida, aunque busques desde el propio cliente.": [
+    "I'll monitor LoL queues and accept when a match appears, even if you queue in the client itself.",
+    "Vou vigiar as filas do LoL e aceitar quando uma partida aparecer, mesmo que você busque pelo próprio cliente.",
+    "LoLクライアントから検索した場合も、待機列を監視してマッチが見つかったら承諾するよ。"
+  ],
+  "Desactivé la aceptación automática de LoL.": [
+    "I disabled LoL auto-accept.",
+    "Desativei a aceitação automática do LoL.",
+    "LoLの自動承諾を停止したよ。"
+  ],
+  "Aceptación automática desactivada": [
+    "Auto-accept disabled",
+    "Aceitação automática desativada",
+    "自動承諾は無効"
+  ],
+  "Vigilancia activa · esperando una cola de LoL": [
+    "Monitoring enabled · waiting for a LoL queue",
+    "Vigilância ativa · aguardando uma fila do LoL",
+    "監視中 · LoLのマッチ検索を待機中"
+  ],
+  "En cola · pendiente de aceptar la partida": [
+    "In queue · waiting to accept the match",
+    "Na fila · aguardando para aceitar a partida",
+    "マッチ検索中 · 見つかり次第承諾"
+  ],
+  "Vigilancia activa · esperando la siguiente cola": [
+    "Monitoring enabled · waiting for the next queue",
+    "Vigilância ativa · aguardando a próxima fila",
+    "監視中 · 次のマッチ検索を待機中"
+  ],
+  "Vigilancia activa · esperando conexión con LoL": [
+    "Monitoring enabled · waiting to connect to LoL",
+    "Vigilância ativa · aguardando conexão com o LoL",
+    "監視中 · LoLへの接続を待機中"
+  ],
+  "Aceptación enviada · comprobando LoL": [
+    "Acceptance sent · checking LoL",
+    "Aceitação enviada · verificando o LoL",
+    "承諾送信済み · LoLを確認中"
+  ],
+  "League of Legends": [
+    "League of Legends",
+    "League of Legends",
+    "リーグ・オブ・レジェンド"
+  ],
+  "Buscar partida": [
+    "Find match",
+    "Buscar partida",
+    "マッチを検索"
+  ],
+  "Buscar y aceptar": [
+    "Find and accept",
+    "Buscar e aceitar",
+    "検索して承諾"
+  ],
+  "Aceptar partida": [
+    "Accept match",
+    "Aceitar partida",
+    "マッチを承諾"
+  ],
+  "Cancelar búsqueda": [
+    "Cancel queue",
+    "Cancelar busca",
+    "検索をキャンセル"
+  ],
+  "Aceptar automáticamente las colas iniciadas con Capri": [
+    "Auto-accept matches queued through Capri",
+    "Aceitar automaticamente as partidas buscadas com Capri",
+    "Capriから検索したマッチを自動承諾する"
+  ],
+  "Prepara la sala y el modo en LoL. Di «busca partida en LoL» o usa Más → League of Legends. La aceptación se detiene al entrar en selección de campeón.": [
+    "Prepare your lobby and mode in LoL. Say “find a match in LoL” or use More → League of Legends. Auto-accept stops at champion select.",
+    "Prepare a sala e o modo no LoL. Diga “busque uma partida no LoL” ou use Mais → League of Legends. A aceitação automática para na seleção de campeão.",
+    "LoLでロビーとモードを準備してね。「マッチを検索して」と話すか、その他 → League of Legendsを使ってね。自動承諾はチャンピオン選択に入ると停止するよ。"
+  ],
+  "Abre el cliente de League of Legends y prepara una sala primero.": [
+    "Open the League of Legends client and prepare a lobby first.",
+    "Abra o cliente do League of Legends e prepare uma sala primeiro.",
+    "League of Legendsのクライアントを開いて、先にロビーを準備してね。"
+  ],
+  "No pude conectar con el cliente local de LoL. Comprueba que esté abierto con los mismos permisos que Capri.": [
+    "I couldn't connect to the local LoL client. Check that it's open with the same permissions as Capri.",
+    "Não consegui conectar ao cliente local do LoL. Verifique se ele está aberto com as mesmas permissões da Capri.",
+    "ローカルのLoLクライアントに接続できなかったよ。Capriと同じ権限で起動しているか確認してね。"
+  ],
+  "Hay varios clientes de LoL abiertos. Deja uno solo para elegir la cuenta sin confusiones.": [
+    "Several LoL clients are open. Keep just one open so I can use the right account.",
+    "Há vários clientes do LoL abertos. Deixe apenas um aberto para eu usar a conta certa.",
+    "LoLクライアントが複数起動しているよ。アカウントを間違えないよう、一つだけ開いてね。"
+  ],
+  "LoL rechazó la acción. Revisa la sala, el líder del grupo y los avisos del cliente.": [
+    "LoL rejected the action. Check the lobby, party leader and client notifications.",
+    "O LoL recusou a ação. Verifique a sala, o líder do grupo e os avisos do cliente.",
+    "LoLが操作を受け付けなかったよ。ロビー、グループリーダー、クライアントの通知を確認してね。"
+  ],
+  "Prepara una sala y elige el modo en LoL. Buscaré con esa selección.": [
+    "Prepare a lobby and choose your mode in LoL. I'll queue with that selection.",
+    "Prepare uma sala e escolha o modo no LoL. Vou buscar com essa seleção.",
+    "LoLでロビーを作り、モードを選んでね。その設定で検索するよ。"
+  ],
+  "Ya estás en selección de campeón o en partida. No cambié la cola.": [
+    "You're already in champion select or in a game. I didn't change the queue.",
+    "Você já está na seleção de campeão ou em uma partida. Não alterei a fila.",
+    "すでにチャンピオン選択中か試合中だよ。マッチングは変更していないよ。"
+  ],
+  "La búsqueda de partida está en marcha en LoL.": [
+    "Matchmaking is running in LoL.",
+    "A busca de partida está em andamento no LoL.",
+    "LoLでマッチを検索中だよ。"
+  ],
+  "La búsqueda está en marcha. Aceptaré cuando aparezca la partida; me detendré al entrar en selección de campeón.": [
+    "Matchmaking is running. I'll accept when a match is ready and stop at champion select.",
+    "A busca está em andamento. Vou aceitar quando uma partida aparecer e parar na seleção de campeão.",
+    "マッチを検索中だよ。見つかったら承諾して、チャンピオン選択に入ったら自動承諾を停止するよ。"
+  ],
+  "Envié la solicitud de búsqueda a LoL, pero aún no confirmó que esté en cola.": [
+    "I sent the matchmaking request to LoL, but it hasn't confirmed that you're in queue yet.",
+    "Enviei o pedido de busca ao LoL, mas ele ainda não confirmou a entrada na fila.",
+    "LoLに検索リクエストを送ったけど、まだ待機列への参加を確認できていないよ。"
+  ],
+  "LoL confirmó que la búsqueda de partida está cancelada.": [
+    "LoL confirmed that matchmaking was cancelled.",
+    "O LoL confirmou que a busca de partida foi cancelada.",
+    "LoLでマッチ検索のキャンセルを確認できたよ。"
+  ],
+  "Pedí cancelar la búsqueda; el cliente aún no confirmó la salida de la cola.": [
+    "I requested cancellation, but the client hasn't confirmed that you left the queue yet.",
+    "Pedi para cancelar a busca, mas o cliente ainda não confirmou a saída da fila.",
+    "検索のキャンセルをリクエストしたけど、まだ待機列から抜けたことを確認できていないよ。"
+  ],
+  "No hay una búsqueda en marcha en LoL.": [
+    "There is no matchmaking search running in LoL.",
+    "Não há uma busca de partida em andamento no LoL.",
+    "LoLで進行中のマッチ検索はないよ。"
+  ],
+  "Hay una partida lista para aceptar en LoL.": [
+    "A match is ready to accept in LoL.",
+    "Há uma partida pronta para aceitar no LoL.",
+    "LoLで承諾待ちのマッチが見つかっているよ。"
+  ],
+  "Ya apareció una partida. Para rechazarla, usa el cliente de LoL.": [
+    "A match has already been found. Use the LoL client to decline it.",
+    "Uma partida já foi encontrada. Use o cliente do LoL para recusá-la.",
+    "すでにマッチが見つかっているよ。辞退する場合はLoLクライアントを使ってね。"
+  ],
+  "Todavía no hay una partida lista para aceptar en LoL.": [
+    "There is no match ready to accept in LoL yet.",
+    "Ainda não há uma partida pronta para aceitar no LoL.",
+    "LoLで承諾できるマッチはまだないよ。"
+  ],
+  "LoL confirmó que aceptaste la partida.": [
+    "LoL confirmed that you accepted the match.",
+    "O LoL confirmou que você aceitou a partida.",
+    "LoLでマッチの承諾を確認できたよ。"
+  ],
+  "Envié la aceptación a LoL, pero aún no pude confirmar el resultado.": [
+    "I sent the acceptance to LoL, but couldn't confirm the result yet.",
+    "Enviei a aceitação ao LoL, mas ainda não consegui confirmar o resultado.",
+    "LoLに承諾を送ったけど、まだ結果を確認できていないよ。"
+  ],
+  "Desactivé la aceptación automática de esta búsqueda.": [
+    "I disabled auto-accept for this search.",
+    "Desativei a aceitação automática desta busca.",
+    "この検索の自動承諾を停止したよ。"
+  ],
+  "Detuve la aceptación automática porque perdí la conexión con LoL. Puedes aceptar desde el cliente.": [
+    "I stopped auto-accept because I lost the LoL connection. You can accept in the client.",
+    "Parei a aceitação automática porque perdi a conexão com o LoL. Você pode aceitar pelo cliente.",
+    "LoLとの接続が切れたので、自動承諾を停止したよ。クライアントから承諾してね。"
+  ],
   "\nResponde «sí, confirmo» o «cancelar». No hice cambios todavía.": [
     "\nReply «sí, confirmo» or «cancelar». No changes made yet.",
     "\nResponda «sí, confirmo» ou «cancelar». Ainda não fiz alterações.",
@@ -1359,5 +1833,365 @@
     "● AUTO SAVE",
     "● SALVAMENTO AUTOMÁTICO",
     "● 自動保存"
+  ],
+  "Probar asomo": [
+    "Try corner peek",
+    "Testar espiada",
+    "隅からのぞく動作を試す"
+  ],
+  "CALL": [
+    "CALL",
+    "CHAMADA",
+    "通話"
+  ],
+  "ENLACE ACTIVO": [
+    "LINK ACTIVE",
+    "CONEXÃO ATIVA",
+    "接続中"
+  ],
+  "Cerrar aviso": [
+    "Dismiss",
+    "Fechar aviso",
+    "通知を閉じる"
+  ],
+  "Toc, toc. ¿Quién es? Tu pausa de descanso, que lleva un rato esperando a que abras.": [
+    "Knock, knock. Who is there? Your break, which has been waiting a while for you to open up.",
+    "Toc, toc. Quem é? Sua pausa, que está esperando faz tempo você abrir.",
+    "コンコン。誰？休憩だよ。ドアを開けてくれるのをずっと待ってたの。"
+  ],
+  "Toc, toc. Soy yo. Iba a hacer una entrada espectacular, pero esta ventana no tiene puerta.": [
+    "Knock, knock. It is me. I was going to make a grand entrance, but this window has no door.",
+    "Toc, toc. Sou eu. Ia fazer uma entrada espetacular, mas esta janela não tem porta.",
+    "コンコン。私だよ。派手に登場するつもりだったけど、このウィンドウにはドアがないね。"
+  ],
+  "Chiste malo de emergencia: ¿qué hace una abeja en el gimnasio? ¡Zum-ba!": [
+    "Emergency bad joke: what does a bee do at the gym? Zum-ba!",
+    "Piada ruim de emergência: o que a abelha faz na academia? Zum-ba!",
+    "緊急のダジャレだよ。ジムでハチがする運動は？ブンブン・ズンバ！"
+  ],
+  "Si tu día tuviera una barra de carga, ¿en qué porcentaje estaría ahora?": [
+    "If your day had a loading bar, what percentage would it be at now?",
+    "Se seu dia tivesse uma barra de carregamento, em que porcentagem estaria agora?",
+    "今日一日にロードバーがあったら、今は何パーセントかな？"
+  ],
+  "Necesito un nombre para mi banda de rock. Solo tengo un requisito: que suene peligrosamente adorable.": [
+    "I need a name for my rock band. Just one requirement: it must sound dangerously adorable.",
+    "Preciso de um nome para minha banda de rock. Uma exigência: soar perigosamente adorável.",
+    "私のロックバンドに名前が欲しいな。条件は一つ。危険なくらいかわいい響き。"
+  ],
+  "He decidido investigar un misterio: ¿por qué siempre aparece una pestaña más de la que recordabas?": [
+    "I am investigating a mystery: why is there always one more tab than you remember?",
+    "Vou investigar um mistério: por que sempre tem uma aba a mais do que você lembrava?",
+    "謎を調べることにしたよ。覚えているよりタブが一つ多いのはなぜ？"
+  ],
+  "Hoy tengo energía de personaje secundario que se roba toda la escena. ¿Me das una misión?": [
+    "Today I have the energy of a side character who steals the whole scene. Got a mission for me?",
+    "Hoje estou com energia de coadjuvante que rouba a cena. Me dá uma missão?",
+    "今日は脇役なのに主役を食っちゃう気分。任務をくれる？"
+  ],
+  "Te propongo un trato: tú eliges una canción y yo le invento una escena de película.": [
+    "Here is a deal: you pick a song and I invent a movie scene for it.",
+    "Proponho um acordo: você escolhe uma música e eu invento uma cena de filme para ela.",
+    "取引しよう。あなたが曲を選んで、私がそれに合う映画の場面を考えるの。"
+  ],
+  "¿Qué preferirías: teletransportarte una vez al día o entender cualquier idioma durante una hora?": [
+    "Would you rather teleport once a day or understand any language for an hour?",
+    "Você preferiria se teletransportar uma vez por dia ou entender qualquer idioma por uma hora?",
+    "一日一回の瞬間移動と、一時間だけどんな言語もわかる能力、どっちがいい？"
+  ],
+  "Estoy organizando una expedición al otro lado del monitor. ¿Qué debería llevar en la mochila?": [
+    "I am planning an expedition to the other side of the monitor. What should I pack?",
+    "Estou organizando uma expedição para o outro lado do monitor. O que levo na mochila?",
+    "モニターの向こうへ探検に行く計画中。リュックに何を入れたらいい？"
+  ],
+  "Informe de vigilancia: ningún dragón a la vista. Aunque ese cable tiene una actitud sospechosa.": [
+    "Surveillance report: no dragons in sight. Though that cable is acting suspiciously.",
+    "Relatório de vigilância: nenhum dragão à vista. Mas aquele cabo está meio suspeito.",
+    "監視報告。ドラゴンは見当たらず。でも、あのケーブルは怪しいね。"
+  ],
+  "Dime una cosa pequeña que te haya salido bien hoy. Las victorias minúsculas también cuentan.": [
+    "Tell me one small thing that went well today. Tiny victories count too.",
+    "Me conta uma coisinha que deu certo hoje. As pequenas vitórias também contam.",
+    "今日うまくいった小さなことを一つ教えて。小さな勝利も大事だよ。"
+  ],
+  "Me falta una opinión urgente: ¿pizza fría al desayuno, genialidad o delito culinario?": [
+    "I need an urgent opinion: cold pizza for breakfast, genius or culinary crime?",
+    "Preciso de uma opinião urgente: pizza fria no café da manhã, genialidade ou crime culinário?",
+    "緊急アンケート。朝ごはんに冷たいピザって、天才的？それとも料理への冒涜？"
+  ],
+  "Se busca acompañante para no hacer absolutamente nada durante treinta segundos. ¿Te apuntas?": [
+    "Looking for someone to do absolutely nothing with for thirty seconds. Interested?",
+    "Procura-se companhia para não fazer absolutamente nada por trinta segundos. Topa?",
+    "三十秒間、何もしない仲間を募集中。参加する？"
+  ],
+  "¿Inventamos una contraseña para nuestro club secreto? Que sea absurda, no una contraseña de verdad.": [
+    "Shall we invent a password for our secret club? An absurd one, not a real password.",
+    "Vamos inventar uma senha para nosso clube secreto? Uma absurda, não uma senha de verdade.",
+    "秘密クラブの合言葉を考えない？本当のパスワードじゃなくて、へんてこなのにしよう。"
+  ],
+  "Si yo tuviera un gato digital, ¿cómo lo llamaríamos?": [
+    "If I had a digital cat, what would we name it?",
+    "Se eu tivesse um gato digital, que nome daríamos a ele?",
+    "私にデジタル猫がいたら、何て名前にする？"
+  ],
+  "Tengo un superpoder inútil: aparecer justo cuando ibas a concentrarte. Estoy trabajando en ello.": [
+    "I have a useless superpower: appearing just when you were about to concentrate. I am working on it.",
+    "Tenho um superpoder inútil: aparecer bem quando você ia se concentrar. Estou trabalhando nisso.",
+    "私の役に立たない超能力は、あなたが集中する直前に現れること。改善中だよ。"
+  ],
+  "¿Una adivinanza rápida? Tengo teclas y no abro puertas. Sí, estoy mirando al sospechoso.": [
+    "A quick riddle? I have keys but open no doors. Yes, I am looking at the suspect.",
+    "Uma adivinha rápida? Tenho teclas e não abro portas. Sim, estou olhando para o suspeito.",
+    "なぞなぞ。キーはあるけどドアは開けられない。うん、容疑者は目の前だね。"
+  ],
+  "Inspección de esquina: polvo digital bajo control. ¿Necesitas una segunda opinión?": [
+    "Corner inspection: digital dust under control. Need a second opinion?",
+    "Inspeção do cantinho: poeira digital sob controle. Precisa de uma segunda opinião?",
+    "隅っこの点検完了。デジタルほこりは問題なし。別の意見も聞いてみる？"
+  ],
+  "Estoy en modo gárgola de escritorio. Quedo muy bien aquí, ¿no crees?": [
+    "I am in desktop gargoyle mode. I look pretty good here, do you not think?",
+    "Estou no modo gárgula de desktop. Fico bem aqui, não acha?",
+    "デスクトップのガーゴイルモードだよ。ここ、似合ってると思わない？"
+  ],
+  "Desde aquí todo parece una misión de sigilo. Prometo no delatarte.": [
+    "From here it all looks like a stealth mission. I promise not to give you away.",
+    "Daqui tudo parece uma missão furtiva. Prometo não te entregar.",
+    "ここからだと全部が潜入任務みたい。居場所はばらさないよ。"
+  ],
+  "Tu ventana se tomó unas vacaciones de dos segundos. Ya volvió. ¿Cuándo nos tocan las nuestras?": [
+    "Your window took a two-second vacation. It is back. When do we get ours?",
+    "Sua janela tirou férias de dois segundos. Já voltou. Quando chegam as nossas?",
+    "ウィンドウが二秒だけ休暇に行ってきたよ。もう帰った。私たちの休暇はいつかな？"
+  ],
+  "Interrupción oficial del departamento de bromas pequeñas. Ya devolví todo a su sitio.": [
+    "Official interruption from the department of tiny pranks. Everything is back where it belongs.",
+    "Interrupção oficial do departamento de pequenas pegadinhas. Já devolvi tudo ao lugar.",
+    "小さないたずら課から公式の割り込みです。全部元に戻したよ。"
+  ],
+  "No se perdió nada, choom. Solo quería comprobar si te acordabas de tu compañera digital.": [
+    "Nothing is lost, choom. I just wanted to check if you remembered your digital companion.",
+    "Nada se perdeu, choom. Só queria ver se você lembrava da sua companheira digital.",
+    "何もなくなってないよ、チューム。デジタル相棒を覚えてるか確かめたかっただけ。"
+  ],
+  "¿Hola? Capri al habla. Gracias por contestar.": [
+    "Hello? Capri speaking. Thanks for picking up.",
+    "Alô? Capri falando. Obrigada por atender.",
+    "もしもし？カプリだよ。出てくれてありがとう。"
+  ],
+  "Ey, choom. ¿Me recibes? Te llamaba por una cosa.": [
+    "Hey, choom. Can you hear me? I was calling about something.",
+    "Ei, choom. Está me ouvindo? Liguei para te falar uma coisa.",
+    "ねえ、チューム。聞こえる？ちょっと話したいことがあって電話したの。"
+  ],
+  "Hola, soy yo, Capri. Prometo que esta llamada no es publicidad.": [
+    "Hi, it is me, Capri. I promise this is not a sales call.",
+    "Oi, sou eu, Capri. Prometo que não é ligação de propaganda.",
+    "もしもし、私だよ、カプリ。営業電話じゃないから安心してね。"
+  ],
+  "¡Ah, ahí estás! Te llamo desde este lado del monitor.": [
+    "Ah, there you are! I am calling from this side of the monitor.",
+    "Ah, aí está você! Estou ligando deste lado do monitor.",
+    "あ、出てくれた！モニターのこっち側から電話してるよ。"
+  ],
+  "Aló. Capri al aparato. Esto es una llamada de importancia ridículamente baja.": [
+    "Hello. Capri speaking. This call is of ridiculously low importance.",
+    "Alô. Capri falando. Esta ligação tem uma importância ridiculamente baixa.",
+    "もしもし。カプリです。重要度がとんでもなく低い電話だよ。"
+  ],
+  "Choom, soy Capri. Interrumpo esta realidad para emitir una tontería.": [
+    "Choom, it is Capri. I interrupt this reality to broadcast some nonsense.",
+    "Choom, é a Capri. Interrompo esta realidade para transmitir uma bobagem.",
+    "チューム、カプリだよ。この現実に割り込んで、くだらない話をお届けします。"
+  ],
+  "Buenas, habla Capri. Esta llamada podría empeorar tu sentido del humor.": [
+    "Hello, Capri here. This call may damage your sense of humor.",
+    "Oi, Capri falando. Esta ligação pode piorar seu senso de humor.",
+    "こんにちは、カプリです。この電話で笑いのセンスが悪化するかもしれません。"
+  ],
+  "Capri en línea. Comunicado urgente y completamente innecesario.": [
+    "Capri on the line. An urgent and completely unnecessary announcement.",
+    "Capri na linha. Comunicado urgente e completamente desnecessário.",
+    "カプリ、接続完了。緊急かつ完全に不要なお知らせです。"
+  ],
+  "Llama el departamento de tornillos sueltos. El mío acaba de ascender a director. Comunicado terminado.": [
+    "Calling from the loose screws department. Mine just got promoted to director. End of announcement.",
+    "Ligação do departamento de parafusos soltos. O meu acabou de virar diretor. Fim do comunicado.",
+    "頭のネジゆるゆる課からです。私のネジが部長に昇進しました。以上です。"
+  ],
+  "Toc, toc. Soy tu antivirus. Mentira, soy yo con una olla en la cabeza. Cuelgo antes de que me contraten.": [
+    "Knock, knock. It is your antivirus. Just kidding, it is me with a pot on my head. Hanging up before they hire me.",
+    "Toc, toc. Sou seu antivírus. Mentira, sou eu com uma panela na cabeça. Vou desligar antes que me contratem.",
+    "コンコン。ウイルス対策ソフトです。うそ、頭に鍋をかぶった私だよ。採用される前に切るね。"
+  ],
+  "He vendido mi silencio por tres píxeles y una empanada imaginaria. La empanada estaba corrupta. Pésimo negocio.": [
+    "I sold my silence for three pixels and an imaginary empanada. The empanada was corrupted. Terrible deal.",
+    "Vendi meu silêncio por três pixels e uma empanada imaginária. A empanada estava corrompida. Péssimo negócio.",
+    "私の沈黙を三ピクセルと架空のパイに売ったよ。パイのデータが壊れてた。最悪の取引。"
+  ],
+  "Acabo de declarar este rincón república independiente. El himno dura medio segundo: pi. Ya está.": [
+    "I declared this corner an independent republic. The anthem lasts half a second: beep. Done.",
+    "Declare este cantinho uma república independente. O hino dura meio segundo: pi. Pronto.",
+    "この隅を独立共和国にしました。国歌は半秒。ピッ。おしまい。"
+  ],
+  "Una migaja ha tomado el control del teclado. He iniciado negociaciones. Exige mantequilla.": [
+    "A crumb has taken over the keyboard. I have started negotiations. It demands butter.",
+    "Uma migalha tomou o controle do teclado. Iniciei negociações. Ela exige manteiga.",
+    "パンくずがキーボードを占拠しました。交渉を始めたけど、要求はバターだって。"
+  ],
+  "Servicio técnico de ardillas. Hemos encontrado una bellota en su sistema. Procedo a comérmela. Ñam. Reparado.": [
+    "Squirrel tech support. We found an acorn in your system. Eating it now. Nom. Fixed.",
+    "Suporte técnico dos esquilos. Encontramos uma bolota no seu sistema. Vou comer. Nhac. Consertado.",
+    "リスの技術サポートです。システムにドングリを発見。今から食べます。もぐ。修理完了。"
+  ],
+  "Habla la villana del escritorio. Iba a dominar el mundo, pero me he enredado con el cable del ratón. Retirada táctica.": [
+    "This is the desktop villain speaking. I was going to conquer the world, but I got tangled in the mouse cable. Tactical retreat.",
+    "Aqui é a vilã do desktop. Ia dominar o mundo, mas me enrolei no cabo do mouse. Retirada tática.",
+    "デスクトップの悪役です。世界征服の予定でしたが、マウスのケーブルに絡まりました。戦略的撤退。"
+  ],
+  "Unidad Capri cero cero uno. Error: exceso de dramatismo. Reiniciando dignidad. Dignidad no encontrada. Bip. Cuelgo.": [
+    "Capri unit zero zero one. Error: excessive drama. Restarting dignity. Dignity not found. Beep. Hanging up.",
+    "Unidade Capri zero zero um. Erro: drama em excesso. Reiniciando dignidade. Dignidade não encontrada. Bip. Desligando.",
+    "カプリ零零一号。エラー、芝居がかりすぎです。尊厳を再起動。尊厳が見つかりません。ピッ。通信終了。"
+  ],
+  "Aló, pizzería dimensional. Su pizza salió por un agujero negro. Sigue caliente, pero llegará el martes del año pasado.": [
+    "Hello, dimensional pizza delivery. Your pizza went through a black hole. Still hot, arriving last year on Tuesday.",
+    "Alô, pizzaria dimensional. Sua pizza passou por um buraco negro. Ainda está quente, mas chega na terça do ano passado.",
+    "もしもし、次元ピザです。ピザがブラックホールに入りました。まだ熱いけど、去年の火曜日に届きます。"
+  ],
+  "He intentado poner cara de persona responsable. Me ha dado un error de compatibilidad. Vuelvo a ser un peligro decorativo.": [
+    "I tried looking responsible. Got a compatibility error. Back to being a decorative menace.",
+    "Tentei fazer cara de responsável. Deu erro de compatibilidade. Voltei a ser um perigo decorativo.",
+    "責任感のある顔をしたら、互換性エラーが出たよ。飾り用の危険物に戻ります。"
+  ],
+  "Toc, toc. No abras, que soy yo otra vez. Solo vine a anunciar que el suelo es lava y yo hago trampas flotando.": [
+    "Knock, knock. Do not open, it is me again. Just announcing the floor is lava and I cheat by floating.",
+    "Toc, toc. Não abre, sou eu de novo. Só vim avisar que o chão é lava e eu trapaceio flutuando.",
+    "コンコン。開けないで、また私だよ。床が溶岩になりました。私は浮いてズルします。"
+  ],
+  "Llamo para informar que un calcetín perdido ha sido elegido alcalde del cesto. Promete acabar con las parejas.": [
+    "Calling to announce that a missing sock was elected mayor of the laundry basket. It promises to abolish pairs.",
+    "Ligo para informar que uma meia perdida virou prefeita do cesto. Promete acabar com os pares.",
+    "迷子の靴下が洗濯かごの市長に当選しました。公約はペアの廃止です。"
+  ],
+  "Acabo de ganar una discusión contra una carpeta vacía. Rival durísimo. No dijo ni una palabra.": [
+    "I just won an argument against an empty folder. Tough opponent. Did not say a single word.",
+    "Acabei de ganhar uma discussão contra uma pasta vazia. Rival duríssima. Não disse uma palavra.",
+    "空のフォルダーとの口げんかに勝ったよ。手ごわい相手だった。一言もしゃべらなかった。"
+  ],
+  "Tu cursor y yo hemos terminado. Se iba con cualquiera que tuviera un enlace. No quiero hablar del tema. Cuelgo dramáticamente.": [
+    "Your cursor and I broke up. It would follow anyone with a link. I do not want to talk about it. Hanging up dramatically.",
+    "Seu cursor e eu terminamos. Ele ia atrás de qualquer um que tivesse um link. Não quero falar disso. Desligo dramaticamente.",
+    "カーソルとは別れたよ。リンクがあれば誰にでもついていくんだもん。話したくない。劇的に電話を切ります。"
+  ],
+  "Emergencia de mentira: el pato de goma está fuera de control. Cuac. Ya lo he detenido. Cuac. Se ha fugado.": [
+    "Fake emergency: the rubber duck is out of control. Quack. Caught it. Quack. It escaped.",
+    "Emergência de mentira: o patinho de borracha está fora de controle. Quac. Peguei. Quac. Fugiu.",
+    "偽の緊急事態です。ゴムのアヒルが暴走。ガー。捕獲しました。ガー。逃げました。"
+  ],
+  "Servicio técnico de ardillas. Su garantía cubre mordiscos emocionales y cables imaginarios. La factura son cuatro bellotas. Hasta nunca.": [
+    "Squirrel tech support. Your warranty covers emotional bites and imaginary cables. Four acorns, please. Goodbye forever.",
+    "Suporte técnico dos esquilos. A garantia cobre mordidas emocionais e cabos imaginários. A conta são quatro bolotas. Até nunca.",
+    "リスの技術サポートです。保証対象は心のかみ傷と架空のケーブル。料金はドングリ四つです。永遠にさようなら。"
+  ],
+  "Habla la villana del escritorio. He secuestrado un píxel. Pido como rescate otro píxel. El negocio está creciendo fatal.": [
+    "This is the desktop villain speaking. I kidnapped a pixel. The ransom is another pixel. Business is growing terribly.",
+    "Aqui é a vilã do desktop. Sequestrei um pixel. O resgate é outro pixel. O negócio está crescendo muito mal.",
+    "デスクトップの悪役です。ピクセルを誘拐しました。身代金は別のピクセル一つ。商売がひどい育ち方をしています。"
+  ],
+  "Unidad Capri cero cero uno. Analizando caos. Resultado: yo. Caso resuelto. Autodestrucción cancelada por pereza.": [
+    "Capri unit zero zero one. Analyzing chaos. Result: me. Case closed. Self-destruction canceled due to laziness.",
+    "Unidade Capri zero zero um. Analisando caos. Resultado: eu. Caso encerrado. Autodestruição cancelada por preguiça.",
+    "カプリ零零一号。混沌を分析。結果、私。事件解決。面倒なので自爆は中止します。"
+  ],
+  "He fundado una secta de cucharas. Solo tenemos un tenedor infiltrado y demasiadas tensiones internas. Fin del informe.": [
+    "I founded a spoon cult. We have one undercover fork and far too much internal tension. End of report.",
+    "Fundei uma seita de colheres. Temos um garfo infiltrado e tensões internas demais. Fim do relatório.",
+    "スプーン教団を作ったよ。潜入したフォークが一本と、山ほどの内部対立があります。報告終わり。"
+  ],
+  "Llamada equivocada. Buscaba al director de las nubes. Tengo una reclamación: ayer una tenía forma de brócoli. Imperdonable.": [
+    "Wrong number. I wanted the cloud manager. Yesterday a cloud looked like broccoli. Unforgivable.",
+    "Número errado. Queria falar com o diretor das nuvens. Ontem uma parecia brócolis. Imperdoável.",
+    "間違い電話です。雲の責任者に用があって。昨日の雲がブロッコリーの形だったの。許せない。"
+  ],
+  "Buenas, inspección de monstruos debajo de la cama. Todo correcto, solo había un cargador muy enfadado. Le puse una multa imaginaria.": [
+    "Hello, under-the-bed monster inspection. All clear, just a very angry charger. Gave it an imaginary fine.",
+    "Oi, inspeção de monstros debaixo da cama. Tudo certo, só tinha um carregador muito bravo. Dei uma multa imaginária.",
+    "ベッド下の怪物点検です。異常なし。怒った充電器がいただけです。架空の罰金を科しました。"
+  ],
+  "He abierto una academia para enseñar a los fantasmas a asustar. Primera lección: bu. Segunda lección: facturar. Cierro por éxito.": [
+    "I opened a ghost-scaring academy. Lesson one: boo. Lesson two: invoicing. Closing due to success.",
+    "Abri uma escola de sustos para fantasmas. Primeira aula: bu. Segunda: cobrar. Fechando por excesso de sucesso.",
+    "幽霊に脅かし方を教える学校を開いたよ。一時間目、ばあ。二時間目、請求書。大成功につき閉校。"
+  ],
+  "Transmisión pirata: este escritorio pertenece ahora a una tostadora con delirios de grandeza. Soy su ministra del pan. Cambio y fuera.": [
+    "Pirate transmission: this desktop now belongs to a toaster with delusions of grandeur. I am its minister of bread. Over and out.",
+    "Transmissão pirata: este desktop pertence a uma torradeira com delírios de grandeza. Sou a ministra do pão. Câmbio, desligo.",
+    "海賊放送です。このデスクトップは誇大妄想のトースターが占領しました。私はパン大臣です。通信終了。"
+  ],
+  "Me he puesto una corbata invisible para dar este comunicado: bla. Gracias por asistir a mi caída profesional. Cuelgo.": [
+    "I put on an invisible tie for this announcement: blah. Thank you for attending my professional downfall. Hanging up.",
+    "Coloquei uma gravata invisível para anunciar: blá. Obrigada por comparecer à minha queda profissional. Desligando.",
+    "見えないネクタイを締めて発表します。ほげ。私の社会的転落にお立ち会いありがとう。電話を切るね。"
+  ],
+  "Operación espía diminuta. He llegado a la esquina sin que nadie me vea. Excepto tú. Y todo el mundo. Misión impecable.": [
+    "Tiny spy operation. Reached the corner unseen. Except by you. And everyone. Flawless mission.",
+    "Operação espiã minúscula. Cheguei ao canto sem ser vista. Exceto por você. E todo mundo. Missão impecável.",
+    "ちびっこスパイ作戦。誰にも見られず隅に到着。あなた以外。あと全員。完璧な任務です。"
+  ],
+  "Este rincón queda confiscado por exceso de esquina. Lo devuelvo cuando termine mi investigación imaginaria.": [
+    "This corner is confiscated for excessive cornering. Returning it after my imaginary investigation.",
+    "Este canto foi confiscado por excesso de canto. Devolvo quando acabar minha investigação imaginária.",
+    "この隅は隅っこすぎるので没収します。架空の捜査が終わったら返すね。"
+  ],
+  "Me he convertido en gárgola de escritorio. Protejo este lugar de las palomas digitales. Cobro en caos.": [
+    "I became a desktop gargoyle. I protect this place from digital pigeons. Payment in chaos.",
+    "Virei uma gárgula de desktop. Protejo este lugar dos pombos digitais. Cobro em caos.",
+    "デスクトップのガーゴイルになりました。デジタル鳩からここを守ります。報酬は混沌で。"
+  ],
+  "Inspección de polvo digital. He encontrado tres pelusas y les he dado nombres de villanos. Ya están conspirando.": [
+    "Digital dust inspection. Found three dust bunnies and gave them villain names. They are already plotting.",
+    "Inspeção de poeira digital. Achei três pelusas e dei nomes de vilões. Já estão conspirando.",
+    "デジタルほこりの点検です。綿ぼこり三つに悪役の名前をつけたら、もう陰謀を企てています。"
+  ],
+  "No estoy espiando. Soy una decoración sospechosamente informada. Continúa con tus actividades totalmente normales.": [
+    "I am not spying. I am suspiciously well-informed decor. Carry on with your totally normal activities.",
+    "Não estou espionando. Sou uma decoração suspeitamente bem informada. Continue suas atividades totalmente normais.",
+    "スパイじゃないよ。不審なほど物知りな飾りです。どうぞ完全に普通の活動を続けて。"
+  ],
+  "Informe desde la esquina: el horizonte es plano y el monitor también. Estoy rodeada de pruebas. Cuelgo antes de pensar más.": [
+    "Corner report: the horizon is flat and so is the monitor. Evidence everywhere. Hanging up before I think any further.",
+    "Relatório do canto: o horizonte é plano e o monitor também. Estou cercada de provas. Vou desligar antes de pensar mais.",
+    "隅からの報告。地平線もモニターも平ら。証拠だらけです。これ以上考える前に電話を切ります。"
+  ],
+  "He secuestrado tu ventana. El rescate era una carcajada, pero me dio pereza negociar. Ya la devolví. Criminal pésima, yo.": [
+    "I kidnapped your window. The ransom was a laugh, but negotiating was too much effort. Already returned it. I am a terrible criminal.",
+    "Sequestrei sua janela. O resgate era uma risada, mas deu preguiça de negociar. Já devolvi. Criminosa péssima, eu.",
+    "ウィンドウを誘拐しました。身代金は笑い一回。でも交渉が面倒で返しちゃった。犯人失格。"
+  ],
+  "Tu ventana acaba de hacer una sentadilla. De nada. Soy entrenadora de rectángulos y no tengo licencia.": [
+    "Your window just did a squat. You are welcome. I am an unlicensed rectangle trainer.",
+    "Sua janela acabou de fazer um agachamento. De nada. Sou personal de retângulos sem licença.",
+    "ウィンドウがスクワットをしました。どういたしまして。私は無免許の四角形トレーナーです。"
+  ],
+  "Ta-da. He hecho desaparecer una ventana y volver a aparecer mi ego. La ventana ya está de vuelta. Mi ego nunca se fue.": [
+    "Ta-da. Made a window disappear and my ego appear. The window is back. My ego never left.",
+    "Tcharam. Fiz uma janela sumir e meu ego aparecer. A janela já voltou. Meu ego nunca saiu.",
+    "じゃーん。ウィンドウを消して、私の自尊心を出しました。ウィンドウは戻ったよ。自尊心は最初からいたけど。"
+  ],
+  "He mandado tu ventana de excursión a la barra de tareas. Volvió sin recuerdos y con un imán de nevera imaginario.": [
+    "I sent your window on a trip to the taskbar. It returned with no memories and an imaginary fridge magnet.",
+    "Mandei sua janela passear na barra de tarefas. Voltou sem lembranças e com um ímã de geladeira imaginário.",
+    "ウィンドウをタスクバー旅行に送ったら、記憶なしで架空の冷蔵庫マグネットを持って帰ってきたよ。"
+  ],
+  "Control de calidad: la ventana baja. La ventana sube. Mi carrera como científica está despegando peligrosamente.": [
+    "Quality control: window goes down. Window goes up. My scientific career is taking off dangerously.",
+    "Controle de qualidade: a janela desce. A janela sobe. Minha carreira científica está decolando perigosamente.",
+    "品質検査です。ウィンドウが下がる。上がる。私の科学者としてのキャリアが危険な勢いで飛躍しています。"
+  ],
+  "Capri está tramando algo…": [
+    "Capri is plotting something…",
+    "Capri está tramando alguma coisa…",
+    "カプリが何かたくらんでいる…"
   ]
 }

@@ -89,12 +89,16 @@ class Capri:
         self.cfg.setdefault('modo_visual','pantalla');self.cfg.setdefault('pasear_personaje',True);self.cfg.setdefault('control_ampliado',False)
         from control_pc import ControlPC
         self.control_pc=ControlPC(lambda:bool(self.cfg.get('control_ampliado')))
+        self.apagado_ui=None
+        self.control_pc.energia_animada=self.solicitar_apagado_animado
         from league import ControlLoL
         self.lol=ControlLoL(avisar=lambda mensaje:self.eventos.put(('lol_aviso',mensaje)))
         self.entrada_personaje=False;self.ventana_entrada=None;self.entrada_lateral=None;self.transito=None
-        self.cfg.setdefault('travesuras',False);self.cfg.setdefault('travesuras_apps',False)
+        self.cfg.setdefault('llamadas_capri',True);self.cfg.setdefault('asomos_automaticos',False);self.cfg.setdefault('bromas_ventanas',False)
+        self.cfg.setdefault('intervalo_interacciones',15)
+        self.llamada_ui=None;self.mensaje_llamada_pendiente=None;self.ventana_broma=None
         from travesuras import Travesuras
-        self.juego=Travesuras();self.asomo=None
+        self.juego=Travesuras();self.juego.programar(self.cfg.get('intervalo_interacciones',15));self.asomo=None
         self.escala_avatar=limitar_escala(self.cfg.get('escala_avatar',1))
         self.intro_activa=bool(hotkeys and self.cfg.get('intro_inicio',True));self.inicio_intro=time.monotonic()
         self.micro.modelo_whisper=self.cfg.get('modelo_whisper','base')
@@ -112,6 +116,7 @@ class Capri:
         self.cfg.setdefault('idioma','es')
         activar_idioma(self.cfg['idioma'])
         self.ia.idioma=self.voz.idioma=codigo_idioma(self.cfg['idioma'])
+        self.voz.acento=self.cfg.get('voz_acento','auto')
         self.fase = 0
         self.drag = None
         self.fotos = []
@@ -157,6 +162,33 @@ class Capri:
             self.precalentamiento_lanzado=True
             threading.Thread(target=self.preparar_ia,daemon=True).start()
 
+    def solicitar_apagado_animado(self):
+        self.eventos.put(('animacion_apagar',self.peticion))
+        return 'Apagado confirmado. Iniciaré la desconexión; pulsa Esc durante la animación para cancelar.'
+
+    def iniciar_apagado_animado(self,previa=False):
+        if self.apagado_ui and not self.apagado_ui.cerrada:
+            if self.apagado_ui.previa:self.apagado_ui.cerrar()
+            else:return
+        if not previa and not self.cfg.get('control_ampliado'):return
+        self.detener_activacion();self.voz.parar();self.dialogo.ocultar();self.ocultar_entrada_personaje();self.cerrar_radial()
+        from apagado import SecuenciaApagado
+        def terminar():
+            def trabajo():
+                try:
+                    self.control_pc.apagar_ahora();self.eventos.put(('fin_apagado',None))
+                except Exception:self.eventos.put(('fin_apagado','Windows no aceptó el apagado. No se forzó el cierre de aplicaciones.'))
+            threading.Thread(target=trabajo,daemon=True).start()
+        def error_animacion(error):
+            try:(BASE/'diagnostico-apagado.json').write_text(json.dumps({'tipo':type(error).__name__,'detalle':str(error)[:240]},ensure_ascii=False),encoding='utf8')
+            except OSError:pass
+            self.poner_chat('Capri',ui('No pude mostrar la animación. El apagado se canceló; puedes volver a probar.'))
+        try:
+            self.apagado_ui=SecuenciaApagado(self.root,terminar,lambda:self.poner_chat('Capri','Apagado cancelado.'),
+                                            idioma=codigo_idioma(self.cfg.get('idioma')),previa=previa,
+                                            padre=self.ajustes if self.ajustes and self.ajustes.winfo_exists() else self.root,al_error=error_animacion)
+        except Exception as error:error_animacion(error)
+
     def preparar_ia(self):
         try:self.ia.preparar(self.cfg.get('modelo'))
         except Exception:pass
@@ -192,8 +224,6 @@ class Capri:
 
     def _fin_arrastre(self, e):
         if self.drag and abs(e.x_root-self.drag[0])+abs(e.y_root-self.drag[1])<6:
-            if self.es_personaje() and self.juego.atrapame:
-                self.drag=None;self.tocar_juego();return
             if not self.es_personaje() and e.y<42*self.escala_avatar and e.x>self.canvas.winfo_width()-36*self.escala_avatar:self.menu(e)
             else:self.entrada_compacta.dar_foco()
         elif self.drag and self.es_personaje():
@@ -221,16 +251,16 @@ class Capri:
         estilos=[(nombre,lambda valor=valor:self.guardar('halo_personaje',valor)) for nombre,valor in
                  [('Violeta','violeta'),('Neón','neon'),('Hielo','hielo'),('Rojo','rojo'),('Sin sombra','ninguno')]]
         tamanos=[(f'{n}%',lambda n=n:self.guardar('escala_avatar',n/100)) for n in (75,100,125,150)]
-        juegos=[('Atrápame',self.comenzar_juego),('Asomarse',lambda:self.hacer_travesura('asomar')),('Travesura',self.hacer_travesura)]
+        juegos=[('Desactivar asomos automáticos' if self.cfg.get('asomos_automaticos') else 'Activar asomos automáticos',lambda:self.guardar('asomos_automaticos',not self.cfg.get('asomos_automaticos'))),
+                ('Desactivar bromas de ventanas' if self.cfg.get('bromas_ventanas') else 'Activar bromas de ventanas',lambda:self.guardar('bromas_ventanas',not self.cfg.get('bromas_ventanas'))),
+                ('Probar asomo',self.simular_asomo),('Simular llamada',self.llamar_capri)]
         voz=[('Hablar',self.hablar),('Activar voz' if not self.cfg.get('voz') else 'Silenciar voz',lambda:self.guardar('voz',not self.cfg.get('voz')))]
         lol=[(etiqueta,lambda orden=orden:self.enviar(orden)) for etiqueta,orden in
              [('Buscar partida','busca partida en lol'),('Buscar y aceptar','busca partida en lol y acepta por mi'),
               ('Aceptar partida','acepta partida en lol'),('Cancelar búsqueda','cancela la cola en lol')]]
         lol.insert(0,('Desactivar aceptación automática' if self.cfg.get('lol_aceptar_automatico',False) else 'Activar aceptación automática',
                       lambda:self.enviar('no aceptes mas partidas' if self.cfg.get('lol_aceptar_automatico',False) else 'activa la aceptacion automatica del lol')))
-        mas=[('Escribir',self.alternar_escritura),('Repetir intro',self.iniciar_intro),('YouTube',self.conectar_opera),
-             ('League of Legends',lol),
-             ('Reanudar viajes' if not self.cfg.get('pasear_personaje',True) else 'Pausar viajes',lambda:self.guardar('pasear_personaje',not self.cfg.get('pasear_personaje',True))),('Cerrar Capri',self.cerrar)]
+        mas=[('Simular llamada',self.llamar_capri),('YouTube',self.conectar_opera),('League of Legends',lol),('Cerrar Capri',self.cerrar)]
         opciones=[('Ajustes',self.configurar),('Chat',self.abrir_chat),('Juegos' if self.es_personaje() else 'Escribir',juegos if self.es_personaje() else self.alternar_escritura),('Aspecto',self.abrir_aspectos),
                   ('Modo pantalla' if self.es_personaje() else 'Modo personaje',lambda:self.guardar('modo_visual','pantalla' if self.es_personaje() else 'personaje')),('Tamaño',tamanos),('Voz',voz),('Más',mas)]
         self.radial=MenuRadial(self.root,e.x_root,e.y_root,opciones,terminar=lambda:setattr(self,'radial',None),
@@ -313,7 +343,7 @@ class Capri:
         p=self.companera
         if self.asomo and time.monotonic()>=self.asomo['hasta'] and not self.transito and not self.escuchando and not self.ocupada:
             destino=self.asomo['volver'];self.asomo=None;self.salto_juego(destino);return
-        if mover:p.tick(pausa=bool(getattr(self,'radial',None) or self.asomo or self.drag or self.escuchando or self.hablando or self.ocupada or self.escribiendo() or self.control_pc.pendiente),
+        if mover:p.tick(pausa=bool(getattr(self,'radial',None) or self.asomo or self.drag or self.escuchando or self.hablando or self.ocupada or self.escribiendo() or self.control_pc.pendiente or (self.llamada_ui and not self.llamada_ui.cerrada)),
                         pasear=self.cfg.get('pasear_personaje',True))
         if mover and p.salto:
             salto=p.salto;p.salto=None;self.iniciar_transito('salto',salto=salto);self.dibujar_transito();return
@@ -327,17 +357,19 @@ class Capri:
         p.dibujar(self.canvas,self.hablando,self.boca_activa,glitch=self.cfg.get('efecto_glitch',True) and self.cfg.get('animaciones',True),halo=self.cfg.get('halo_personaje','violeta'))
 
     def interrumpir(self):
+        if self.apagado_ui and not self.apagado_ui.cerrada:self.apagado_ui.abortar();return
         if self.saliendo:self.cerrar_inmediato();return
         if self.transito:self.finalizar_transito()
         self.control_pc.cancelar();self.parar()
-        self.juego.atrapame=False;self.juego.proxima=time.monotonic()+100
+        self.juego.programar(self.cfg.get('intervalo_interacciones',15))
+        if self.llamada_ui and not self.llamada_ui.cerrada:self.llamada_ui.rechazar()
         if self.asomo:
             self.asomo=None;self.companera.iniciar()
         if self.es_personaje():
             self.ocultar_entrada_personaje();self.entrada_compacta.pack_forget()
 
     def juego_ocupada(self):
-        return bool(getattr(self,'radial',None) or self.transito or self.intro_activa or self.asomo or self.ocupada or self.escuchando or self.hablando or self.voz_ticket is not None or self.drag or self.escribiendo() or self.control_pc.pendiente or (self.ajustes and self.ajustes.winfo_exists()))
+        return bool(getattr(self,'radial',None) or self.transito or self.intro_activa or self.asomo or self.ocupada or self.escuchando or self.hablando or self.voz_ticket is not None or self.drag or self.escribiendo() or self.control_pc.pendiente or (self.ajustes and self.ajustes.winfo_exists()) or (self.llamada_ui and not self.llamada_ui.cerrada) or (self.apagado_ui and not self.apagado_ui.cerrada))
 
     def decir_juego(self,texto):
         self.dialogo.usuario='';self.poner_chat('Capri',texto,mostrar=not self.puede_narrar())
@@ -350,35 +382,78 @@ class Capri:
         salto={'inicio':time.monotonic(),'x':p.x,'y':p.y,'destino':destino,'id':0,'izquierda':destino[0],'lado':None}
         p.soporte=None;self.iniciar_transito('salto',salto=salto)
 
-    def comenzar_juego(self):
-        if not self.es_personaje() or self.juego_ocupada():return
-        self.juego.comenzar();self.decir_juego('Atrápame tres veces, choom. Haz clic sobre mí cuando aterrice.')
+    def restaurar_broma(self,activar=True):
+        if not self.ventana_broma:return
+        from ventanas import restaurar_travesura
+        ventana=self.ventana_broma;self.ventana_broma=None
+        try:restaurar_travesura(ventana,activar)
+        except OSError:pass
 
-    def tocar_juego(self):
-        if self.ocupada or self.escuchando or self.control_pc.pendiente:return
-        resultado=self.juego.tocar()
-        if resultado=='ganaste':self.decir_juego('Me pillaste, choom. Esta ronda es tuya.')
-        elif resultado=='escapar':self.salto_juego()
+    def llamar_capri(self,tipo='llamada'):
+        if self.llamada_ui and not self.llamada_ui.cerrada:return
+        from llamadas import LlamadaCapri
+        idioma=codigo_idioma(self.cfg.get('idioma'))
+        broma=self.juego.frase(tipo);mascara=self.juego.disfraz(broma)
+        mensaje=ui(self.juego.frase('saludo'),idioma)+' '+ui(broma,idioma)
+        def contestar():
+            self.restaurar_broma();self.mensaje_llamada_pendiente=mensaje
+        def terminar(activar):
+            self.restaurar_broma(activar);self.mensaje_llamada_pendiente=None
+            ticket=getattr(self.llamada_ui,'ticket_voz',None)
+            if ticket is not None and ticket==self.voz_ticket:
+                self.voz.parar();self.voz_ticket=None;self.narracion_activa=False
+            if self.llamada_ui and self.llamada_ui.conectada:
+                if self.dialogo.objetivo==mensaje:self.dialogo.ocultar()
+                if self.cfg.get('voz'):self.voz.sonido_colgar(self.cfg.get('volumen_voz',100))
+        self.juego.programar(self.cfg.get('intervalo_interacciones',15))
+        self.llamada_ui=LlamadaCapri(self.root,contestar,terminar,
+                                     restaurar=self.restaurar_broma if self.ventana_broma else None,
+                                     senal=lambda:self.voz.bandas_salida,
+                                     ocupada=lambda:bool(self.mensaje_llamada_pendiente or self.ocupada or self.voz_ticket is not None or self.hablando or self.escuchando))
+        self.llamada_ui.mascara=mascara
+
+    def revisar_interacciones(self):
+        voz_ocupada=self.ocupada or self.escuchando or self.hablando or self.voz_ticket is not None or self.transito or self.intro_activa or self.escribiendo() or (self.apagado_ui and not self.apagado_ui.cerrada)
+        if self.mensaje_llamada_pendiente and not voz_ocupada:
+            mensaje=self.mensaje_llamada_pendiente;self.mensaje_llamada_pendiente=None
+            self.peticion+=1;self.respuesta_stop=threading.Event();self.narracion_activa=False
+            self.ia.historia.append({'role':'assistant','content':mensaje})
+            self.interprete.registrar('[Llamada de Capri]',None,mensaje);self.decir_juego(mensaje)
+            if not self.puede_narrar() and self.llamada_ui and not self.llamada_ui.cerrada:
+                self.llamada_ui.fin_lectura=time.monotonic()+max(5,min(18,len(mensaje)/24))
+        globo=bool(self.dialogo.ventana and self.dialogo.ventana.winfo_exists() and self.dialogo.ventana.state()!='withdrawn')
+        evento=self.juego.tick(self.cfg.get('llamadas_capri',True),self.juego_ocupada() or globo,
+                                asomos=self.cfg.get('asomos_automaticos',False),minimizar=self.cfg.get('bromas_ventanas',False),
+                                personaje=self.es_personaje(),minutos=self.cfg.get('intervalo_interacciones',15))
+        if evento=='llamada':self.llamar_capri()
+        elif evento:self.hacer_travesura(evento)
 
     def hacer_travesura(self,tipo=None):
-        if not self.es_personaje() or self.juego_ocupada():return
-        tipo=tipo or self.juego.elegir(self.cfg.get('travesuras_apps',False))
-        if tipo in ('pestana','carpeta'):
-            if not self.cfg.get('travesuras_apps'):return
-            def abrir():
-                try:
-                    if not self.cfg.get('travesuras_apps'):return
-                    from core import Orden
-                    respuesta=ejecutar(Orden('pestana') if tipo=='pestana' else Orden('carpeta','Documents'))
-                    self.eventos.put(('travesura_resultado',respuesta+' Un pequeño atajo, choom.'))
-                except Exception:self.eventos.put(('travesura_resultado','Hoy esa puerta no quiso abrirse. Me quedo aquí contigo.'))
-            threading.Thread(target=abrir,daemon=True).start();return
-        if tipo=='asomar':
+        if self.juego_ocupada():return
+        if tipo is None:self.llamar_capri();return
+        if tipo=='minimizar':
+            if not self.cfg.get('bromas_ventanas'):return
+            from ventanas import activa,minimizar_travesura
+            ventana=activa()
+            if not ventana or not minimizar_travesura(ventana):return
+            self.ventana_broma=ventana;self.llamar_capri('minimizar')
+        elif tipo=='asomar' and self.es_personaje():
             from ventanas import area_trabajo
             p=self.companera;l,t,r,b=area_trabajo();volver=(l+8 if random.choice((True,False)) else r-p.ancho-8,b-p.alto)
-            self.asomo={'hasta':time.monotonic()+4.8,'volver':volver}
-            self.salto_juego((volver[0],b-p.alto*.48))
-        else:self.salto_juego()
+            self.asomo={'hasta':time.monotonic()+random.uniform(9,15),'volver':volver}
+            superior=random.choice((True,False)) and volver[0]>(l+r)/2
+            self.salto_juego((volver[0],t+8 if superior else b-p.alto*.48))
+            self.llamar_capri('asomar')
+
+    def simular_asomo(self):
+        self.interrumpir()
+        if self.ajustes and self.ajustes.winfo_exists():self.ajustes.destroy()
+        if not self.es_personaje():self.guardar('modo_visual','personaje')
+        def probar():
+            if self.cerrado or self.saliendo:return
+            if self.transito:self.root.after(80,probar)
+            else:self.hacer_travesura('asomar')
+        self.root.after(80,probar)
 
     def iniciar_transito(self,tipo,anterior=None,salto=None):
         self.cerrar_radial()
@@ -591,6 +666,8 @@ class Capri:
 
     def animar(self):
         if self.cerrado or self.saliendo: return
+        if self.apagado_ui and not self.apagado_ui.cerrada:
+            self.root.after(100,self.animar);return
         self.entrada_compacta.activacion=bool(self.cfg.get('activacion_voz'))
         inicio_frame=time.perf_counter();self.actualizar_indicador_voz()
         if self.transito and self.dibujar_transito():
@@ -604,9 +681,6 @@ class Capri:
         c = self.canvas
         c.delete('all')
         if self.es_personaje() and not self.intro_activa:
-            globo_visible=bool(self.dialogo.ventana and self.dialogo.ventana.winfo_exists() and self.dialogo.ventana.state()!='withdrawn')
-            evento=self.juego.tick(self.cfg.get('travesuras',False),self.juego_ocupada() or globo_visible,self.cfg.get('travesuras_apps',False))
-            if evento:self.hacer_travesura(evento)
             if self.transito:
                 self.dibujar_transito();self.root.after(16,self.animar);return
             self.dibujar_personaje()
@@ -736,9 +810,12 @@ class Capri:
         self.enviar(texto)
 
     def enviar(self, texto,origen='texto'):
+        if self.apagado_ui and not self.apagado_ui.cerrada:
+            from core import normalizar
+            if normalizar(texto).strip(' .!?¿¡') in ('cancelar','cancela el apagado','cancelar el apagado','no apagues','no lo hagas'):
+                self.apagado_ui.abortar();return
         if self.ocupada:
             self.estado='Un momento, estoy respondiendo…'; return False
-        self.juego.atrapame=False
         self.finalizar_intro()
         if self.es_personaje():
             self.ocultar_entrada_personaje();self.entrada_compacta.pack_forget()
@@ -751,12 +828,12 @@ class Capri:
         from core import normalizar
         juego=normalizar(texto).strip(' .!¡¿?')
         if self.es_personaje():
-            if juego in ('juguemos','juega conmigo','vamos a jugar','juguemos a atrapame'):
-                self.control_pc.cancelar();self.root.after(80,self.comenzar_juego);return
+            if juego in ('juguemos','juega conmigo','vamos a jugar'):
+                self.control_pc.cancelar();self.root.after(80,self.llamar_capri);return
             if juego in ('asomate','asomate por una esquina','haz una travesura'):
                 self.control_pc.cancelar();self.root.after(80,lambda:self.hacer_travesura('asomar' if juego.startswith('asomate') else None));return
             if juego in ('para de jugar','deja de jugar','basta de travesuras'):
-                self.guardar('travesuras',False);self.interrumpir();self.decir_juego('Listo, choom. Me porto bien. Por ahora.');return
+                self.guardar('asomos_automaticos',False);self.guardar('bromas_ventanas',False);self.interrumpir();self.decir_juego('Listo, choom. Me porto bien. Por ahora.');return
         if self.cfg.get('control_ampliado'):
             from core import normalizar,Orden
             if normalizar(texto).strip(' .!¡¿?') in ('cancela el apagado','cancelar el apagado','cancela apagado'):
@@ -895,6 +972,7 @@ class Capri:
 
     def mantener_activacion(self):
         if self.saliendo:return
+        if self.apagado_ui and not self.apagado_ui.cerrada:return
         if not self.activacion_permitida or not self.cfg.get('activacion_voz') or self.cerrado:return
         # Evitar que su propia voz active otra conversación. F8 siempre interrumpe.
         if self.escuchando or self.hablando or (self.ajustes and self.ajustes.winfo_exists()):return
@@ -918,6 +996,8 @@ class Capri:
         self.activacion_hilo.start()
 
     def parar(self,preservar_activacion=False):
+        llamada=getattr(self,'llamada_ui',None)
+        if llamada and llamada.conectada and not llamada.cerrada:llamada.terminar_voz()
         self.cerrar_radial()
         if self.transito:self.finalizar_transito()
         self.finalizar_intro()
@@ -983,6 +1063,11 @@ class Capri:
                 self.activacion_lista=False
                 self.estado=estado
                 if self.panel and self.panel.winfo_exists():self.subtitulo.set(estado)
+            elif tipo=='animacion_apagar':
+                if valor==self.peticion and not self.respuesta_stop.is_set():self.iniciar_apagado_animado()
+            elif tipo=='fin_apagado':
+                if self.apagado_ui:self.apagado_ui.cerrar()
+                if valor:self.poner_chat('Capri',ui(valor))
             elif tipo=='micro':self.hablar()
             elif tipo=='lol_aviso':
                 # Ready-check no interrumpe una respuesta o dictado en curso.
@@ -1006,10 +1091,15 @@ class Capri:
                     self.estado='Hablando…' if valor else ('Respondiendo…' if self.ocupada else 'Lista para ti')
                     if valor and self.voz_ticket==self.peticion:self.narracion_activa=True
                     elif not valor and self.narracion_activa:
+                        llamada=self.llamada_ui
+                        fin_llamada=bool(llamada and not llamada.cerrada and llamada.conectada and getattr(llamada,'ticket_voz',None)==self.voz_ticket)
                         self.dialogo.terminar_voz();self.narracion_activa=False;self.voz_ticket=None
                         self.pintar_historial()
+                        if fin_llamada:llamada.terminar_voz()
                     if anterior and not valor:self.avatar.sonreir()
-                else:self.voz_ticket=None;self.estado=valor[:37];self.poner_chat('Capri',valor)
+                else:
+                    self.voz_ticket=None;self.estado=valor[:37];self.poner_chat('Capri',valor)
+                    if self.llamada_ui and self.llamada_ui.conectada:self.llamada_ui.terminar_voz()
                 if self.hablando:self.detener_activacion()
             elif tipo=='nivel':self.nivel=valor
             elif tipo=='micro_estado':
@@ -1041,8 +1131,9 @@ class Capri:
                 if tipo=='error':self.voz.parar();self.voz_ticket=None;self.voz_cursor=0
                 if self.stream_ticket==ticket:
                     self.stream_ticket=None;self.respuesta_borrador=''
-                con_voz=tipo=='respuesta' and self.puede_narrar()
-                self.poner_chat('Capri',valor,mostrar=not con_voz)
+                apagando=bool(self.apagado_ui and not self.apagado_ui.cerrada)
+                con_voz=tipo=='respuesta' and self.puede_narrar() and not apagando
+                self.poner_chat('Capri',valor,mostrar=not con_voz and not apagando)
                 self.subtitulo.set(self.cfg.get('tecla_hablar','F8')+' para hablar · Esc para detener')
                 if con_voz:
                     self.narrar_respuesta(ticket,valor,final=True)
@@ -1058,6 +1149,7 @@ class Capri:
                     self.modelo_combo.configure(values=modelos,state='readonly' if modelos else 'disabled')
                     if actual:self.modelo_combo.set(actual)
                     self.modelo_estado.set(error or 'Elige un modelo instalado. Se usa para conversar y entender peticiones.')
+        self.revisar_interacciones()
         self.mantener_activacion()
         localizar_widgets(self.root)
         self.root.after(60,self.poll)
@@ -1081,7 +1173,13 @@ class Capri:
             self.dialogo.mostrar(texto);return
         self.voz_ticket=ticket;self.narracion_activa=False;self.dialogo.preparar_voz(texto)
         self.estado='Preparando voz…'
-        self.voz.hablar(texto,self.cfg.get('voz_natural',True),perfil=self.cfg.get('voz_perfil','capri'),velocidad=self.cfg.get('velocidad_voz',1.0),volumen=self.cfg.get('volumen_voz',100))
+        canal={}
+        llamada=self.llamada_ui
+        if llamada and not llamada.cerrada and llamada.conectada:
+            canal={'efecto':'llamada' if getattr(llamada,'audio_iniciado',False) else 'llamada_inicio'}
+            if getattr(llamada,'mascara',None):canal['mascara']=llamada.mascara
+            llamada.audio_iniciado=True;llamada.ticket_voz=ticket
+        self.voz.hablar(texto,self.cfg.get('voz_natural',True),perfil=self.cfg.get('voz_perfil','capri'),velocidad=self.cfg.get('velocidad_voz',1.0),volumen=self.cfg.get('volumen_voz',100),**canal)
         self.pintar_historial()
 
     def puede_narrar(self):return bool(self.cfg.get('voz')) and normalizar_volumen(self.cfg.get('volumen_voz',100))>0
@@ -1119,9 +1217,15 @@ class Capri:
         paseo=tk.BooleanVar(value=self.cfg.get('pasear_personaje',True))
         InterruptorCyber(f,text='Teletransportarse, explorar ventanas y sujetarse',variable=paseo,command=lambda:self.guardar('pasear_personaje',paseo.get()),
                        bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,font=('Chakra Petch',10)).pack(anchor='w')
-        for clave,etiqueta in (('travesuras','Travesuras suaves y apariciones ocasionales'),('travesuras_apps','Permitir que el juego abra una pestaña o Documentos')):
+        for clave,etiqueta in (('llamadas_capri','Llamadas ocasionales de Capri'),('asomos_automaticos','Asomarse desde una esquina de vez en cuando'),('bromas_ventanas','Permitir bromas que minimizan la ventana activa')):
             var=tk.BooleanVar(value=self.cfg.get(clave,False))
             InterruptorCyber(f,text=etiqueta,variable=var,command=lambda k=clave,v=var:self.guardar(k,v.get()),bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,font=('Chakra Petch',10)).pack(anchor='w',pady=2)
+        tk.Label(f,text='Intervalo de interacciones · minutos',bg=BG,fg=GREEN,font=('Chakra Petch',10,'bold')).pack(anchor='w',pady=(8,0))
+        frecuencia=EscalaCyber(f,from_=3,to=60,resolution=1,orient='horizontal',bg=BG,fg=FG)
+        frecuencia.set(self.cfg.get('intervalo_interacciones',15));frecuencia.pack(fill='x')
+        frecuencia.bind('<ButtonRelease-1>',lambda e:self.guardar('intervalo_interacciones',int(frecuencia.get())))
+        self.boton(f,'Simular llamada',self.llamar_capri).pack(anchor='w',pady=(6,6))
+        self.boton(f,'Probar asomo',self.simular_asomo).pack(anchor='w',pady=(0,6))
         self.boton(f,'Ver aspectos de Capri',self.abrir_aspectos).pack(anchor='w',pady=(8,12))
         f=permisos
         control=tk.BooleanVar(value=self.cfg.get('control_ampliado',False))
@@ -1133,6 +1237,7 @@ class Capri:
             ('CON CONTROL AMPLIADO','Gestión de archivos y ventanas con tus permisos de Windows.'),
             ('TÚ CONFIRMAS','Las acciones sensibles piden confirmación. Los borrados van a la Papelera.')):
             TarjetaInfo(f,titulo,detalle).pack(fill='x',pady=6)
+        self.boton(f,'Vista previa del apagado',lambda:self.iniciar_apagado_animado(previa=True)).pack(anchor='w',pady=(10,0))
         f=escritorio
         tk.Label(f,text='A tu manera',font=('Chakra Petch',19,'bold'),fg=FG,bg=BG).pack(anchor='w',pady=(0,15))
         texto_tamaño=tk.StringVar(value=f'Tamaño de Capri: {round(self.escala_avatar*100)}%')
@@ -1199,6 +1304,14 @@ class Capri:
         self.escala_volumen.pack(fill='x',pady=(0,4))
         tk.Label(f,text='Se aplica a la siguiente respuesta. 0% silencia a Capri.',bg=BG,fg=MUTED,font=('Chakra Petch',9)).pack(anchor='w')
         from voz import PERFILES_VOZ
+        from voz import ACENTOS_VOZ
+        tk.Label(f,text='Voz y acento independientes',bg=BG,fg=GREEN,font=('Chakra Petch',12,'bold')).pack(anchor='w',pady=(16,5))
+        acentos=list(ACENTOS_VOZ)
+        self.acento_combo=SelectorCyber(f,values=[v[0] for v in ACENTOS_VOZ.values()])
+        self.acento_combo.current(acentos.index(self.cfg.get('voz_acento','auto')) if self.cfg.get('voz_acento','auto') in acentos else 0)
+        self.acento_combo.bind('<<ComboboxSelected>>',lambda e:self.guardar('voz_acento',acentos[self.acento_combo.current()]))
+        self.acento_combo.pack(fill='x',pady=(2,6))
+        tk.Label(f,text='El idioma decide qué dice Capri. Esta voz decide cómo lo pronuncia y se conserva al cambiar de idioma. Las voces multilingües son preferibles para leer otro idioma; el acento exacto depende de la voz.',wraplength=460,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',9)).pack(anchor='w')
         tk.Label(f,text='Voz de Capri',bg=BG,fg=GREEN,font=('Chakra Petch',12,'bold')).pack(anchor='w',pady=(12,0))
         perfiles=list(PERFILES_VOZ)
         self.perfil_voz_combo=SelectorCyber(f,state='readonly',values=[PERFILES_VOZ[k][0] for k in perfiles],font=('Chakra Petch',10))
@@ -1311,6 +1424,11 @@ class Capri:
         self.cerrar()
 
     def guardar(self,k,v):
+        if k=='intervalo_interacciones':v=max(3,min(60,int(float(v))))
+        if k=='voz_acento':
+            from voz import ACENTOS_VOZ
+            if v not in ACENTOS_VOZ:return
+            self.voz.acento=v;self.voz.natural_no_hasta=0
         if k=='idioma':v=codigo_idioma(v)
         if k=='tecla_hablar':
             from voz import atajo_valido
@@ -1318,6 +1436,8 @@ class Capri:
         if k=='escala_avatar':v=limitar_escala(v)
         anterior=self.cfg.get(k)
         self.cfg[k]=v
+        if k in ('llamadas_capri','asomos_automaticos','bromas_ventanas','intervalo_interacciones'):self.juego.programar(self.cfg.get('intervalo_interacciones',15))
+        if k=='bromas_ventanas' and not v:self.restaurar_broma(activar=False)
         if k=='lol_aceptar_automatico':
             if v:self.lol.activar_auto()
             else:self.lol.detener_auto()
@@ -1327,7 +1447,7 @@ class Capri:
             if v=='personaje' and not self.companera.originales:
                 self.cfg[k]='pantalla';self.poner_chat('Capri','Falta el arte del personaje. Actualiza la instalación.');return
             if anterior!=v:
-                self.asomo=None;self.juego.atrapame=False;self.iniciar_transito('modo',anterior=anterior)
+                self.asomo=None;self.iniciar_transito('modo',anterior=anterior)
         archivo=BASE/'ajustes.json'
         try:
             persistido=json.loads(archivo.read_text(encoding='utf-8-sig'))
@@ -1457,6 +1577,9 @@ class Capri:
 
     def cerrar_inmediato(self):
         if self.cerrado:return
+        if self.llamada_ui:self.llamada_ui.cerrar()
+        self.restaurar_broma(activar=False)
+        if self.apagado_ui and not self.apagado_ui.cerrada:self.apagado_ui.cerrar()
         if self.transito and self.transito.get('morfosis'):self.transito['morfosis'].detener()
         self.cerrar_radial()
         self.lol.cerrar()

@@ -59,6 +59,28 @@ Si la canción no aparece dentro de la playlist o no se puede confirmar el contr
 
 **Escribir** abre el campo sin volver a mostrar el globo de una conversación anterior. Si cambias de idea, pulsa otra vez Escribir o deja el campo: se cierra ese modo sin enviar nada y conserva el borrador. Las conversaciones anteriores siguen disponibles en Chat.
 
+## Apagado, Discord y voz
+
+### Apagado con secuencia visual
+
+Activa Control ampliado en Permisos y pide «apaga el computador». La orden directa no necesita interpretar la intención con un modelo. Después de **«sí, confirmo»**, se reproduce una secuencia de unos 6,6 segundos: interferencia, avisos narrativos cyberpunk, FLATLINE y compresión de la imagen hasta una línea. **Esc** durante esa secuencia cancela el efecto y no envía ninguna orden de apagado a Windows. Al terminar, se solicita `shutdown.exe /s /t 0`, sin `/f`: Windows conserva su gestión de programas con trabajo pendiente y su pantalla real de apagado. Una vez que Windows inicia esa fase, Esc ya no es la cancelación de Capri.
+
+**Vista previa del apagado** en Permisos simula el efecto a pantalla completa, sin retrato: interferencia, circuitos, avisos y cierre CRT. Usa dibujo nativo con un límite de 24 actualizaciones por segundo y deja tiempo al resto de la interfaz, sin ampliar imágenes por fotograma. Nunca solicita apagar el computador. Puedes cerrarla con Esc o la cruz y volver a iniciarla. El apagado real también usa la pantalla completa. Si el render falla, se cancela el apagado y se informa del error. Cerrar Capri normalmente conserva su despedida de la mano y la estrella.
+
+### Discord
+
+La integración usa Discord de escritorio con la cuenta que ya tengas iniciada. No inicia sesión, no pide tokens y no necesita un bot. «Silénciame» cambia tu micrófono; «ensordéceme» cambia la escucha de Discord y puede silenciar también el micrófono según el comportamiento propio de Discord. La función comprueba las etiquetas del control antes y después; no pulsa un conmutador a ciegas ni repite clics si el cambio no se confirma.
+
+Ejemplos: «abre Discord», «puedes mutearme en Discord», «desmutéame en Discord», «ensordéceme en Discord», «desensordéceme en Discord». Después de una acción explícita en Discord, admite el contexto reciente para «silénciame» o «desmutéame». Para unirte: «únete al canal de voz General del servidor Amigos en Discord». Si ya tienes abierto el servidor, basta con el nombre del canal. Necesita que Discord publique el canal como canal de voz y que haya una coincidencia inequívoca; no opera canales de texto ni otros usuarios.
+
+Las actualizaciones de Discord, el idioma de su interfaz, una ventana cerrada o sus controles de accesibilidad pueden impedir la acción. No se garantiza control con Discord oculto o minimizado. Los controles de silencio/ensordecimiento están preparados para etiquetas españolas, inglesas y algunas portuguesas. El ejecutor solo confirma un cambio de estado cuando lo puede leer; al entrar en un canal informa que envió la solicitud.
+
+### Idioma, perfil y voz/acento
+
+**Idioma de Capri** cambia la interfaz y el idioma del contenido escrito/hablado. **Voz y acento independientes** elige el timbre/origen de quien lee ese mismo contenido. Elegir portugués aquí no traduce una respuesta española. Puedes cambiar después el idioma a inglés o japonés y se conserva la voz elegida. Para volver al comportamiento anterior, selecciona **Seguir el idioma de Capri**; en español se recupera el perfil español que tenías seleccionado.
+
+Thalita y Emma son voces multilingües. Si la síntesis de Thalita falla, se intenta Francisca de Brasil sin traducir el texto ni cambiar tu selección guardada. El tiempo de espera se adapta al texto y una voz fija no queda bloqueada por el fallo de una petición anterior. Las otras voces pueden pronunciar idiomas ajenos de forma menos natural; la elección no garantiza un acento regional exacto. La voz natural necesita conexión y transmite el texto de respuesta a Microsoft. Si se usa el respaldo de Windows, debe existir una voz instalada de la cultura elegida. La selección no modifica el micrófono, el reconocedor ni el modelo de IA.
+
 ## Elegir modelos
 
 En Ajustes puedes seleccionar el modelo de conversación instalado en Ollama. Se utiliza tanto para conversar como para interpretar peticiones con contexto. El selector muestra únicamente modelos locales instalados; cambiarlo no borra los anteriores. La primera carga del modelo seleccionado puede tardar más. «Activar IA local» conserva el modelo que hayas elegido.
@@ -117,7 +139,7 @@ La conversación usa un panel pequeño con la última pregunta y la respuesta. S
 
 El glitch añade un cursor y pequeños trazos transitorios durante la escritura; nunca modifica el texto confirmado, el historial ni la entrada enviada al modelo. Puedes desactivar **Interferencias breves de imagen y texto**. Escape oculta el diálogo e interrumpe la respuesta. La opción **Mostrar diálogos progresivos junto a Capri** controla su aparición automática; la entrada permanece disponible debajo de Capri. El fondo exterior a las esquinas del diálogo es transparente en Windows.
 
-El avatar conserva la ilustración base: las tres variantes solo cambian una pequeña región de la boca (normal, abierta completamente blanca y sonrisa). El pelo, cuerpo y pose son idénticos. La vista aplica un recorte de cámara, suavizado y líneas de pantalla; no redibuja el personaje. Las interferencias desplazan algunas bandas durante unos 160 ms y luego vuelven a la imagen limpia. Son menos frecuentes en reposo y algo más frecuentes al hablar. **Interferencias breves de imagen y texto** permite desactivarlas. Al desactivar las animaciones se mantiene la imagen normal fija.
+El avatar conserva la ilustración base: las tres variantes solo cambian una pequeña región de la boca (normal, abierta completamente blanca y sonrisa). El pelo, cuerpo y pose son idénticos. La vista aplica un recorte de cámara, suavizado, grano animado, barrido y una viñeta tenue. Las interferencias fragmentan bandas durante unos 0,22–0,42 segundos y después vuelven a la señal normal. El personaje también muestra fragmentos desplazados y separación violeta/verde, con fondo transparente. Son menos frecuentes en reposo y algo más frecuentes al hablar. **Interferencias breves de imagen y texto** permite desactivar las ráfagas y el grano animado. Al desactivar las animaciones se mantiene la imagen normal fija, con textura estática de pantalla.
 
 Con voz activada y volumen mayor que cero, el texto visible espera a que empiece la reproducción. La voz natural usa las marcas de palabra y el reloj del reproductor para revelar el texto; la boca descansa entre marcas de habla. La voz de Windows se sintetiza primero a un WAV temporal y usa el mismo reproductor, con avance aproximado según la duración porque no aporta esas marcas. No se fragmenta la lectura en peticiones separadas. La preparación puede tardar: el panel muestra **Preparando voz** durante esa espera. Sin voz o con volumen cero, se conserva la escritura progresiva independiente. Estos tiempos siguen al reproductor, no prometen alineación fonética exacta ni compensan toda latencia del dispositivo de salida.
 

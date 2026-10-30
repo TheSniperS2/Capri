@@ -141,6 +141,11 @@ def url_solicitada(texto):
 
 def interpretar(texto):
     texto = limpiar_peticion(texto)
+    if re.fullmatch(r'(?:apaga|apagar)\s+(?:el\s+|mi\s+)?(?:computador|computadora|ordenador|pc|equipo)[.!?]*',normalizar(texto)):
+        return Orden('equipo_apagar')
+    from discord_control import interpretar_discord
+    discord=interpretar_discord(texto)
+    if discord:return discord
     from league import interpretar_lol
     lol=interpretar_lol(texto)
     if lol:return Orden(*lol)
@@ -279,6 +284,9 @@ def abrir_opera(consulta=None, spawn=subprocess.Popen, pagina=None):
     spawn(argumentos, shell=False, creationflags=HIDDEN)
 
 def ejecutar(orden, spawn=subprocess.Popen, open_url=None):
+    if orden.tipo.startswith('discord_'):
+        from discord_control import ejecutar_discord
+        return ejecutar_discord(orden)
     if orden.tipo in ('spotify_volumen','youtube_volumen'):
         from volumen_apps import controlar_volumen
         return controlar_volumen(orden.valor,destino=orden.tipo.removesuffix('_volumen'))

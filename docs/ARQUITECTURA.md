@@ -6,7 +6,7 @@ Capri separa la interfaz Tk, el trabajo de audio y las integraciones. El código
 | --- | --- | --- |
 | Aplicación | `app.py` | Estado de la sesión, eventos, cancelación y coordinación. |
 | Interfaz | `ajustes_ui.py`, `dialogos.py`, `entrada.py`, `menu_radial.py` | Ajustes, conversación, escritura y menú del personaje. |
-| Personaje | `companera.py`, `ventanas.py`, `travesuras.py` | Física, apoyo sobre ventanas, anclajes y juegos opcionales. |
+| Personaje | `companera.py`, `ventanas.py`, `travesuras.py`, `llamadas.py` | Física, apoyo sobre ventanas, anclajes, llamadas ocasionales y juegos opcionales. |
 | Animación | `avatar.py`, `intro.py`, `despedida.py`, `sincronia.py` | Expresiones, transiciones, cierre y sincronización con voz. |
 | Idiomas | `idiomas.py`, `traducciones.json` | Catálogo de interfaz y comprobación del idioma de las respuestas. |
 | Conversación y órdenes | `core.py`, `intenciones.py`, `nombres.py` | Ollama, interpretación, contexto y nombres de aplicaciones. |
@@ -14,6 +14,8 @@ Capri separa la interfaz Tk, el trabajo de audio y las integraciones. El código
 | Escritorio | `aplicaciones.py`, `control_pc.py`, `escritorio.py` | Catálogo de programas y acciones verificables sobre el equipo. |
 | Multimedia | `multimedia.py`, `playlists.py`, `volumen_apps.py` | Spotify, biblioteca, sesiones y volumen interno. |
 | League of Legends | `league.py` | Conexión local limitada a sala, búsqueda y ready-check; aceptación opcional cancelable. |
+| Apagado | `apagado.py`, `control_pc.py` | Escena CRT nativa en Canvas sin retrato ni escalado de bitmaps por fotograma, con frecuencia limitada; solicitud de apagado tras confirmación y efecto, cancelación previa y vista de prueba. |
+| Discord | `discord_control.py` | Controles propios y canales de voz mediante accesibilidad del cliente de escritorio, sin credenciales. |
 | Navegador | `navegador.py`, `puente_opera.py`, `integraciones/opera-capri/` | Sitios, YouTube y puente local del navegador. |
 | Preparación | `recursos.py`, `activar_ia.py`, `preparar_whisper.py`, `empaquetar.py`, `installer/plantilla.py` | Descargas, modelos, empaquetado y arranque. |
 

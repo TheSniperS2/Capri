@@ -77,7 +77,7 @@ class GloboMenuEntrada(PruebasTk):
                 esperado=f'360x{d.alto_canvas}+437+{425-d.alto_canvas-8}'
                 self.assertEqual(mover.call_args.args[0],esperado);pintar.assert_not_called()
             ancho=int(d.canvas.cget('width'));alto=d.alto_canvas
-            self.assertEqual(d.canvas.coords('borde_inferior'),[23,alto-13,ancho-23,alto-13])
+            self.assertEqual(d.canvas.coords('borde_inferior'),[10,alto-12,ancho-22,alto-12,ancho-10,alto-24])
 
     def test_globo_sigue_configure_y_punta_sin_remaquetar_cuerpo(self):
         with self.capri() as (c,_):

@@ -75,6 +75,7 @@ class ControlPC:
     def __init__(self,habilitado,raices=None,basura=None,reloj=None):
         self.habilitado=habilitado;self.basura=basura or reciclar;self.reloj=reloj or time.monotonic
         self.raices=raices;self.pendiente=None;self.lock=threading.RLock()
+        self.energia_animada=None
 
     def cancelar(self):
         with self.lock:self.pendiente=None
@@ -150,10 +151,16 @@ class ControlPC:
 
     def energia(self,accion):
         if not self.habilitado():raise PermissionError('Control ampliado desactivado.')
+        if accion=='equipo_apagar' and self.energia_animada:return self.energia_animada()
         parametros={'equipo_apagar':['/s','/t','60'],'equipo_reiniciar':['/r','/t','60'],'equipo_cancelar_apagado':['/a']}[accion]
         r=subprocess.run(['shutdown.exe',*parametros],capture_output=True,timeout=5,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
         if r.returncode:raise OSError('Windows no aceptó la solicitud de apagado o reinicio.')
         return 'Cancelé el apagado pendiente.' if accion=='equipo_cancelar_apagado' else 'Windows lo realizará en 60 segundos. Puedes pedirme cancelar el apagado.'
+
+    def apagar_ahora(self):
+        if not self.habilitado():raise PermissionError('Control ampliado desactivado.')
+        r=subprocess.run(['shutdown.exe','/s','/t','0'],capture_output=True,timeout=5,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+        if r.returncode:raise OSError('Windows no aceptó la solicitud de apagado.')
 
     def ejecutar(self,accion,valor):
         with self.lock:

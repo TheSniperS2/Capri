@@ -49,3 +49,31 @@ def controlar(accion,ventana):
     u.ShowWindow.argtypes=[w.HWND,ctypes.c_int]
     u.ShowWindow(hwnd,6 if accion=='ventana_minimizar' else 3)
     return ('Minimicé' if accion=='ventana_minimizar' else 'Maximicé')+' «'+ventana['titulo']+'».'
+
+
+def activa():
+    if os.name!='nt':return None
+    u=ctypes.windll.user32;u.GetForegroundWindow.restype=w.HWND
+    hwnd=int(u.GetForegroundWindow() or 0)
+    ventana=next((v for v in visibles() if v['id']==hwnd),None)
+    if ventana:
+        pid=w.DWORD();u.GetWindowThreadProcessId(w.HWND(hwnd),ctypes.byref(pid));ventana['pid']=pid.value
+    return ventana
+
+
+def minimizar_travesura(ventana):
+    actual=activa()
+    if not actual or actual['id']!=ventana['id']:return False
+    controlar('ventana_minimizar',actual)
+    u=ctypes.windll.user32;u.IsIconic.argtypes=[w.HWND]
+    return bool(u.IsIconic(w.HWND(ventana['id'])))
+
+
+def restaurar_travesura(ventana,activar=True):
+    if os.name!='nt':return
+    u=ctypes.windll.user32;u.IsWindow.argtypes=[w.HWND];u.IsIconic.argtypes=[w.HWND]
+    hwnd=w.HWND(ventana['id'])
+    if u.IsWindow(hwnd) and u.IsIconic(hwnd):
+        pid=w.DWORD();u.GetWindowThreadProcessId(hwnd,ctypes.byref(pid))
+        if ventana.get('pid') is not None and pid.value!=ventana['pid']:return
+        u.ShowWindow.argtypes=[w.HWND,ctypes.c_int];u.ShowWindow(hwnd,9 if activar else 4)

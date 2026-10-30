@@ -102,11 +102,16 @@ class Interprete:
         ultimo=ultimo_tema(recientes)
         tema='spotify' if ultimo.get('accion','').startswith('spotify') else ''
         if ultimo.get('accion','').startswith('youtube_') or (ultimo.get('accion') in ('pestana','abrir') and 'youtube' in ultimo.get('valor','')):tema='youtube'
+        if ultimo.get('accion','').startswith('discord_'):tema='discord'
         return {'tema_activo':tema,'turnos':recientes}
 
     def ajustar_orden(self,texto,orden,control_ampliado=False):
         if protegida(texto):return orden
         t=limpiar_peticion(texto);n=normalizar(t).strip(' .!')
+        if self.contexto()['tema_activo']=='discord':
+            from discord_control import interpretar_discord
+            discord=interpretar_discord(t,contexto=True)
+            if discord:return discord
         ultimo=ultimo_tema(self.contexto()['turnos'])
         if orden and orden.tipo=='spotify_playlist_pendiente':
             datos=json.loads(orden.valor)
@@ -135,6 +140,7 @@ class Interprete:
                       'pausa':'pausa','pausalo':'pausa','detenlo':'pausa','continua':'reanudar','reanuda':'reanudar','ahora sigue':'reanudar'}
             if n in opciones:return Orden('youtube_'+opciones[n])
         if control_ampliado:
+            if re.fullmatch(r'(?:apaga|apagar)\s+(?:el\s+|mi\s+)?(?:computador|computadora|ordenador|pc|equipo)',n):return Orden('equipo_apagar')
             apertura=re.fullmatch(ABRIR+r'\s+(?:el\s+|la\s+)?(.+?)[.!]?',t,re.I)
             if apertura and orden and orden.tipo=='desconocida':return Orden('programa_abrir',apertura[1])
             cierre=re.fullmatch(r'(?:cierra|cerrar|cierre|cierres|termina)\s+(?:el\s+|la\s+)?(?!ventana\b)(.+?)[.!]?',t,re.I)

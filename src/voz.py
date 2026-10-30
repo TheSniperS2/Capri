@@ -23,9 +23,20 @@ PERFILES_VOZ={
     'multilingue':('Emma multilingüe · español','en-US-EmmaMultilingualNeural','+8Hz'),
 }
 
-def elegir_voz(perfil,idioma='es'):
+ACENTOS_VOZ={
+    'auto':('Seguir el idioma de Capri','',''),
+    'es-MX':('Español · México','es-MX-DaliaNeural','+8Hz'),
+    'es-CL':('Español · Chile','es-CL-CatalinaNeural','+0Hz'),
+    'es-ES':('Español · España','es-ES-XimenaNeural','+8Hz'),
+    'pt-BR':('Portugués · Brasil · Thalita multilingüe','pt-BR-ThalitaMultilingualNeural','+8Hz'),
+    'en-US':('Inglés · Estados Unidos · Emma multilingüe','en-US-EmmaMultilingualNeural','+8Hz'),
+    'ja-JP':('Japonés · Nanami','ja-JP-NanamiNeural','+8Hz'),
+}
+
+def elegir_voz(perfil,idioma='es',acento='auto'):
     from idiomas import IDIOMAS,codigo
     idioma=codigo(idioma)
+    if acento in ACENTOS_VOZ and acento!='auto':return ACENTOS_VOZ[acento][1:]
     if idioma!='es':return IDIOMAS[idioma][3],'+8Hz'
     return PERFILES_VOZ.get(perfil,PERFILES_VOZ['capri'])[1:]
 import unicodedata
@@ -300,8 +311,10 @@ class Voz:
         self.proceso = None
         self.generacion = 0
         self.natural_no_hasta = 0
+        self.acento='auto'
         self._control = threading.RLock()
         self._alias = None
+        self.bandas_salida=(0.,)*28
 
     def _vigente(self,token,cancelar):
         return token==self.generacion and not cancelar.is_set()
@@ -319,6 +332,7 @@ class Voz:
 
     def parar(self):
         with self._control:
+            self.bandas_salida=(0.,)*28
             self.cancelar.set()
             self.generacion += 1
             proceso=self.proceso;self.proceso=None
@@ -331,12 +345,23 @@ class Voz:
                 self._mci('close '+alias)
             self.estado(False)
 
-    def hablar(self, texto, natural=True, perfil='capri',velocidad=1.0,volumen=100):
+    def hablar(self, texto, natural=True, perfil='capri',velocidad=1.0,volumen=100,efecto=None,mascara=None):
         self.parar()
         with self._control:
             self.cancelar = threading.Event()
             token = self.generacion;cancelar=self.cancelar
-        threading.Thread(target=self._hablar, args=(texto[:1800], natural, token, cancelar,perfil,velocidad,volumen), daemon=True).start()
+        threading.Thread(target=self._hablar, args=(texto[:1800], natural, token, cancelar,perfil,velocidad,volumen,efecto,mascara), daemon=True).start()
+
+    def sonido_colgar(self,volumen=100):
+        volumen=normalizar_volumen(volumen)
+        if os.name!='nt' or not volumen:return None
+        def reproducir():
+            try:
+                import winsound
+                from audio_llamada import sonido_colgado
+                winsound.PlaySound(sonido_colgado(volumen),winsound.SND_MEMORY|winsound.SND_NODEFAULT)
+            except (OSError,RuntimeError):pass
+        hilo=threading.Thread(target=reproducir,name='CapriColgar',daemon=True);hilo.start();return hilo
 
     def iniciar_respuesta(self,natural=True,perfil='capri',velocidad=1.0,volumen=100):
         self.parar()
@@ -358,7 +383,18 @@ class Voz:
     def terminar_respuesta(self):
         self.frases.put(None)
 
-    def _reproducir_archivo(self,archivo,token,cancelar,volumen=100,marcas=None,texto=None):
+    def _reproducir_archivo(self,archivo,token,cancelar,volumen=100,marcas=None,texto=None,telefono=False,conectar=False,mascara=None):
+        if not telefono:return self._reproducir_archivo_base(archivo,token,cancelar,volumen,marcas,texto)
+        if not self._vigente(token,cancelar):return False
+        from audio_llamada import preparar,factor_mascara
+        convertido,niveles,adelanto=preparar(archivo,conectar,mascara)
+        try:
+            factor=factor_mascara(mascara)
+            marcas=[(m[0]/factor+adelanto,m[1]/factor,*m[2:]) for m in marcas] if marcas else marcas
+            return self._reproducir_archivo_base(convertido,token,cancelar,volumen,marcas,texto,niveles)
+        finally:convertido.unlink(missing_ok=True)
+
+    def _reproducir_archivo_base(self,archivo,token,cancelar,volumen=100,marcas=None,texto=None,niveles=None):
         import ctypes
         from sincronia import avance_texto
         alias=f'capri_voice_{token}_{time.monotonic_ns()}'
@@ -388,22 +424,25 @@ class Voz:
             while not cancelar.wait(.04):
                 resultado=ctypes.create_unicode_buffer(40)
                 if self._mci('status '+alias+' mode',resultado,40) or resultado.value!='playing':break
-                if texto:
+                if texto or niveles:
                     posicion=ctypes.create_unicode_buffer(40)
                     if not self._mci('status '+alias+' position',posicion,40):
                         try:
                             segundos=int(posicion.value)/1000
-                            indice=avance_texto(texto,segundos,duracion,marcas or ())
+                            if niveles:
+                                from audio_llamada import barras
+                                self.bandas_salida=barras(niveles,segundos)
+                            indice=avance_texto(texto,segundos,duracion,marcas or ()) if texto else 0
                         except ValueError:continue
                         actividad=any(offset<=segundos<offset+largo for offset,largo,*_ in marcas) if marcas else True
-                        if indice!=ultimo or actividad!=ultima_actividad:
+                        if texto and (indice!=ultimo or actividad!=ultima_actividad):
                             self._emitir(('avance_voz',(texto,indice,actividad)),token,cancelar)
                             ultimo=indice;ultima_actividad=actividad
             if texto and not cancelar.is_set():self._emitir(('avance_voz',(texto,len(texto),False)),token,cancelar)
         finally:
             with self._control:
                 self._mci('close '+alias)
-                if self._alias==alias:self._alias=None
+                if self._alias==alias:self._alias=None;self.bandas_salida=(0.,)*28
         return True
 
     def _reproducir_windows(self,encoded,token,cancelar,emitir=True):
@@ -423,7 +462,7 @@ class Voz:
                 if self.proceso is proceso:self.proceso=None
         return True
 
-    def _hablar(self, texto, natural, token, cancelar,perfil='capri',velocidad=1.0,volumen=100):
+    def _hablar(self, texto, natural, token, cancelar,perfil='capri',velocidad=1.0,volumen=100,efecto=None,mascara=None):
         if os.name != 'nt' or not self._vigente(token,cancelar):
             return
         from idiomas import codigo
@@ -435,40 +474,65 @@ class Voz:
         activo = False
         ritmo,rapidez_windows=parametros_velocidad(velocidad)
         if perfil=='capri_latina':ritmo=parametros_velocidad(normalizar_velocidad(velocidad)*1.06)[0]
+        canal={'telefono':True,'conectar':efecto=='llamada_inicio'} if efecto in ('llamada','llamada_inicio') else {}
+        if canal and mascara in ('ardilla','villana','robot'):canal['mascara']=mascara
         try:
-            if natural and time.monotonic() >= self.natural_no_hasta:
+            acento=getattr(self,'acento','auto')
+            if natural and (acento!='auto' or time.monotonic() >= self.natural_no_hasta):
                 try:
                     import edge_tts
                     with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f: archivo = Path(f.name)
                     eventos=[]
-                    async def crear():
-                        nombre,tono=elegir_voz(perfil,idioma)
+                    nombre,tono=elegir_voz(perfil,idioma,acento)
+                    candidatos=[nombre]
+                    if acento=='pt-BR':candidatos.append('pt-BR-FranciscaNeural')
+                    fase='sintesis'
+                    async def crear(nombre):
                         comunicacion = edge_tts.Communicate(texto,nombre,
                                                           rate=ritmo,pitch=tono,boundary='WordBoundary')
                         async def guardar():
                             with archivo.open('wb') as salida:
                                 async for evento in comunicacion.stream():
+                                    if cancelar.is_set():raise InterruptedError()
                                     if evento['type']=='audio':salida.write(evento['data'])
                                     elif evento['type']=='WordBoundary':eventos.append(evento)
-                        await asyncio.wait_for(guardar(), timeout=7)
-                    asyncio.run(crear())
+                        await asyncio.wait_for(guardar(), timeout=max(12,min(25,8+len(texto)/24)))
+                    ultimo_error=None
+                    for nombre in candidatos:
+                        try:
+                            eventos.clear();asyncio.run(crear(nombre))
+                            if not archivo.stat().st_size:raise RuntimeError('Audio vacío.')
+                            ultimo_error=None;break
+                        except Exception as error:
+                            if cancelar.is_set():return
+                            ultimo_error=error
+                    if ultimo_error:raise ultimo_error
+                    self.ultima_voz_usada=nombre
                     from sincronia import alinear_marcas
-                    activo=self._reproducir_archivo(archivo,token,cancelar,volumen,marcas=alinear_marcas(original,eventos),texto=original)
+                    fase='reproduccion'
+                    activo=self._reproducir_archivo(archivo,token,cancelar,volumen,marcas=alinear_marcas(original,eventos),texto=original,**canal)
                     return
-                except Exception:
+                except Exception as error:
                     if cancelar.is_set(): return
-                    self.natural_no_hasta = time.monotonic()+45
+                    self.ultimo_error_voz={'fase':locals().get('fase','sintesis'),'tipo':type(error).__name__,'voz':locals().get('nombre',''),'acento':acento}
+                    try:Path(__file__).with_name('diagnostico-voz.json').write_text(json.dumps(self.ultimo_error_voz),encoding='utf8')
+                    except OSError:pass
+                    # Una voz fija no debe quedar bloqueada por un fallo previo
+                    # ni depender de que Windows tenga instalado ese acento.
+                    self.natural_no_hasta = time.monotonic()+10 if acento=='auto' else 0
                     if archivo:archivo.unlink(missing_ok=True);archivo=None
             # El texto viaja como datos base64, nunca interpolado como PowerShell.
             codificado = base64.b64encode(texto.encode('utf8')).decode('ascii')
             with tempfile.NamedTemporaryFile(suffix='.wav',delete=False) as f:archivo=Path(f.name)
             destino=base64.b64encode(str(archivo).encode('utf8')).decode('ascii')
             script = "$ErrorActionPreference='Stop';Add-Type -AssemblyName System.Speech;$v=New-Object System.Speech.Synthesis.SpeechSynthesizer;$v.Volume=100;$v.Rate="+str(rapidez_windows)+";$es=$v.GetInstalledVoices()|Where-Object {$_.VoiceInfo.Culture.Name -like 'es-*'}|Select-Object -First 1;if($es){$v.SelectVoice($es.VoiceInfo.Name)};$v.SetOutputToWaveFile([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('"+destino+"')));$v.Speak([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + codificado + "')));$v.Dispose()"
-            script=script.replace("-like 'es-*'","-like '"+idioma+"-*'")
-            if idioma!='es':script=script.replace(';if($es){$v.SelectVoice($es.VoiceInfo.Name)}',";if(!$es){throw 'No Windows voice installed for selected language'};$v.SelectVoice($es.VoiceInfo.Name)")
+            acento=getattr(self,'acento','auto')
+            cultura=acento if acento in ACENTOS_VOZ and acento!='auto' else idioma+'-*'
+            script=script.replace("-like 'es-*'","-like '"+cultura+"'")
+            if cultura!='es-*':script=script.replace(';if($es){$v.SelectVoice($es.VoiceInfo.Name)}',";if(!$es){throw 'No Windows voice installed for selected language'};$v.SelectVoice($es.VoiceInfo.Name)")
             encoded = base64.b64encode(script.encode('utf-16-le')).decode('ascii')
             if self._reproducir_windows(encoded,token,cancelar,emitir=False):
-                activo=self._reproducir_archivo(archivo,token,cancelar,volumen,texto=original)
+                activo=self._reproducir_archivo(archivo,token,cancelar,volumen,texto=original,**canal)
             elif not cancelar.is_set():
                 from idiomas import texto as mensaje
                 self._emitir(mensaje('voz_error',idioma),token,cancelar)

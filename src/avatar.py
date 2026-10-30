@@ -1,7 +1,7 @@
 """Ilustración original intacta y tres estados de boca, con efectos de pantalla."""
 import random
 import time
-from PIL import Image,ImageTk,ImageDraw,ImageChops
+from PIL import Image,ImageTk,ImageDraw,ImageChops,ImageFilter,ImageEnhance,ImageOps
 from fuentes import FAMILIA
 
 BOCA=(111,64,142,89)
@@ -39,24 +39,47 @@ def estados_originales(ruta,bocas):
             estado.alpha_composite(boca,caja_boca[:2]);estados.append(estado)
     return estados
 
-def vista_pantalla(estado,tamano=(320,210)):
+def vista_pantalla(estado,tamano=(320,210),fase=0):
     # Recorte de cámara, no redibujo: la misma silueta y pose en los tres estados.
     vista=estado.crop((0,0,estado.width,round(estado.height*148/350))).resize(tamano,Image.Resampling.LANCZOS)
+    # Óptica y señal de cámara: resolución algo menor, grano fino y barrido.
+    reducido=(max(1,round(tamano[0]*.78)),max(1,round(tamano[1]*.82)))
+    vista=vista.resize(reducido,Image.Resampling.BILINEAR).resize(tamano,Image.Resampling.BILINEAR)
+    vista=ImageEnhance.Color(vista).enhance(.92)
+    rng=random.Random(431+fase)
+    ruido=Image.frombytes('L',(320,210),rng.randbytes(320*210)).resize(tamano,Image.Resampling.NEAREST)
+    grano=ImageOps.colorize(ruido,'#101c23','#ddd4ca').convert('RGBA');grano.putalpha(ruido.point(lambda a:7+a//20))
+    vista=Image.alpha_composite(vista,grano)
     lineas=Image.new('RGBA',vista.size);d=ImageDraw.Draw(lineas)
-    for y in range(1,vista.height,4):d.line((0,y,vista.width,y),fill=(0,5,14,18))
-    return Image.alpha_composite(vista,lineas)
+    paso=max(3,round(tamano[1]/70))
+    for y in range(fase%2,vista.height,paso):d.line((0,y,vista.width,y),fill=(2,9,17,49))
+    borde=Image.radial_gradient('L').resize(tamano).point(lambda a:round(a*.19))
+    vineta=Image.new('RGBA',tamano,(1,7,12));vineta.putalpha(borde)
+    return Image.alpha_composite(Image.alpha_composite(vista,lineas),vineta)
 
-def interferencia(vista,variante):
-    rng=random.Random(70+variante);w,h=vista.size;r,g,b,a=vista.split()
-    salida=Image.merge('RGBA',(ImageChops.offset(r,round(w*.008),0),g,ImageChops.offset(b,-round(w*.006),0),a))
-    for i in range(6):
-        y=rng.randrange(max(1,h-5));alto=max(1,round(h*rng.uniform(.008,.045)));dx=round(w*rng.uniform(-.06,.06))
-        banda=vista.crop((0,y,w,min(h,y+alto)));salida.paste(banda,(dx,y))
-    d=ImageDraw.Draw(salida)
-    for i in range(12):
-        x=rng.randrange(w);y=rng.randrange(h);largo=rng.randint(2,max(3,w//12))
-        d.line((x,y,min(w-1,x+largo),y),fill=rng.choice(('#ff315d','#65e6df','#8f4cec')),width=1)
+def fragmentar(vista,variante,transparente=False):
+    """Desgarro de señal, sin envolver píxeles en los bordes ni pintar un fondo."""
+    rng=random.Random(70+variante*37);w,h=vista.size;salida=vista.copy()
+    fuerza=(.045,.075,.12,.055,.095,.14)[variante%6]
+    for i in range(13):
+        y=rng.randrange(max(1,h-3));fin=min(h,y+max(1,round(h*rng.uniform(.006,.047))))
+        dx=round(w*rng.uniform(-fuerza,fuerza))
+        banda=vista.crop((0,y,w,fin))
+        salida.paste((0,0,0,0),(0,y,w,fin))
+        # Franjas cromáticas derivadas del cuerpo, no líneas sobre el escritorio.
+        for desplazamiento,color in ((-max(2,w//60),'#5c32f5'),(max(2,w//75),'#24d4a1')):
+            fantasma=Image.new('RGBA',banda.size,color);fantasma.putalpha(banda.getchannel('A'))
+            salida.alpha_composite(fantasma,(dx+desplazamiento,y))
+        salida.alpha_composite(banda,(dx,y))
+        if i%3==0:
+            corte=max(1,round(h*.004));salida.paste((0,0,0,0),(0,y,w,min(fin,y+corte)))
+    if transparente:
+        # Tk usa color transparente: conservar alfa binario y margen vacío.
+        salida.putalpha(salida.getchannel('A').point(lambda a:255 if a>=100 else 0))
     return salida
+
+
+def interferencia(vista,variante):return fragmentar(vista,variante)
 
 class Avatar:
     def __init__(self,ruta,bocas=None):
@@ -75,6 +98,8 @@ class Avatar:
         self.escala=escala;tamaño=(round(320*escala),round(210*escala))
         vistas=[vista_pantalla(v,tamaño) for v in (self.estados_hd or self.estados)]
         self.fotos=[ImageTk.PhotoImage(v) for v in vistas]
+        originales=self.estados_hd or self.estados
+        self.senales=[[self.fotos[i]]+[ImageTk.PhotoImage(vista_pantalla(v,tamaño,fase)) for fase in (1,2)] for i,v in enumerate(originales)]
         self.glitches=[[ImageTk.PhotoImage(interferencia(v,i)) for i in range(6)] for v in vistas]
 
     def indice(self,hablando=False,feliz=False,ahora=None):
@@ -88,10 +113,10 @@ class Avatar:
         ahora=time.monotonic() if ahora is None else ahora
         indice=self.indice(hablando,ahora=ahora)
         if glitch and ahora>=self.proximo_glitch:
-            self.glitch_hasta=ahora+.16
+            self.glitch_hasta=ahora+random.uniform(.22,.38)
             self.proximo_glitch=ahora+random.uniform(1.8,3.5) if hablando else ahora+random.uniform(4,8)
         self.glitch_activo=glitch and ahora<self.glitch_hasta
-        return self.glitches[indice][int(ahora*38)%len(self.glitches[indice])] if self.glitch_activo else self.fotos[indice]
+        return self.glitches[indice][int(ahora*28)%len(self.glitches[indice])] if self.glitch_activo else (self.senales[indice][int(ahora*8)%3] if glitch else self.fotos[indice])
 
 def dibujar_marco(c,fase,color,estado,nivel=0,glitch=False,escala=1):
     c.create_polygon(13,11,343,11,352,20,352,280,342,289,8,289,8,20,fill='#120b10',outline='#8e304a',width=1)

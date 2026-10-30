@@ -4,6 +4,14 @@
 
 ### Corregido
 
+- Al terminar una llamada se oculta también su mensaje y se cancela su temporizador, sin ocultar respuestas posteriores.
+- La llamada se cierra al recibir el fin de reproducción de su voz, sin esperar doce segundos. Colgar también cancela la síntesis o reproducción pendiente y evita mensajes tardíos.
+- Bordes de llamada sin el acento inferior izquierdo suelto, recorte izquierdo en el módulo CALL y arista inferior del globo alineada con sus biseles.
+- Variantes equivalentes como «Capri mutéame el Discord», «mutéame del Discord» y «me puedes mutear en Discord» reconocen el mismo control propio, sin ampliar la orden a otras personas o aplicaciones.
+- El apagado dibuja directamente en Canvas, sin ampliar un bitmap a pantalla completa en cada fotograma. Limita la frecuencia y cede tiempo a Escape y a Windows.
+- Discord admite el patrón de conmutador de sus botones de silencio/ensordecimiento y verifica el estado aunque la etiqueta no cambie.
+- Vista previa del apagado en ventana sobre Ajustes, con imagen ligada al lienzo correcto, cierre y reinicio; los fallos de render cancelan el apagado.
+- Voz brasileña con espera adaptada y respaldo brasileño de síntesis; no queda bloqueada durante 45 segundos tras un fallo aislado.
 - El puente de Opera 1.0.4 selecciona resultados de YouTube sin necesitar un vídeo ya cargado. La orden por número deja de depender exclusivamente de accesibilidad de Windows.
 - Aclaraciones como «de la playlist Capri» extraen «Capri» y conservan la canción pendiente, en lugar de buscar una lista con toda la frase como nombre.
 - Destinos explícitos Spotify/YouTube prioritarios, selección de resultados de YouTube por número y alcance de playlist conservado aunque falte su nombre.
@@ -16,10 +24,26 @@
 
 ### Mejorado
 
+- Paleta carmesí para la llamada entrante, sin botón crema ni tonos dorados, y vibración breve del auricular sin mover los botones.
+- Llamadas con 24 bromas completas y absurdas en lugar de preguntas o propuestas de descanso; asomos y minimizaciones también tienen remates propios. Seis bromas incluyen voz temporal de ardilla, villana o robot, con sincronía ajustada a la duración del efecto y sin modificar preferencias.
+- Llamada con tres esquinas recortadas, auricular diagonal y colores diferenciados: nombre blanco, aviso ámbar y conexión verde suave, con módulo de señal animado al contestar.
+- Glitch del personaje con seis variantes de franjas desplazadas, cortes y separación violeta/verde, también al sentarse o sujetarse. Modo pantalla con suavidad de cámara, grano animado, barrido y viñeta.
+- Apagado sin retrato, con circuitos, interferencia y cierre CRT a pantalla completa; conserva Esc para salir antes de enviar la orden a Windows.
+- Llamada arriba a la izquierda, marco simétrico, auricular nuevo y estado conectado compacto inspirado en el indicador CALL.
+- Más simplificado: se retiran Escribir, Repetir intro y Pausar viajes de ese submenú.
 - Entrada con revelado progresivo, indicadores en la paleta roja y rostro despejado durante la secuencia.
 
 ### Añadido
 
+- Tono breve de desconexión al colgar una llamada contestada, respetando volumen y silencio; no altera el estado de narración ni su generación.
+- Voz telefónica durante llamadas, breve sonido de conexión y cuatro saludos localizados. El filtro es temporal y conserva la voz/acento elegidos. Las ondas siguen el audio reproducido, con posición real del reproductor y reposo en los silencios; el aviso espera durante la preparación y reproducción.
+- Llamadas espontáneas con 24 diálogos seleccionados sin repeticiones hasta agotar la lista, respuesta hablada al contestar y simulación desde Más o Ajustes. Intervalo inicial de 15 minutos con variación aleatoria y configurable.
+- Botón Probar asomo desde Escritorio o Juegos; muestra el movimiento sin activar el juego automático.
+- Asomos automáticos y bromas de minimización activables por separado. La ventana se puede restaurar desde la llamada y se recupera al terminar el aviso. Se retiran Atrápame y las aperturas aleatorias de pestañas/Documentos.
+- Apagado confirmado con secuencia roja de interferencia y cierre CRT, cancelación con Esc y vista previa sin apagar.
+- Apertura y controles propios de Discord de escritorio: micrófono, ensordecimiento y solicitud de entrada a canal de voz.
+- Voz/acento independiente del idioma, conservado entre cambios de idioma; opciones multilingües Thalita y Emma.
+- Tabla de componentes orientativos mínimos/recomendados y dependencias de rendimiento en el README.
 - Búsqueda, cancelación y aceptación de cola en el cliente local de LoL. Menú y órdenes en cuatro idiomas; aceptación automática opcional para las búsquedas iniciadas con Capri.
 - Se conserva la despedida anterior: mano roja, traslado eléctrico hacia la estrella y apagado gradual.
 - README con instalación, ejemplos, idiomas y límites de las integraciones; índice de documentación, mapa de módulos y plantillas para reportes y propuestas.

@@ -8,21 +8,25 @@ El personaje conserva su pose de reposo y se desplaza únicamente mediante una d
 
 **Pausar desplazamientos** lo deja quieto. F8 y «Capri» siguen funcionando. Haz clic sobre el personaje para abrir una entrada flotante al lado; nunca se añade una barra debajo del cuerpo. Al enviar, pulsar Esc o perder el foco se oculta conservando el texto no enviado. Las respuestas normales desaparecen tres segundos después de terminar la voz o la escritura. Las confirmaciones de operaciones se mantienen mientras esperan tu respuesta, hasta su caducidad. El tamaño habitual también se aplica al personaje. Al transformar, el panel crece y se desplaza al centro, se convierte en la pose de bienvenida y se reduce hasta el personaje. La conversión de personaje a pantalla es directa y breve, sin la pose gigante en el centro. Los rayos acompañan la imagen.
 
-## Jugar con Capri
+## Llamadas, asomos y bromas
 
-En **clic derecho → Jugar con Capri**:
+Capri puede mostrar una llamada arriba a la izquierda, con paleta carmesí, teléfono que vibra brevemente, **Contestar** y **Ahora no**. Al contestar, el aviso se transforma en un indicador compacto **CALL / ENLACE ACTIVO**, con un breve sonido de conexión y un saludo antes de la broma. La voz conserva el idioma, el perfil y el acento elegidos, con un filtro telefónico solo mientras el enlace está abierto. Las ondas muestran el nivel del audio reproducido y se detienen en silencio; no leen el micrófono ni el sonido de otras aplicaciones.
 
-- **Jugar a atrápame:** toca a Capri tres veces; después de cada acierto escapa a otra esquina con una descarga.
-- **Asomarse por una esquina:** aparece parcialmente desde la esquina inferior y vuelve con una estela.
-- **Travesura ahora:** elige una aparición o un salto.
+Son bromas cortas con su propio remate, sin preguntas ni necesidad de responder. **El aviso y el mensaje de la llamada desaparecen en cuanto termina la reproducción de voz**, acompañados de un breve tono de desconexión. El tono respeta el volumen y el silencio de Capri. Cerrar el aviso antes cancela también el audio pendiente de esa llamada y reproduce el cierre si estaba contestada. El historial conserva la broma; una respuesta posterior no se oculta al cerrar una llamada anterior. Si la voz está desactivada, deja unos segundos para leer el texto y se cierra sin sonido; el límite de protección por aviso es de dos minutos. El aviso no activa el micrófono. Una llamada sin contestar desaparece después de 20 segundos.
 
-También puedes decir «Capri, juega conmigo», «asómate por una esquina», «haz una travesura» o «deja de jugar» con el modo personaje activo. Dejar de jugar desactiva las travesuras automáticas.
+En **Ajustes → Escritorio**:
 
-En Ajustes puedes activar **Travesuras suaves y apariciones ocasionales**, apagado de fábrica. Solo ocurren cuando Capri está disponible; se pausan durante conversaciones, escritura, confirmaciones y ajustes. Esc interrumpe el juego actual.
+- **Llamadas ocasionales de Capri**, activadas inicialmente: 24 bromas absurdas con centralitas falsas, toc-toc, una pizzería dimensional o una villana desastrosa. Seis de ellas usan un disfraz temporal de voz: ardilla aguda, villana grave o robot. Se modifica únicamente ese audio y sus marcas de sincronía; no se guarda otro perfil de voz ni cambia el idioma. La selección mezcla la lista sin repetir una broma hasta recorrerla entera. Asomos y bromas de ventana tienen sus propias listas de seis y cinco bromas.
+- **Asomarse desde una esquina de vez en cuando**, desactivado inicialmente: en modo personaje aparece en una esquina para hacerte compañía y luego vuelve.
+- **Permitir bromas que minimizan la ventana activa**, desactivado inicialmente: minimiza una ventana normal y muestra la llamada. Puedes recuperarla con **Restaurar ventana**; también se restaura al contestar, rechazar o caducar el aviso. No cierra aplicaciones ni modifica documentos.
 
-La opción separada **Permitir que el juego abra una pestaña o Documentos**, también apagada de fábrica, autoriza una pestaña vacía en Opera GX o la carpeta Documentos. Tiene un intervalo mínimo de cinco minutos entre aperturas. No cambia archivos. Estas acciones básicas del juego no dependen del permiso de control ampliado, que se configura por separado.
+El intervalo inicial es de unos **15 minutos**, con variación aleatoria del 15 %. Puedes elegir de 3 a 60 minutos. El temporizador elige entre los comportamientos habilitados y espera si estás conversando, escribiendo o usando Ajustes. No acumula una serie de llamadas pendientes.
 
-Ideas para ampliar después: un escondite por las esquinas, un destello sorpresa de un segundo con cuenta atrás y volumen elegido, una búsqueda del tesoro con pistas en una pestaña local y pequeñas carreras siguiendo el cursor. Los sustos con sonido no están activados ni implementados en esta versión.
+**Más → Simular llamada** y el botón de Escritorio muestran el aviso inmediatamente, sin minimizar ventanas ni abrir aplicaciones. **Juegos**, en modo personaje, permite activar los asomos y las bromas por separado. «Juega conmigo» muestra una llamada; «asómate por una esquina» solicita un asomo y «deja de jugar» desactiva los dos juegos automáticos.
+
+**Probar asomo**, en Escritorio y Juegos, cierra Ajustes y muestra el movimiento de la esquina. Si estabas en modo pantalla, pasa a modo personaje para poder verlo; no activa los asomos automáticos. La esquina superior izquierda se reserva para el aviso de llamada, evitando que tape al personaje.
+
+Se retiraron Atrápame y los juegos que abrían pestañas o Documentos, incluso si conservas sus antiguos permisos guardados. El menú Más ya no incluye Escribir, Repetir intro ni Pausar viajes; la entrada principal de escritura sigue disponible.
 
 ## Control ampliado, opcional
 
@@ -70,7 +74,7 @@ Las búsquedas se limitan a las carpetas personales habituales, con un límite d
 
 Atlas: `assets/capri-personaje-v1.png`, RGBA, 1536 × 1024, tres columnas y dos filas. Orden: reposo, paso A, paso B, sentada, hablando y parpadeo. Se recorta y escala dentro de la aplicación; no se sustituye el arte del modo pantalla. La transparencia del atlas conserva la silueta negra y los huecos entre pelo y extremidades.
 
-La caminata está desactivada. Los desplazamientos al suelo, a una ventana y a una nueva esquina se representan mediante el mismo tránsito de rayos. El glitch se recorta a la silueta del personaje y el alfa se vuelve binario para evitar bordes negros del color transparente de Windows.
+La caminata está desactivada. Los desplazamientos al suelo, a una ventana y a una nueva esquina se representan mediante el mismo tránsito de rayos. El glitch fragmenta bandas del personaje y añade separación violeta/verde; puede desplazar pequeños fragmentos fuera del contorno, conservando el fondo transparente y el alfa binario para evitar bordes negros de Windows.
 
 Al transformar la pantalla en personaje aparece una [pose de bienvenida](PROMPT_SALUDO.md) grande. La secuencia de pantalla a personaje dura unos 2,7 segundos: primero se centra y crece, después cambia de forma y finalmente se encoge antes de acomodarse en el escritorio. Puede interrumpirse con Esc o F8. El atlas de ocho pasos permanece como recurso histórico, sin cargarse en la animación actual.
 

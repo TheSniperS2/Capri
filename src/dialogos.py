@@ -168,10 +168,12 @@ class Dialogo:
                     x=izquierda+i*12;y=arriba+10
                     c.create_oval(x,y,x+5,y+5,fill='#ffa0b6' if self.fase%3==i else '#702439',outline='',tags='pensando')
             return
-        fondo=c.create_polygon(13,9,ancho-22,9,ancho-10,21,ancho-10,alto-24,ancho-22,alto-12,22,alto-12,10,alto-24,10,22,
+        fondo=c.create_polygon(22,9,ancho-22,9,ancho-10,21,ancho-10,alto-24,ancho-22,alto-12,10,alto-12,10,21,
                          fill='#0d111b',outline='#a54459',width=1)
         c.tag_lower(fondo)
-        c.create_line(23,alto-13,ancho-23,alto-13,fill='#ec3c62',width=2,tags='borde_inferior')
+        # Inferior izquierda recta; el acento sigue la base y el bisel derecho.
+        c.create_line(10,alto-12,ancho-22,alto-12,ancho-10,alto-24,
+                      fill='#d64b64',width=1,tags='borde_inferior')
         c.create_rectangle(26,44,80,61,fill='#f2d959',outline='')
         c.create_text(31,53,text='CAPRI',anchor='w',fill='#151822',font=(FAMILIA,10,'bold'))
         c.create_text(92,53,text=self.estado,anchor='w',fill='#80939c',font=(FAMILIA,8))

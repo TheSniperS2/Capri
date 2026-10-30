@@ -30,6 +30,28 @@ Capri es una compañera de escritorio de código abierto para Windows, inspirada
 
 Necesitas **Windows 10 u 11** y **Python 3.12 de 64 bits con Tcl/Tk**. No necesitas una clave de API. La preparación inicial requiere internet y espacio para las dependencias y modelos descargados.
 
+### Componentes mínimos y recomendados
+
+Estas son **orientaciones de dimensionamiento**, no mínimos certificados mediante pruebas en todos esos equipos. El consumo cambia con el modelo, el reconocimiento de voz y los otros programas abiertos.
+
+| Componente | Uso básico, sin conversación con Ollama | Recomendado: voz + IA local pequeña | Mayor margen: juegos + IA local |
+| --- | --- | --- | --- |
+| Procesador | CPU x64 de 2 núcleos / 4 hilos | 4 núcleos / 8 hilos; AVX2 recomendado | 6 núcleos / 12 hilos o superior |
+| Memoria RAM total | 8 GB | 16 GB para Whisper base y modelos de unos 3B cuantizados | 32 GB para convivir con juegos o modelos de 7B–8B |
+| Gráficos | Integrados; no requiere GPU dedicada | GPU opcional; CPU funciona con mayor espera | GPU compatible con Ollama, orientativamente 8 GB de VRAM o más |
+| Disco libre | Reserva unos 4 GB para entorno y reconocimiento | SSD y unos 12 GB libres, incluyendo Ollama y un modelo pequeño | 20 GB o más si conservas varios modelos |
+| Pantalla y audio | 1280×720, salida de audio; micrófono si vas a dictar | 1920×1080 y micrófono con poco ruido | Según tu escritorio y juegos |
+
+Para una experiencia equilibrada, empieza con **16 GB de RAM, SSD, Whisper base y un modelo de aproximadamente 3B**; el instalador propone `llama3.2:3b` cuando aún no elegiste otro. Sin Ollama puedes usar las órdenes directas y el personaje. Una GPU ayuda a la IA compatible, pero no vuelve más rápido automáticamente el reconocimiento: la configuración actual de Whisper usa CPU/int8. Base funciona con menos carga que Small.
+
+La RAM/VRAM disponible importa más que el nombre comercial de la GPU. No toda tarjeta acelera Ollama y no se garantiza una tasa de FPS ni una latencia en estos mínimos orientativos. Para Ollama utiliza Windows 10 **22H2** o posterior y reserva al menos los 4 GB que requiere su instalación, además del espacio de los modelos. Consulta los requisitos oficiales de [Ollama para Windows](https://docs.ollama.com/windows), [GPU compatibles](https://docs.ollama.com/gpu) y el consumo medido por [faster-whisper](https://github.com/SYSTRAN/faster-whisper). Internet se necesita para instalar, descargar modelos y usar la voz natural; la conversación con modelos instalados funciona localmente.
+
+### Apagado, Discord y voz independiente
+
+- **Apagado:** con Control ampliado activado, pide «apaga el computador» y confirma. Capri muestra interferencia roja y un cierre CRT antes de solicitar el apagado a Windows. **Esc cancela durante la animación**. Prueba el efecto sin apagar nada desde **Ajustes → Permisos → Vista previa del apagado**.
+- **Discord de escritorio:** «abre Discord», «silénciame en Discord», «desmutéame en Discord», «ensordéceme en Discord», «desensordéceme en Discord» y «únete al canal de voz General en Discord». Para entrar en un canal, abre su servidor; también puedes indicar «del servidor Amigos». Opera sobre controles accesibles, sin contraseña ni token, y no manda atajos a otras ventanas. Si hay ambigüedad o Discord no expone el control, avisa.
+- **Voz/acento:** en **Ajustes → Voz → Voz y acento independientes** puedes mantener el idioma español y escoger Thalita brasileña, por ejemplo. El texto sigue en español. La elección se conserva al cambiar de idioma; **Seguir el idioma de Capri** restaura la selección automática. La pronunciación entre idiomas depende de la voz y es preferible usar las variantes multilingües.
+
 ### Desde una Release
 
 1. Abre [Releases](https://github.com/TheSniperS2/Capri-Capricorn-Para-Escritorio/releases) y descarga el lanzador **Abrir Capri.pyw**; GitHub puede mostrarlo como `Abrir.Capri.pyw`.
@@ -118,3 +140,5 @@ Las ideas, reportes y contribuciones son bienvenidos. Empieza por [CONTRIBUTING.
 ## Licencia y créditos
 
 Proyecto de aficionado, independiente y no oficial. La voz es sintética y no reproduce el timbre exacto de la actriz. El código original usa [MIT](LICENSE); los personajes, marcas, ilustraciones y otros recursos de terceros conservan sus propios derechos. Consulta [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) y las [referencias](docs/REFERENCIAS.md).
+
+La ilustración experimental de apagado se conserva como recurso de referencia, con su [prompt documentado](docs/PROMPT_APAGADO.md). El efecto actual usa circuitos, interferencia y texto, sin retrato.

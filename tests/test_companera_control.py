@@ -73,7 +73,7 @@ class ControlArchivos(unittest.TestCase):
 class ModoPersonaje(PruebasTk):
     @contextmanager
     def capri(self):
-        with tempfile.TemporaryDirectory() as d,patch.object(app,'BASE',Path(d)),patch.object(app.Voz,'parar'):
+        with tempfile.TemporaryDirectory() as d,patch.object(app,'BASE',Path(d)),patch.object(app.Voz,'parar'),patch.object(app.Voz,'sonido_colgar'):
             assets=Path(d)/'assets';assets.mkdir();origen=Path(__file__).resolve().parents[1]/'assets'
             for n in ('capri-base-v2.png','capri-bocas-v2.png','capri-personaje-v1.png','capri-caminar-v1.png','capri-saludo-v1.png'):shutil.copy2(origen/n,assets/n)
             c=app.Capri(hotkeys=False);c.root.withdraw();c.cfg['voz']=False

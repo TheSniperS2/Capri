@@ -23,8 +23,13 @@ class Silueta(unittest.TestCase):
         self.assertEqual(limpia.getpixel((2,3))[3],0)
         self.assertEqual(limpia.getpixel((25,50))[3],255)
         self.assertEqual(set(limpia.getchannel('A').tobytes()),{0,255})
-        for i in range(2):
+        original=limpia.tobytes()
+        for i in range(6):
             frame=glitch_silueta(limpia,i)
-            fuera=ImageChops.subtract(frame.getchannel('A'),limpia.getchannel('A'))
-            self.assertIsNone(fuera.getbbox())
+            # El efecto nuevo desgarra la silueta: solo admite fragmentos cercanos.
+            caja=frame.getchannel('A').getbbox()
+            self.assertGreaterEqual(caja[0],6);self.assertLessEqual(caja[2],75)
+            self.assertEqual(frame.getpixel((0,0))[3],0)
+            self.assertEqual(frame.getpixel((79,99))[3],0)
             self.assertEqual(set(frame.getchannel('A').tobytes()),{0,255})
+        self.assertEqual(limpia.tobytes(),original)

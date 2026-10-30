@@ -32,14 +32,8 @@ def limpiar_silueta(imagen):
     return im
 
 def glitch_silueta(imagen,variante):
-    im=imagen.copy();w,h=im.size
-    for fraccion,alto,dx in ((.24,.04,5),(.46,.06,-7),(.72,.025,4)):
-        y=int(h*fraccion)+variante*3;fin=min(h,y+max(1,int(h*alto)))
-        im.paste(imagen.crop((0,y,w,fin)),(dx,y))
-        ImageDraw.Draw(im).line((0,y,w,y),fill=(255,0,62,255),width=1)
-    # Jamás dejar píxeles fuera de la silueta original, ni alfa intermedio.
-    im.putalpha(ImageChops.multiply(im.getchannel('A'),imagen.getchannel('A')))
-    return im
+    from avatar import fragmentar
+    return fragmentar(imagen,variante,transparente=True)
 
 COLORES_HALO={'violeta':'#9465ed','neon':'#72f59e','hielo':'#69d6f0','rojo':'#ef446b'}
 
@@ -97,6 +91,7 @@ class Companera:
         self.x=0.;self.y=0.;self.direccion=-1;self.soporte=None;self.salto=None
         self.ventanas=[];self.revisar=0;self.ultimo=time.monotonic();self.proxima_accion=self.ultimo+7
         self.estado='quieta';self.quieta_hasta=0;self.libre=False
+        self.proximo_glitch=self.ultimo+random.uniform(2,4);self.glitch_hasta=0;self.glitch_activo=False
         self.ancla=None;self.velocidad_caida=0.;self.gracia_fisica=0.;self.proxima_ancla=0.;self.colgadas={}
         self.pasos=[];self.pasos_tk=[];self.pasos_espejo=[];self.fase_paso=0.;self.velocidad=0.;self.soporte_lado=None
         try:
@@ -121,7 +116,7 @@ class Companera:
         if self.fotos and self.escala==escala:return
         self.ancla=None;self.velocidad_caida=0.;self.colgadas={}
         self.escala=escala;self.ancho=round(210*escala);self.alto=round(240*escala)
-        self.fotos=[];self.espejos=[];self.glitches=[];self.glitches_espejo=[];self.lienzos=[];self.halos={}
+        self.fotos=[];self.espejos=[];self.glitches=[];self.glitches_espejo=[];self.lienzos=[];self.halos={};self.glitches_colgadas={}
         for indice,im in enumerate(self.originales):
             if indice in (1,2):
                 self.lienzos.append(self.lienzos[0]);self.fotos.append(self.fotos[0]);self.espejos.append(self.espejos[0])
@@ -131,7 +126,7 @@ class Companera:
             lienzo.alpha_composite(copia,((self.ancho-copia.width)//2,self.alto-margen-copia.height))
             lienzo=limpiar_silueta(lienzo);self.lienzos.append(lienzo)
             self.fotos.append(ImageTk.PhotoImage(lienzo));self.espejos.append(ImageTk.PhotoImage(ImageOps.mirror(lienzo)))
-            variantes=[glitch_silueta(lienzo,i) for i in range(2)]
+            variantes=[glitch_silueta(lienzo,i) for i in range(6)]
             self.glitches.append([ImageTk.PhotoImage(v) for v in variantes])
             self.glitches_espejo.append([ImageTk.PhotoImage(ImageOps.mirror(v)) for v in variantes])
         self.pasos_tk=[];self.pasos_espejo=[]
@@ -274,6 +269,10 @@ class Companera:
         c.delete('all')
         if not self.fotos:return
         ahora=time.monotonic()
+        if glitch and ahora>=self.proximo_glitch:
+            self.glitch_hasta=ahora+random.uniform(.24,.42)
+            self.proximo_glitch=ahora+random.uniform(1.8,3.6) if hablando else ahora+random.uniform(2.8,6)
+        self.glitch_activo=glitch and ahora<self.glitch_hasta
         if self.ancla:
             ax=self.ancla['x']-self.x;ay=self.ancla['y']-self.y
             edad=max(0,ahora-self.ancla['inicio']);lado=-1 if self.direccion<0 else 1;s=self.escala
@@ -319,13 +318,20 @@ class Companera:
                 if self.ancla:im=cuerpo_colgado
                 self.halos[clave]=ImageTk.PhotoImage(sombra_glitch(im,COLORES_HALO[halo]))
                 if len(self.halos)>96:self.halos.pop(next(iter(self.halos)))
-            desplazamiento=7 if glitch and ahora%4.7<.14 else 5
+            desplazamiento=7 if self.glitch_activo else 5
             c.create_image(self.ancho//2-desplazamiento,self.alto//2+2,image=self.halos[clave],tags='sombra_personaje')
         self.imagen=fotos[indice]
-        if self.ancla:self.imagen=foto_colgada
-        elif glitch and ahora%4.7<.14:
+        if self.ancla:
+            self.imagen=foto_colgada
+            if self.glitch_activo:
+                clave=(clave_giro,int(ahora*28)%6)
+                if clave not in self.glitches_colgadas:
+                    self.glitches_colgadas[clave]=ImageTk.PhotoImage(glitch_silueta(cuerpo_colgado,clave[1]))
+                    if len(self.glitches_colgadas)>12:self.glitches_colgadas.pop(next(iter(self.glitches_colgadas)))
+                self.imagen=self.glitches_colgadas[clave]
+        elif self.glitch_activo:
             variantes=self.glitches_espejo if self.direccion<0 else self.glitches
-            self.imagen=variantes[indice][int(ahora*35)%2]
+            self.imagen=variantes[indice][int(ahora*28)%6]
         c.create_image(self.ancho//2,self.alto//2,image=self.imagen,tags='personaje')
         if self.ancla:
             for i in range(3):

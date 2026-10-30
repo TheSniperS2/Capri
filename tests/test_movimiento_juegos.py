@@ -65,24 +65,21 @@ class Movimiento(PruebasTk):
             d.mostrar('Corto');d.visible=d.objetivo;d.tick();self.assertLessEqual(d.vence-time.monotonic(),3)
             d.editando=True;d.vence=time.monotonic()-1;d.tick();self.assertEqual(d.ventana.state(),'withdrawn')
 
-    def test_travesuras_no_abren_apps_sin_opcion_y_tienen_cooldown(self):
+    def test_interacciones_tienen_cadencia_y_solo_eventos_nuevos(self):
         reloj=[100.];j=Travesuras(lambda:reloj[0])
         with patch('travesuras.random.choice',side_effect=lambda opciones:opciones[-1]):
-            self.assertEqual(j.elegir(False),'salto')
-            self.assertEqual(j.elegir(True),'carpeta')
-            self.assertEqual(j.elegir(True),'salto')
-        reloj[0]=1000
-        self.assertIsNone(j.tick(False,False,True));self.assertIsNone(j.tick(True,True,True))
-        j.comenzar();self.assertEqual(j.tocar(),'escapar');self.assertEqual(j.tocar(),'escapar');self.assertEqual(j.tocar(),'ganaste')
+            self.assertIsNone(j.tick(True,False))
+            reloj[0]=1001;self.assertIsNone(j.tick(True,True))
+            self.assertEqual(j.tick(True,False,asomos=True,personaje=True),'asomar')
+            self.assertGreater(j.proxima,reloj[0]+700)
+        self.assertFalse(hasattr(j,'comenzar'));self.assertFalse(hasattr(j,'tocar'))
 
     def test_travesura_manual_de_apps_tambien_exige_permiso(self):
         with self.capri() as (c,_),patch('companera.visibles',return_value=[]),patch('app.ejecutar') as ejecutar:
             self.personaje(c);c.hacer_travesura('pestana');ejecutar.assert_not_called()
 
-    def test_travesura_con_permiso_solo_pide_apertura_basica(self):
+    def test_permiso_antiguo_no_permite_abrir_pestanas_ni_documentos(self):
         with self.capri() as (c,_),patch('companera.visibles',return_value=[]):
-            self.personaje(c);c.cfg['travesuras_apps']=True;llamada=threading.Event()
-            def abrir(orden):llamada.set();return 'Solicité abrir una pestaña.'
-            with patch('app.ejecutar',side_effect=abrir) as ejecutar:
-                c.hacer_travesura('pestana');self.assertTrue(llamada.wait(1))
-                self.assertEqual(ejecutar.call_args.args[0].tipo,'pestana')
+            self.personaje(c);c.cfg['travesuras_apps']=True
+            with patch('app.ejecutar') as ejecutar:
+                c.hacer_travesura('pestana');c.hacer_travesura('carpeta');ejecutar.assert_not_called()

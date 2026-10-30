@@ -17,7 +17,9 @@ Asset type: tiny animation mouth overlays for an existing character, NOT a new c
 
 El modo pantalla usa ahora una [reconstrucción HD](PROMPT_HD.md) del mismo encuadre. El original de 225 × 350 se conserva. El recorte se genera directamente desde los estados de alta resolución al tamaño solicitado, con Lanczos; no se amplía una vista reducida previamente a 320 píxeles. Esto mejora el detalle disponible en los tamaños de interfaz admitidos; no convierte la ilustración en un vector de resolución ilimitada.
 
-El glitch es transitorio: seis variantes con separación de canales, bandas de distintas alturas, desplazamientos y pequeños cortes digitales. Las líneas de trama normales tienen menos opacidad para no emborronar el rostro. Las descargas decorativas sueltas de las transformaciones de modo se han retirado.
+La vista simula una cámara: una ligera reducción de nitidez, grano en tres fases, líneas de barrido y viñeta tenue. Los fotogramas se preparan al cambiar el tamaño, sin generar imágenes en cada actualización normal. Desactivar las interferencias detiene las ráfagas y el grano animado; la textura estática de pantalla permanece.
+
+El glitch es transitorio: seis variantes con franjas de distinta altura, fragmentos desplazados, cortes transparentes y estelas violetas/verdes. Las ráfagas duran aproximadamente 0,22–0,42 segundos. En modo personaje afectan a la pose de pie, sentada y sujetándose; los fragmentos pueden sobresalir del contorno original, conservando el fondo transparente y alfa binario para Windows. Las cachés de poses sujetas tienen límite. Las descargas decorativas sueltas de las transformaciones de modo se han retirado.
 
 ## Entrada, transformación y salida
 
