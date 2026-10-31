@@ -6,7 +6,7 @@ from functools import lru_cache
 from intro import suave,dibujar_viaje,VIAJE,trayectoria
 
 DURACION=4.4
-DURACION_TELON=.65
+DURACION_TELON=.95
 COLOR_MANO='#f60031'
 
 def estrella(c,x,y,pulso=1):
@@ -111,6 +111,7 @@ class Despedida:
         self.piezas=self.preparar_formacion()
         self.cielo=self.preparar_cielo()
         self.mano_foto,self.mano_esquina=self.preparar_mano_suave()
+        self.contraccion=None
 
     def posicion_mano(self):
         return self.ancho*.495,self.alto*.43,self.alto*.57
@@ -198,8 +199,11 @@ class Despedida:
         estrella(c,sx,sy,brillo*.28)
         centro=(self.ancho*.495,self.alto*.58)
         if p<.32:
-            if p<.012 and self.imagen is not None:c.create_image(*self.origen,image=self.imagen,tags='capri_al_centro')
-            self.formar_mano(c,p)
+            if self.contraccion is not None:self.contraccion.dibujar(c,p/.32)
+            else:
+                if p<.012 and self.imagen is not None:c.create_image(*self.origen,image=self.imagen,tags='capri_al_centro')
+                self.formar_mano(c,p)
+        elif self.contraccion is not None:self.contraccion.detener()
         mx,y,largo=self.posicion_mano()
         if .32<=p<.70:
             mano=silueta_mano(mx,y,largo)
@@ -242,6 +246,10 @@ class Despedida:
                               fill='#a9edff',width=max(1,2*apagar),tags='destello')
 
     def cerrar_telon(self,c,progreso):
-        # El escenario se recoge; la transparencia descubre el escritorio gradualmente.
-        c.delete('all');q=suave(max(0,min(1,progreso)))
-        c.create_image(0,-round(self.alto*q),image=self.cielo,anchor='nw',tags='telon_despedida')
+        # El cielo queda inmóvil. La ventana pierde opacidad desde app.py,
+        # revelando el escritorio sin barridos ni un corte a negro.
+        c.delete('all')
+        c.create_image(0,0,image=self.cielo,anchor='nw',tags='telon_despedida')
+
+    def detener(self):
+        if self.contraccion is not None:self.contraccion.detener()

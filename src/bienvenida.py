@@ -12,7 +12,7 @@ from tema_ui import color
 SALIDA=5.2
 PASOS_MARCO=120
 SALUDO='¡Hola!'
-ARTE='capri-intro-vector-v4.json'
+ARTE='capri-intro-vector-v7.json'
 TRANSPARENTE='#010203'
 
 
@@ -61,7 +61,9 @@ class Bienvenida:
         self.pantalla=pantalla;self.destino_tamano=destino.size;self.recorte=None
         self.lienzo=None
         ruta=next((r for r in (Path(__file__).parent/'assets'/ARTE,Path(__file__).parents[1]/'assets'/ARTE) if r.exists()),None)
-        self.formas=json.loads(ruta.read_text(encoding='utf8'))['formas'] if ruta else []
+        arte=json.loads(ruta.read_text(encoding='utf8')) if ruta else {}
+        self.formas=arte.get('formas',[]);self.rasgos=arte.get('rasgos',{})
+        self.pivote=self.rasgos.get('pivote',(564,410))
         self.pesos={(x,y):self.peso(x,y) for _,p in self.formas for x,y in zip(p[::2],p[1::2])}
         self.preparar_geometria()
         self.llegada=[]
@@ -128,7 +130,7 @@ class Bienvenida:
 
     @staticmethod
     def peso(x,y):
-        cabeza=limitar((470-y)/90)*limitar((x-260)/100)*limitar((930-x)/150)
+        cabeza=limitar((480-y)/100)
         mano=limitar((x-815)/110)*limitar((650-y)/170) if y>350 else 0
         return cabeza,mano
 
@@ -137,7 +139,7 @@ class Bienvenida:
         pesos=self.pesos.get((x,y))
         cabeza,mano=pesos if pesos is not None else self.peso(x,y)
         co,si,cm,sm,s,ox,oy,respirar=self.rig
-        px,py=x-564,y-410
+        px,py=x-self.pivote[0],y-self.pivote[1]
         x+=(px*(co-1)-py*si)*cabeza;y+=(px*si+py*(co-1))*cabeza
         if mano:
             px,py=x-860,y-570
@@ -187,7 +189,7 @@ class Bienvenida:
 
     def proyectar_geometria(self):
         co,si,cm,sm,s,ox,oy,respirar=self.rig
-        x,y=self.vertices[:,0],self.vertices[:,1];px=x-564;py=y-410
+        x,y=self.vertices[:,0],self.vertices[:,1];px=x-self.pivote[0];py=y-self.pivote[1]
         x=x+(px*(co-1)-py*si)*self.peso_cabeza
         y=y+(px*si+py*(co-1))*self.peso_cabeza
         px=x-860;py=y-570
@@ -209,7 +211,7 @@ class Bienvenida:
         for inicio in (1.86,3.28):
             cerrado=max(cerrado,max(0,1-abs(t-inicio)/.115))
         cerrado=max(cerrado,suave((t-4.35)/.40))*(1-self.apertura_salida)
-        for x,y,r in ((495,332,34),(626,293,40)):
+        for x,y,r in self.rasgos.get('ojos',((495,332,34),(626,293,40))):
             self.ovalo(c,x,y,r+3,r+3,'#0d0913',t,z,dx,dy,'intro_ojos')
             abierto=1-cerrado
             if abierto>.12:
@@ -222,7 +224,14 @@ class Bienvenida:
                 for i in range(17):
                     v=i/16;p.extend(self.punto(x-r+2*r*v,y-9*math.sin(math.pi*v)+4,t,z,dx,dy))
                 c.create_line(*p,fill='#09ef38',width=max(2,self.w*z/1086*5),smooth=True,tags='intro_ojos')
-        # Gesto silencioso: pasa de una sonrisa ladeada a una sonrisa abierta.
+        if 'boca' in self.rasgos:
+            mx,my,escala=self.rasgos['boca'];abrir=.2+.4*suave((t-.9)/.65)-.08*math.sin(t*2.5)**2
+            puntos=[]
+            for x,y in ((-43,-7),(-10,3),(1,-1),(12,2),(44,-10),(20,8+10*abrir),(0,12+8*abrir),(-22,5)):
+                puntos.extend((mx+(x*.978+y*.208)*escala,my+(-x*.208+y*.978)*escala))
+            self.poligono(c,puntos,'#f1f7ff',t,z,dx,dy,'intro_boca')
+            return
+        # Compatibilidad con el arte anterior.
         self.poligono(c,[510,379,628,337,614,396,600,429,545,410],'#0d0913',t,z,dx,dy,'intro_boca')
         abrir=.28+.72*suave((t-.90)/.65)
         abrir-=.16*math.sin(t*2.5)**2

@@ -1838,9 +1838,8 @@ class Capri:
             fotos=self.companera.fotos if self.es_personaje() else self.avatar.fotos
             if fotos:imagen=fotos[0]
         sw=self.root.winfo_screenwidth();sh=self.root.winfo_screenheight()
-        self.salida=Despedida(sw,sh,origen,imagen)
         self.salida_rostro=None;self.salida_camara=None;self.salida_traslado=None
-        ruta=next((b/'assets'/nombre for nombre in ('capri-despedida-expresiones-v6.png','capri-despedida-expresiones-v5.png','capri-despedida-expresiones-v4.png')
+        ruta=next((b/'assets'/nombre for nombre in ('capri-despedida-expresiones-v9.png','capri-despedida-expresiones-v8.png','capri-despedida-expresiones-v7.png','capri-despedida-expresiones-v6.png','capri-despedida-expresiones-v5.png','capri-despedida-expresiones-v4.png')
                    for b in (BASE,BASE.parent) if (b/'assets'/nombre).exists()),None)
         if ruta:
             from despedida_camara import GrabacionDespedida
@@ -1850,9 +1849,14 @@ class Capri:
             fuente=ImageTk.getimage(imagen).convert('RGBA') if imagen is not None else self.avatar.vistas[0]
             self.salida_traslado=TrasladoTeselas(fuente,self.salida_camara.imagen,origen,self.salida_camara.centro,tamanos_propios=True)
             self.salida=Despedida(sw,sh,self.salida_camara.centro,self.salida_rostro)
+        else:self.salida=Despedida(sw,sh,origen,imagen)
         self.salida_audio=None;self.salida_generacion=None;self.salida_voz_empezada=False;self.salida_voz_terminada=False;self.salida_reanudar=None
         from idiomas import frase_despedida
         self.frase_despedida=frase_despedida(self.cfg.get('idioma'))
+        if self.salida_camara:
+            from despedida_camara import ContraccionCamara
+            from despedida import silueta_mano
+            self.salida.contraccion=ContraccionCamara(self.salida_camara.fotograma_final(self.frase_despedida),silueta_mano(*self.salida.posicion_mano()),sw,sh)
         self.salida_velocidad=self.cfg.get('velocidad_voz',1.)
         self.salida_perfil=self.cfg.get('voz_perfil','capri');self.salida_natural=self.cfg.get('voz_natural',True)
         self.salida_boca_activa=False;self.salida_sonrisa_hasta=0
@@ -1873,8 +1877,8 @@ class Capri:
         if tiempo<traslado:
             from intro import dibujar_viaje,VIAJE
             progreso=tiempo/traslado;self.canvas.delete('all')
-            self.canvas.create_image(0,0,image=self.salida.cielo,anchor='nw',tags='cielo_despedida')
-            estrella(self.canvas,*self.salida.destino,.78*.28)
+            # El escritorio sigue detrás del traslado. El cielo sólo se
+            # descubre al contraerse la cámara, después de cubrirlo todo.
             dibujar_viaje(self.canvas,VIAJE+(1-VIAJE)*progreso,inicio=self.salida_traslado.inicio,fin=self.salida_traslado.fin)
             self.salida_traslado.dibujar(self.canvas,progreso)
             self.restaurar_reubicacion();self.root.after(16,self.pintar_despedida);return
@@ -1900,20 +1904,23 @@ class Capri:
         if self.salida_reanudar is None:
             if self.salida_camara:
                 self.salida.imagen=self.salida_camara.fotos[3]
-                self.salida.piezas=self.salida.preparar_formacion()
             # Silencio: reloj determinista. Con voz: la mano empieza al terminar la frase.
             self.salida_reanudar=ahora if self.salida_audio is not None else self.inicio_salida+traslado+1.8
         p=(ahora-self.salida_reanudar)/DURACION
         if p>=1:
             telon=(ahora-self.salida_reanudar-DURACION)/DURACION_TELON
             if telon>=1:self.cerrar_inmediato();return
-            self.salida.cerrar_telon(self.canvas,telon);self.restaurar_reubicacion()
+            from intro import suave
+            self.salida.cerrar_telon(self.canvas,telon)
+            self.root.attributes('-alpha',1-suave((telon-.12)/.88));self.restaurar_reubicacion()
             self.root.after(16,self.pintar_despedida);return
         self.salida.dibujar(self.canvas,p);self.restaurar_reubicacion()
         self.root.after(16,self.pintar_despedida)
 
     def cerrar_inmediato(self):
         if self.cerrado:return
+        salida=getattr(self,'salida',None)
+        if salida:salida.detener()
         self.voz.parar()
         self.descartar_reaccion()
         audio=getattr(self,'salida_audio',None)

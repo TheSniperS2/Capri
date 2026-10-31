@@ -36,6 +36,26 @@ class BienvenidaYReaccion(PruebasTk):
             self.assertFalse(canvas.find_withtag('intro_subtitulo'))
             self.assertEqual(b.tiempo(9,True),9)
 
+    def test_intro_mangas_cuello_y_palmas_permanecen_solidos_al_moverse(self):
+        with self.capri() as (c,_):
+            c.iniciar_intro();b=c.bienvenida
+            # Zonas de manga y uniones que antes mostraban el escritorio.
+            for t in (1.4,2.7,4.2):
+                b.dibujar(c.canvas,t)
+                for x,y in ((350,525),(800,510),(568,435),(559,550),(174,526),(925,480)):
+                    px,py=b.punto(x,y,t,b.encuadre(t))
+                    items=c.canvas.find_overlapping(px,py,px,py)
+                    solidos=[i for i in items if 'intro_retrato' in c.canvas.gettags(i)
+                             and c.canvas.itemcget(i,'state')!='hidden']
+                    self.assertTrue(solidos,(t,x,y))
+                # Un corredor central continuo detecta también una porción
+                # completa ausente o una mitad lateralmente desplazada.
+                for x in (564,568,572):
+                    for y in range(395,681,12):
+                        px,py=b.punto(x,y,t,b.encuadre(t))
+                        self.assertTrue([i for i in c.canvas.find_overlapping(px,py,px,py)
+                            if 'intro_retrato' in c.canvas.gettags(i) and c.canvas.itemcget(i,'state')!='hidden'],(t,x,y))
+
     def test_intro_materializa_fragmentos_destello_y_rgb_en_el_mismo_centro(self):
         with self.capri() as (c,_):
             c.iniciar_intro();b=c.bienvenida;canvas=c.canvas

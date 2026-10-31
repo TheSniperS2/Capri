@@ -77,6 +77,47 @@ def texto_para_voz(texto):
     texto=re.sub(r'(?<!\d)[,;:]|[,;:](?!\d)',' ',texto)
     return re.sub(r'\s+',' ',texto).strip()
 
+
+def es_despedida_choom(texto):
+    from idiomas import frase_despedida
+    return texto.strip().casefold() in {frase_despedida(i).casefold() for i in ('es','en','pt','ja')}
+
+
+def pausa_choom(archivo,texto,marcas,minimo=.52):
+    """Garantiza la pausa de despedida sin cambiar timbre, ritmo ni palabras.
+
+    Inserta sólo el silencio que falta entre las marcas de la frase y choom.
+    Devuelve otro archivo únicamente si se necesita modificar el audio.
+    """
+    if not es_despedida_choom(texto) or not marcas:return archivo,marcas
+    indice=next((i for i,m in enumerate(marcas) if texto[m[2]:m[3]].strip(' .,!?').casefold()=='choom'),None)
+    if indice is None or indice==0:return archivo,marcas
+    inicio=marcas[indice][0];fin=max(m[0]+m[1] for m in marcas[:indice])
+    silencio=max(0,inicio-fin);extra=max(0,minimo-silencio)
+    if extra<.01:return archivo,marcas
+    import av
+    import numpy as np
+    import wave
+    trozos=[]
+    with av.open(str(archivo)) as entrada:
+        frecuencia=entrada.streams.audio[0].codec_context.sample_rate or 24000
+        conversor=av.AudioResampler(format='s16',layout='mono',rate=frecuencia)
+        for frame in entrada.decode(audio=0):
+            for mono in conversor.resample(frame):trozos.append(mono.to_ndarray().reshape(-1))
+        for mono in conversor.resample(None):trozos.append(mono.to_ndarray().reshape(-1))
+    if not trozos:return archivo,marcas
+    pcm=np.concatenate(trozos).astype('<i2')
+    punto=max(0,min(len(pcm),round((inicio-silencio/2)*frecuencia)))
+    pausa=np.zeros(round(extra*frecuencia),dtype='<i2');extra=len(pausa)/frecuencia
+    pcm=np.concatenate((pcm[:punto],pausa,pcm[punto:]))
+    with tempfile.NamedTemporaryFile(suffix='.wav',delete=False) as f:salida=Path(f.name)
+    try:
+        with wave.open(str(salida),'wb') as wav:
+            wav.setnchannels(1);wav.setsampwidth(2);wav.setframerate(frecuencia);wav.writeframes(pcm.tobytes())
+    except Exception:salida.unlink(missing_ok=True);raise
+    ajustadas=[(offset+(extra if i>=indice else 0),duracion,a,b) for i,(offset,duracion,a,b) in enumerate(marcas)]
+    return salida,ajustadas
+
 _audio_trabajos = queue.Queue()
 _audio_lock = threading.Lock()
 _audio_hilo = None
@@ -532,7 +573,8 @@ class Voz:
             return
         from idiomas import codigo
         idioma=codigo(self.idioma)
-        original=texto;texto=texto_para_voz(texto)
+        original=texto;despedida=es_despedida_choom(original);texto=texto_para_voz(texto)
+        if despedida:texto=texto.replace(' choom',', choom')
         volumen=normalizar_volumen(volumen)
         if not texto or volumen==0:return
         archivo = None
@@ -578,8 +620,12 @@ class Voz:
                     if ultimo_error:raise ultimo_error
                     self.ultima_voz_usada=nombre
                     from sincronia import alinear_marcas
+                    marcas=alinear_marcas(original,eventos)
+                    if despedida:
+                        pausado,marcas=pausa_choom(archivo,original,marcas)
+                        if pausado!=archivo:archivo.unlink(missing_ok=True);archivo=pausado
                     fase='reproduccion'
-                    activo=self._reproducir_archivo(archivo,token,cancelar,volumen,marcas=alinear_marcas(original,eventos),texto=original,**canal)
+                    activo=self._reproducir_archivo(archivo,token,cancelar,volumen,marcas=marcas,texto=original,**canal)
                     return
                 except Exception as error:
                     if cancelar.is_set(): return
@@ -599,6 +645,10 @@ class Voz:
             with tempfile.NamedTemporaryFile(suffix='.wav',delete=False) as f:archivo=Path(f.name)
             destino=base64.b64encode(str(archivo).encode('utf8')).decode('ascii')
             script = "$ErrorActionPreference='Stop';Add-Type -AssemblyName System.Speech;$v=New-Object System.Speech.Synthesis.SpeechSynthesizer;$v.Volume=100;$v.Rate="+str(rapidez_windows)+";$es=$v.GetInstalledVoices()|Where-Object {$_.VoiceInfo.Culture.Name -like 'es-*'}|Select-Object -First 1;if($es){$v.SelectVoice($es.VoiceInfo.Name)};$v.SetOutputToWaveFile([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('"+destino+"')));$v.Speak([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + codificado + "')));$v.Dispose()"
+            if despedida and ', choom' in texto:
+                hablar="$v.Speak([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('"+codificado+"')))"
+                pausado="$t=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('"+codificado+"'));$i=$t.LastIndexOf(',');$p=[System.Speech.Synthesis.PromptBuilder]::new($v.Voice.Culture);$p.AppendText($t.Substring(0,$i));$p.AppendBreak([TimeSpan]::FromMilliseconds(520));$p.AppendText($t.Substring($i+1).Trim());$v.Speak($p)"
+                script=script.replace(hablar,pausado)
             acento=getattr(self,'acento','auto')
             if invitado:acento='invitado'
             cultura=acento if acento in ACENTOS_VOZ and acento!='auto' else idioma+'-*'

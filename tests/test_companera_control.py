@@ -77,6 +77,9 @@ class ModoPersonaje(PruebasTk):
             assets=Path(d)/'assets';assets.mkdir();origen=Path(__file__).resolve().parents[1]/'assets'
             for n in ('capri-base-v2.png','capri-bocas-v2.png','capri-personaje-v1.png','capri-caminar-v1.png','capri-saludo-v1.png','capri-asomo-curioso-v1.png','capri-despedida-sonrisa-v1.png','capri-asomo-tierno-v2.png','capri-despedida-camara-v2.png','capri-despedida-camara-v3.png'):shutil.copy2(origen/n,assets/n)
             for n in ('capri-asomo-fiel-v3.png','capri-despedida-expresiones-v4.png','capri-despedida-expresiones-v5.png','capri-despedida-expresiones-v6.png','capri-cielo-despedida-v2.png'):shutil.copy2(origen/n,assets/n)
+            shutil.copy2(origen/'capri-despedida-expresiones-v7.png',assets/'capri-despedida-expresiones-v7.png')
+            shutil.copy2(origen/'capri-despedida-expresiones-v8.png',assets/'capri-despedida-expresiones-v8.png')
+            shutil.copy2(origen/'capri-despedida-expresiones-v9.png',assets/'capri-despedida-expresiones-v9.png')
             c=app.Capri(hotkeys=False);c.root.withdraw();c.cfg['voz']=False
             try:yield c,Path(d)
             finally:c.cerrar()

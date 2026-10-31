@@ -13,12 +13,18 @@ ARCHIVOS.append('bienvenida.py')
 ARCHIVOS.extend(['assets/capri-intro-primer-plano-v2.png','PROMPT_INTRO_PRIMER_PLANO_V2.md'])
 ARCHIVOS.append('assets/capri-intro-vector-v3.json')
 ARCHIVOS.extend(['assets/capri-intro-vector-v4.json','assets/capri-despedida-expresiones-v5.png'])
+ARCHIVOS.extend(['assets/capri-intro-vector-v5.json','assets/capri-despedida-expresiones-v7.png'])
+ARCHIVOS.extend(['assets/capri-intro-vector-v6.json','assets/capri-despedida-expresiones-v8.png'])
+ARCHIVOS.extend(['assets/capri-intro-vector-v7.json','assets/capri-despedida-expresiones-v9.png'])
 ARCHIVOS.append('PROMPT_DESPEDIDA_V5.md')
 ARCHIVOS.extend(['assets/capri-cielo-despedida-v2.png','assets/capri-despedida-expresiones-v6.png'])
 ARCHIVOS.append('PROMPTS_DESPEDIDA_V6.md')
 ARCHIVOS.append('assets/mano-despedida-v2.json')
 ARCHIVOS.append('assets/mano-despedida-v3.json')
 ARCHIVOS.append('VOZ_Y_FLUIDEZ_V8.md')
+ARCHIVOS.append('PROMPTS_CAPRI_V11.md')
+ARCHIVOS.append('PROMPTS_CAPRI_V12.md')
+ARCHIVOS.append('PROMPTS_CAPRI_V13.md')
 ARCHIVOS.append('idiomas.py')
 ARCHIVOS.append('league.py')
 ARCHIVOS.extend(['apagado.py','discord_control.py'])
@@ -35,6 +41,9 @@ ARCHIVOS.append('REFERENCIAS_VOZ.md')
 ARCHIVOS.extend(['despedida.py','assets/capri-base-hd-v1.png','PROMPT_HD.md'])
 
 def origen(nombre):
+    if nombre=='PROMPTS_CAPRI_V13.md':return BASE/'docs'/nombre
+    if nombre=='PROMPTS_CAPRI_V12.md':return BASE/'docs'/nombre
+    if nombre=='PROMPTS_CAPRI_V11.md':return BASE/'docs'/nombre
     if nombre=='VOZ_Y_FLUIDEZ_V8.md':return BASE/'docs'/nombre
     if nombre=='PROMPTS_DESPEDIDA_V6.md':return BASE/'docs'/nombre
     if nombre=='PROMPT_DESPEDIDA_V5.md':return BASE/'docs'/nombre
