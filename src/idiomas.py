@@ -65,6 +65,10 @@ def _plantillas():
 def ui(original,idioma=None):
     return _traducir_ui(str(original),codigo(idioma or _actual))
 
+def frase_despedida(idioma=None):
+    return {'es':'Cuídate mucho, choom.','en':"I'll see you around, choom.",
+            'pt':'Até mais, choom.','ja':'またね、choom。'}[codigo(idioma or _actual)]
+
 class Lienzo(tk.Canvas):
     """Traduce al dibujar sin cambiar los valores internos de los controles."""
     def __init__(self,*args,**kw):
@@ -205,6 +209,54 @@ def conocida(original,idioma):
     return None
 
 UI_FIJOS={
+    'HEX':['HEX','HEX','16進'],
+    'Aplicar':['Apply','Aplicar','適用'],
+    'Inglés vivaz · Ana':['Lively English · Ana','Inglês animado · Ana','快活な英語 · Ana'],
+    'Inglés cálido · Jenny':['Warm English · Jenny','Inglês acolhedor · Jenny','穏やかな英語 · Jenny'],
+    'Reproducir despedida al cerrar Capri':['Play farewell when closing Capri','Reproduzir despedida ao fechar Capri','終了時にお別れアニメーションを再生'],
+    '¡Hola!':['Hi!','Oi!','やあ！'],
+    '¡EH, CHOOM!':['HEY, CHOOM!','EI, CHOOM!','よぉ、チューム！'],
+    'Hola, choom. Prometo portarme bien... Nah, mentira.':[
+        "Hey, choom. I promise I’ll behave... Nah, I’m lying.",
+        'Oi, choom. Prometo me comportar... Nada, mentira.',
+        'やあ、チューム。おとなしくするって約束するよ…なんてね、うそ。'],
+    'SEÑAL VIVA':['LIVE SIGNAL','SINAL ATIVO','信号受信中'],
+    'TOC, TOC.':['KNOCK, KNOCK.','TOC, TOC.','コンコン。'],
+    'NO ESPERÉ A QUE ABRIERAS.':["I DIDN’T WAIT FOR YOU TO OPEN.",'NÃO ESPEREI VOCÊ ABRIR.','開けるのを待たなかった。'],
+    'El aburrimiento se queda fuera.':['Boredom stays outside.','O tédio fica lá fora.','退屈は立ち入り禁止。'],
+    'Demasiado tarde. Ya entré.':['Too late. I’m already in.','Tarde demais. Já entrei.','もう遅い。入っちゃった。'],
+    'Hola, choom. Ya llegué. Que empiece el caos.':['Hey, choom. I’m here. Let the chaos begin.','Oi, choom. Cheguei. Que comece o caos.','やあ、チューム。来たよ。さあ、ひと暴れしよう。'],
+    'TU ESCRITORIO. MI CAOS.':['YOUR DESKTOP. MY CHAOS.','SEU DESKTOP. MEU CAOS.','君のデスクトップ。私のカオス。'],
+    'YA ESTOY DENTRO.':['I’M ALREADY IN.','JÁ ESTOU AQUI.','もう入り込んだ。'],
+    'Nexo':['Nexus','Nexo','ネクサス'],
+    'Estudio':['Studio','Estúdio','スタジオ'],
+    'Vector':['Vector','Vetor','ベクター'],
+    'Color':['Color','Cor','カラー'],
+    'COLOR':['COLOR','COR','カラー'],
+    'COLOR DE LA INTERFAZ':['INTERFACE COLOR','COR DA INTERFACE','インターフェースの色'],
+    'Color personalizado':['Custom color','Cor personalizada','カスタムカラー'],
+    'Elegir otro color':['Choose another color','Escolher outra cor','別の色を選ぶ'],
+    'Escribe un color como #40d9e6.':['Enter a color such as #40d9e6.','Digite uma cor como #40d9e6.','#40d9e6 のような色を入力してください。'],
+    'Una paleta para Capri, sus menús y sus ventanas. Las imágenes y los efectos conservan sus colores.':[
+        'One palette for Capri, menus and windows. Images and effects keep their colors.',
+        'Uma paleta para Capri, menus e janelas. Imagens e efeitos mantêm suas cores.',
+        'Capri、メニュー、ウィンドウ共通の配色。画像とエフェクトの色は変わりません。'],
+    'ASPECTOS DE PANTALLA':['SCREEN DESIGNS','ESTILOS DE TELA','画面デザイン'],
+    'Diseño del marco y del chat · el color se elige aparte':[
+        'Frame and chat design · choose the color separately',
+        'Design da moldura e do chat · escolha a cor separadamente','フレームとチャットのデザイン・色は別に選択'],
+    'Clásico':['Classic','Clássico','クラシック'],
+    'Terminal':['Terminal','Terminal','ターミナル'],
+    'Visor':['Visor','Visor','バイザー'],
+    'Retro':['Retro','Retrô','レトロ'],
+    'Compacto':['Compact','Compacto','コンパクト'],
+    'Minimal':['Minimal','Minimalista','ミニマル'],
+    'Cian':['Cyan','Ciano','シアン'],
+    'Azul':['Blue','Azul','ブルー'],
+    'Verde':['Green','Verde','グリーン'],
+    'Ámbar':['Amber','Âmbar','アンバー'],
+    'Rosa':['Pink','Rosa','ピンク'],
+    'Blanco':['White','Branco','ホワイト'],
     'CAPRI':['CAPRI','CAPRI','CAPRI'],
     'Escritorio':['Desktop','Área de trabalho','デスクトップ'],
     'Aspecto':['Appearance','Aparência','外観'],

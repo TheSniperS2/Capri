@@ -63,9 +63,9 @@ class SalidaYFluidez(PruebasTk):
             c.animacion_cierre=True;c.cerrar()
             self.assertTrue(c.saliendo);self.assertFalse(c.cerrado)
             self.assertTrue(c.canvas.find_withtag('fragmento_viaje'))
-            from despedida import DURACION
+            from despedida import DURACION,DURACION_TELON
             from despedida_camara import TRASLADO
-            c.inicio_salida=time.monotonic()-TRASLADO-DURACION-1.9;c.pintar_despedida();self.assertTrue(c.cerrado)
+            c.inicio_salida=time.monotonic()-TRASLADO-DURACION-DURACION_TELON-1.9;c.pintar_despedida();self.assertTrue(c.cerrado)
 
     def test_f8_durante_despedida_cierra_sin_reabrir_microfono(self):
         with self.capri() as (c,_),patch.object(c,'hablar') as hablar:
@@ -78,8 +78,8 @@ class SalidaYFluidez(PruebasTk):
             self.assertEqual(s.destino[0],s.ancho/2)
             s.dibujar(c.canvas,.5)
             self.assertTrue(c.canvas.find_withtag('mano_despedida'))
-            self.assertEqual(c.canvas.itemcget(c.canvas.find_withtag('mano_despedida')[0],'fill'),'#f60031')
-            self.assertLess(c.canvas.coords(c.canvas.find_withtag('mano_despedida')[0])[0],s.destino[0])
+            self.assertEqual(c.canvas.type(c.canvas.find_withtag('mano_despedida')[0]),'image')
+            self.assertLess(abs(s.posicion_mano()[0]-s.destino[0]),s.ancho*.01)
             self.assertGreater(c.canvas.bbox('mano_despedida')[3],s.alto+30)
             self.assertFalse(c.canvas.find_withtag('descarga'))
             s.dibujar(c.canvas,.82)
@@ -122,7 +122,7 @@ class SalidaYFluidez(PruebasTk):
             # La imagen de origen nunca vuelve a aparecer después de salir.
             for p in (.02,.09,.175,.18,.21,.23,.28,.5,.69,.84):
                 s.dibujar(c.canvas,p)
-                self.assertFalse([i for i in c.canvas.find_all() if c.canvas.type(i)=='image'])
+                self.assertFalse([i for i in c.canvas.find_all() if c.canvas.type(i)=='image' and not {'cielo_despedida','mano_despedida'}.intersection(c.canvas.gettags(i))])
             s.dibujar(c.canvas,.33)
             self.assertFalse(c.canvas.find_withtag('capri_al_centro'))
             self.assertTrue(c.canvas.find_withtag('mano_despedida'))

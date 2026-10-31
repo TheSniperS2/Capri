@@ -1,8 +1,8 @@
 """Conversación compacta junto a Capri, con escritura y glitch transitorio."""
 import random
 import time
-import tkinter as tk
-from idiomas import Lienzo as CanvasUI
+from tema_ui import tk
+from tema_ui import LienzoUI as CanvasUI
 import os
 from tkinter import font as tkfont
 from fuentes import FAMILIA
@@ -76,8 +76,8 @@ class Dialogo:
         self.ventana.deiconify();self.posicionar()
         if self.pendiente is None:self.tick()
 
-    def preparar_voz(self,texto,estado='PREPARANDO VOZ'):
-        self.mostrar(texto,sincronizada=True);self.estado=estado
+    def preparar_voz(self,texto,estado='PREPARANDO VOZ',duracion_final=3):
+        self.mostrar(texto,sincronizada=True);self.estado=estado;self.duracion_final=duracion_final
 
     def revelar(self,texto,caracteres):
         if not self.habilitado() and not self.manual:return
@@ -87,7 +87,7 @@ class Dialogo:
 
     def terminar_voz(self):
         self.visible=self.objetivo;self.sincronizada=False;self.estado='ENLACE ABIERTO'
-        self.fin_escritura=True;self.vence=time.monotonic()+3
+        self.fin_escritura=True;self.vence=time.monotonic()+getattr(self,'duracion_final',3)
 
     def posicionar(self,origen=None):
         if origen is not None:self.origen=origen
@@ -198,7 +198,10 @@ class Dialogo:
         if self.objetivo and self.visible==self.objetivo and not self.sincronizada and not self.fin_escritura:
             self.fin_escritura=True;self.vence=time.monotonic()+3
         self.fase+=1;self.dibujar();self.posicionar()
-        self.pendiente=self.raiz.after(25 if len(self.visible)<len(self.objetivo) else 180,self.tick)
+        espera=25 if len(self.visible)<len(self.objetivo) else 180
+        if self.fin_escritura and not self.sincronizada and not self.retener():
+            espera=min(espera,max(1,round((self.vence-time.monotonic())*1000)))
+        self.pendiente=self.raiz.after(espera,self.tick)
 
     def ocultar(self):
         if self.pendiente:self.raiz.after_cancel(self.pendiente);self.pendiente=None

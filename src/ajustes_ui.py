@@ -1,8 +1,8 @@
 """Panel de enlace y catálogo visual del personaje."""
-import tkinter as tk
-from idiomas import Lienzo as CanvasUI
+from tema_ui import tk
+from tema_ui import LienzoUI as CanvasUI
 from tkinter import ttk
-from PIL import Image,ImageTk
+from PIL import Image,ImageTk,ImageDraw
 from fuentes import FAMILIA
 
 FONDO='#10090d';TARJETA='#211018';TEXTO='#fff0f3';SUAVE='#bb929f';ACENTO='#ff4267';VERDE='#ffb1c2'
@@ -74,7 +74,8 @@ class PanelAjustes:
         self.ventana=ventana;self.secciones={};self.vistas={};self.botones={};self.barras={};self.actual=None
         self.tag_rueda='CapriRueda'+str(id(self))
         ventana.bind_class(self.tag_rueda,'<MouseWheel>',self.rueda)
-        estilo=ttk.Style(ventana)
+        from tema_ui import EstiloUI
+        self.estilo=estilo=EstiloUI(ventana)
         estilo.theme_use('clam')
         estilo.configure('Capri.TCombobox',padding=7,font=(FAMILIA,10),fieldbackground=TARJETA,
                          background='#421327',foreground=TEXTO,arrowcolor=ACENTO,bordercolor='#7b293e')
@@ -184,33 +185,144 @@ class TarjetaAspecto(CanvasUI):
 
 
 class GaleriaAspectos:
-    def __init__(self,root,imagen,seleccion,elegir):
+    def __init__(self,root,imagen,seleccion,elegir,modo='personaje'):
         from companera import COLORES_HALO,sombra_glitch
         self.ventana=tk.Toplevel(root);self.ventana.title('Capri // Aspectos');self.ventana.configure(bg=FONDO)
         self.ventana.geometry('680x640');self.ventana.minsize(560,560)
         self.marco=VentanaCyber(self.ventana,'ASPECTOS');contenido=self.marco.cuerpo
-        self.fotos=[];self.botones={};self.elegir=elegir;self.seleccion=seleccion
-        tk.Label(contenido,text='ELIGE TU FRECUENCIA',bg=FONDO,fg=TEXTO,font=(FAMILIA,18,'bold')).pack(anchor='w',padx=16,pady=(8,4))
-        tk.Label(contenido,text='Sombras del constructo · aplicación instantánea',bg=FONDO,fg=SUAVE,font=(FAMILIA,10)).pack(anchor='w',padx=16,pady=(0,8))
+        self.fotos=[];self.botones={};self.elegir=elegir;self.seleccion=seleccion;self.modo=modo;self.imagen=imagen
+        if modo=='pantalla':
+            from disenos_pantalla import normalizar
+            self.seleccion=normalizar(seleccion)
+        tk.Label(contenido,text='ASPECTOS DE PANTALLA' if modo=='pantalla' else 'ELIGE TU FRECUENCIA',bg=FONDO,fg=TEXTO,font=(FAMILIA,18,'bold')).pack(anchor='w',padx=16,pady=(8,4))
+        tk.Label(contenido,text='Diseño del marco y del chat · el color se elige aparte' if modo=='pantalla' else 'Sombras del constructo · aplicación instantánea',bg=FONDO,fg=SUAVE,font=(FAMILIA,10)).pack(anchor='w',padx=16,pady=(0,8))
         rejilla=tk.Frame(contenido,bg=FONDO);rejilla.pack(fill='both',expand=True,padx=8,pady=(0,8))
         opciones=[('violeta','Violeta'),('neon','Neón'),('hielo','Hielo'),('rojo','Rojo'),('ninguno','Sin sombra')]
+        if modo=='pantalla':
+            from avatar import ASPECTOS_PANTALLA
+            opciones=[(clave,datos[0]) for clave,datos in ASPECTOS_PANTALLA.items()]
         im=imagen.copy();im.thumbnail((125,158),Image.Resampling.LANCZOS)
         for i,(clave,nombre) in enumerate(opciones):
             vista=Image.new('RGBA',(160,182))
-            if clave in COLORES_HALO:vista.alpha_composite(sombra_glitch(im,COLORES_HALO[clave]),(8+(160-im.width)//2,8))
-            vista.alpha_composite(im,((160-im.width)//2,4))
+            if modo=='pantalla':
+                from avatar import miniatura_pantalla
+                vista.alpha_composite(miniatura_pantalla(imagen,clave),(0,12))
+            else:
+                if clave in COLORES_HALO:vista.alpha_composite(sombra_glitch(im,COLORES_HALO[clave]),(8+(160-im.width)//2,8))
+                vista.alpha_composite(im,((160-im.width)//2,4))
             foto=ImageTk.PhotoImage(vista);self.fotos.append(foto)
             boton=TarjetaAspecto(rejilla,foto,nombre,lambda k=clave:self.aplicar(k))
             boton.grid(row=i//3,column=i%3,sticky='nsew',padx=6,pady=6);self.botones[clave]=boton
         for col in range(3):rejilla.columnconfigure(col,weight=1)
         for fila in range(2):rejilla.rowconfigure(fila,weight=1)
         self.marcar()
+        if modo=='pantalla':
+            from tema_ui import observar
+            observar(self.refrescar_color)
+
+    def refrescar_color(self):
+        if not self.ventana.winfo_exists():return
+        from avatar import miniatura_pantalla
+        self.fotos=[]
+        for clave,boton in self.botones.items():
+            vista=Image.new('RGBA',(160,182));vista.alpha_composite(miniatura_pantalla(self.imagen,clave),(0,12))
+            foto=ImageTk.PhotoImage(vista);self.fotos.append(foto);boton.foto=foto;boton.dibujar()
 
     def marcar(self):
         for k,b in self.botones.items():b.marcar(k==self.seleccion)
 
     def aplicar(self,clave):
+        if self.modo=='pantalla':
+            from disenos_pantalla import normalizar
+            clave=normalizar(clave)
         self.elegir(clave);self.seleccion=clave;self.marcar()
+
+class CampoHex(CanvasUI):
+    """Entrada hexadecimal con el mismo contorno y altura que sus acciones."""
+    def __init__(self,padre,variable,aplicar):
+        super().__init__(padre,width=174,height=44,bg=padre.cget('bg'),highlightthickness=0)
+        self.activo=False
+        self.entrada=tk.Entry(self,textvariable=variable,bg=TARJETA,fg=TEXTO,insertbackground=ACENTO,
+                              font=('Consolas',11),relief='flat',bd=0,highlightthickness=0)
+        self.item=self.create_window(48,22,window=self.entrada,anchor='w',width=112)
+        self.entrada.bind('<Return>',lambda e:aplicar())
+        self.entrada.bind('<FocusIn>',lambda e:self.enfocar(True));self.entrada.bind('<FocusOut>',lambda e:self.enfocar(False))
+        self.bind('<Configure>',lambda e:self.dibujar())
+        self.bind('<Button-1>',lambda e:self.entrada.focus_set())
+        self.dibujar()
+
+    def enfocar(self,activo):self.activo=activo;self.dibujar()
+
+    def dibujar(self):
+        self.delete('marco');w=max(174,self.winfo_width());h=44
+        self.create_rectangle(2,2,w-2,h-2,fill=TARJETA,outline='',tags='marco')
+        self.create_line(2,h-3,w-2,h-3,fill=ACENTO if self.activo else SUAVE,width=2 if self.activo else 1,tags='marco')
+        self.create_text(24,22,text='HEX',fill=SUAVE,font=(FAMILIA,8,'bold'),tags='marco')
+        self.itemconfigure(self.item,width=w-62);self.tag_lower('marco')
+
+
+class PanelColores:
+    def __init__(self,root,elegir):
+        import tkinter as nativo
+        from tema_ui import COLORES,actual,observar
+        from idiomas import ui
+        self.elegir=elegir;self.muestras={};self.fotos_muestras={}
+        self.ventana=tk.Toplevel(root);self.ventana.title('Capri · Color')
+        self.ventana.geometry('660x510');self.ventana.minsize(660,510)
+        self.marco=VentanaCyber(self.ventana,'COLOR');cuerpo=self.marco.cuerpo
+        tk.Label(cuerpo,text='COLOR DE LA INTERFAZ',bg=FONDO,fg=TEXTO,font=(FAMILIA,18,'bold')).pack(anchor='w',padx=18,pady=(8,4))
+        tk.Label(cuerpo,text='Una paleta para Capri, sus menús y sus ventanas. Las imágenes y los efectos conservan sus colores.',
+                 bg=FONDO,fg=SUAVE,font=(FAMILIA,10),wraplength=590,justify='left').pack(anchor='w',padx=18,pady=(0,12))
+        rejilla=tk.Frame(cuerpo,bg=FONDO);rejilla.pack(fill='x',padx=16)
+        for i,(nombre,valor) in enumerate(COLORES):
+            # Las muestras muestran su color real, independiente del tema activo.
+            muestra=nativo.Canvas(rejilla,width=136,height=80,bg=FONDO,highlightthickness=0,takefocus=True,cursor='hand2')
+            muestra.grid(row=i//4,column=i%4,sticky='ew',padx=5,pady=5)
+            muestra.create_rectangle(4,3,131,76,fill='#211018',outline=valor,tags='borde')
+            circulo=Image.new('RGBA',(256,256));ImageDraw.Draw(circulo).ellipse((8,8,247,247),fill=valor)
+            foto=ImageTk.PhotoImage(circulo.resize((32,32),Image.Resampling.LANCZOS),master=muestra)
+            self.fotos_muestras[valor]=foto;muestra.create_image(28,27,image=foto)
+            muestra.create_text(14,58,text=ui(nombre),anchor='w',fill='#fff0f3',font=(FAMILIA,10,'bold'))
+            muestra.bind('<Button-1>',lambda e,v=valor:self.aplicar(v));muestra.bind('<Return>',lambda e,v=valor:self.aplicar(v))
+            self.muestras[valor]=muestra
+        for col in range(4):rejilla.columnconfigure(col,weight=1)
+        personalizada=tk.Frame(cuerpo,bg=FONDO);personalizada.pack(fill='x',padx=20,pady=(18,8))
+        tk.Label(personalizada,text='Color personalizado',bg=FONDO,fg=TEXTO,font=(FAMILIA,10,'bold')).pack(anchor='w',pady=(0,8))
+        fila=tk.Frame(personalizada,bg=FONDO);fila.pack(fill='x')
+        self.hex=tk.StringVar(value=actual())
+        self.campo_hex=CampoHex(fila,self.hex,self.aplicar_hex)
+        self.campo_hex.grid(row=0,column=0,sticky='ew',padx=(0,10))
+        BotonCyber(fila,text='Aplicar',command=self.aplicar_hex,pady=12,estilo='principal',bg=ACENTO,fg=FONDO).grid(row=0,column=1,sticky='ew',padx=(0,8))
+        BotonCyber(fila,text='Elegir otro color',command=self.elegir_otro,pady=12,estilo='secundario',bg=FONDO).grid(row=0,column=2,sticky='ew')
+        fila.columnconfigure(3,weight=1)
+        self.aviso=tk.StringVar()
+        tk.Label(cuerpo,textvariable=self.aviso,bg=FONDO,fg=SUAVE,font=(FAMILIA,10)).pack(anchor='w',padx=20)
+        observar(self.marcar);self.marcar()
+
+    def aplicar(self,valor):
+        self.elegir(valor);self.hex.set(valor);self.aviso.set('')
+
+    def aplicar_hex(self):
+        import re
+        from idiomas import ui
+        valor=self.hex.get().strip()
+        if not re.fullmatch(r'#[0-9a-fA-F]{6}',valor):
+            self.aviso.set(ui('Escribe un color como #40d9e6.'));return
+        self.aplicar(valor.lower())
+
+    def elegir_otro(self):
+        from tkinter import colorchooser
+        from tema_ui import actual
+        from idiomas import ui
+        _,valor=colorchooser.askcolor(color=actual(),parent=self.ventana,title=ui('Color personalizado'))
+        if valor:self.aplicar(valor)
+
+    def marcar(self):
+        if not self.ventana.winfo_exists():return
+        from tema_ui import actual,color
+        for valor,muestra in self.muestras.items():
+            muestra.configure(bg=color(FONDO));muestra.itemconfigure('borde',width=3 if valor==actual() else 1,fill=color(TARJETA))
+
 
 class BarraCyber(CanvasUI):
     def __init__(self,padre,command):
@@ -444,10 +556,10 @@ class CapturadorTecla(CanvasUI):
         if not self.capturando:self.create_text(w-16,27,text='CAMBIAR',anchor='e',fill=VERDE,font=(FAMILIA,9,'bold'))
 
 class BotonCyber(CanvasUI):
-    def __init__(self,padre,text='',command=None,bg='#471528',fg=TEXTO,padx=14,pady=8,font=None,**kw):
+    def __init__(self,padre,text='',command=None,bg='#471528',fg=TEXTO,padx=14,pady=8,font=None,estilo='angular',**kw):
         from tkinter import font as tkfont
         self.fuente=font or (FAMILIA,10,'bold');self.texto=text;self.command=command
-        self.color=bg;self.tinta=fg;self.estado=kw.pop('state','normal');self.hover=False
+        self.color=bg;self.tinta=fg;self.estado=kw.pop('state','normal');self.hover=False;self.estilo=estilo
         for k in ('activebackground','activeforeground','relief','bd','cursor','disabledforeground','highlightthickness'):kw.pop(k,None)
         from idiomas import ui
         ancho=max(tkfont.Font(root=padre,font=self.fuente).measure(ui(text,k)) for k in ('es','en','pt','ja'))+padx*2+12
@@ -474,8 +586,14 @@ class BotonCyber(CanvasUI):
     def dibujar(self):
         self.delete('all');w=max(40,self.winfo_width());h=max(28,self.winfo_height())
         des=self.estado=='disabled';borde='#603340' if des else ('#ff97ae' if self.hover else '#a43c57')
-        self.create_polygon(7,2,w-10,2,w-2,10,w-2,h-8,w-8,h-2,2,h-2,2,8,
-                            fill='#28151d' if des else self.color,outline=borde)
+        if self.estilo in ('principal','secundario'):
+            r=5;relleno='#28151d' if des else ('#ff7898' if self.hover and self.estilo=='principal' else self.color)
+            self.create_polygon(2+r,2,w-2-r,2,w-2,2,w-2,2+r,w-2,h-2-r,w-2,h-2,w-2-r,h-2,
+                                2+r,h-2,2,h-2,2,h-2-r,2,2+r,2,2,
+                                fill=relleno,outline='' if self.estilo=='principal' else borde,smooth=True,splinesteps=18)
+        else:
+            from disenos_pantalla import chaflan
+            self.create_polygon(*chaflan(2,2,w-2,h-2,7),fill='#28151d' if des else self.color,outline=borde)
         self.create_text(w/2,h/2,text=self.texto,fill='#916e79' if des else self.tinta,font=self.fuente)
 
 class MarcoTransmision(CanvasUI):

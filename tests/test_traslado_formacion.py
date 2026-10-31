@@ -71,6 +71,7 @@ class Movimiento(PruebasTk):
                 while time.monotonic()<fin and (len(t.fotos)!=t.cantidad or not all(t.fotos)):
                     t.actualizar();time.sleep(.002)
                 self.assertTrue(all(t.fotos))
+                self.assertEqual(t.normal[1],292*c.escala_avatar+46)
                 if modo=='personaje':primera=t.fotos
                 c.finalizar_transito()
             c.guardar('modo_visual','personaje')

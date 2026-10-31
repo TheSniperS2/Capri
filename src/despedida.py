@@ -1,8 +1,12 @@
 """Despedida vectorial: mano roja que señala y se reúne con una estrella."""
 import math
+import json
+from pathlib import Path
+from functools import lru_cache
 from intro import suave,dibujar_viaje,VIAJE,trayectoria
 
 DURACION=4.4
+DURACION_TELON=.65
 COLOR_MANO='#f60031'
 
 def estrella(c,x,y,pulso=1):
@@ -16,6 +20,10 @@ def estrella(c,x,y,pulso=1):
         c.create_polygon(*puntos,fill=color,outline='',tags='estrella')
 
 def silueta_mano(x,y,alto):
+    trazado=mano_trazada()
+    if trazado:
+        ax,ay=trazado['ancla'];s=alto/trazado['alto_visible']
+        return [(x+(px-ax)*s,y+(py-ay)*s) for px,py in contorno_suave()]
     # Contorno trazado de la referencia 201212: conserva las articulaciones y
     # los cambios de curva del pulgar, nudillos y muñeca (error de trazo <1 px).
     referencia=[(195,60),(195,65),(197,68),(197,72),(200,82),(200,90),(196,99),
@@ -34,6 +42,28 @@ def silueta_mano(x,y,alto):
                 (104,238),(116,236),(137,211),(150,184),(156,168),(157,161),
                 (161,151),(163,142),(164,128),(181,98),(194,66),(195,60)]
     return [(x+(px-195)/610*alto,y+(py-60)/610*alto) for px,py in referencia]
+
+@lru_cache(maxsize=1)
+def mano_trazada():
+    ruta=next((r for r in (Path(__file__).parent/'assets/mano-despedida-v3.json',Path(__file__).parents[1]/'assets/mano-despedida-v3.json') if r.exists()),None)
+    return json.loads(ruta.read_text(encoding='utf8')) if ruta else None
+
+@lru_cache(maxsize=1)
+def contorno_suave():
+    puntos=mano_trazada()['puntos'];n=len(puntos);tangentes=[]
+    for i,p in enumerate(puntos):
+        a=puntos[(i-1)%n];b=puntos[(i+1)%n];u=(p[0]-a[0],p[1]-a[1]);v=(b[0]-p[0],b[1]-p[1])
+        norma=math.hypot(*u)*math.hypot(*v);coseno=(u[0]*v[0]+u[1]*v[1])/max(.001,norma)
+        # La punta y los cambios deliberados de ángulo se conservan, no se redondean.
+        tangentes.append(((b[0]-a[0])*.32,(b[1]-a[1])*.32) if coseno>.45 else (0,0))
+    salida=[]
+    for i,a in enumerate(puntos):
+        b=puntos[(i+1)%n];ta=tangentes[i];tb=tangentes[(i+1)%n]
+        pasos=max(3,math.ceil(math.dist(a,b)/2))
+        for j in range(pasos):
+            t=j/pasos;h0=2*t**3-3*t*t+1;h1=t**3-2*t*t+t;h2=-2*t**3+3*t*t;h3=t**3-t*t
+            salida.append(tuple(h0*a[k]+h1*ta[k]+h2*b[k]+h3*tb[k] for k in (0,1)))
+    return salida
 
 def recortar(vertices,limite,superior,eje=1):
     resultado=[]
@@ -79,6 +109,44 @@ class Despedida:
         self.ancho=ancho;self.alto=alto;self.origen=origen;self.imagen=imagen
         self.destino=(ancho*.5,alto*.09)
         self.piezas=self.preparar_formacion()
+        self.cielo=self.preparar_cielo()
+        self.mano_foto,self.mano_esquina=self.preparar_mano_suave()
+
+    def posicion_mano(self):
+        return self.ancho*.495,self.alto*.43,self.alto*.57
+
+    def preparar_mano_suave(self):
+        from PIL import Image,ImageDraw,ImageTk
+        mano=silueta_mano(*self.posicion_mano());margen=3
+        l=math.floor(min(x for x,y in mano))-margen;t=math.floor(min(y for x,y in mano))-margen
+        r=math.ceil(max(x for x,y in mano))+margen;b=min(self.alto+60,math.ceil(max(y for x,y in mano))+margen)
+        w,h=r-l,b-t;k=4
+        mascara=Image.new('L',(w*k,h*k));d=ImageDraw.Draw(mascara)
+        d.polygon([((x-l)*k,(y-t)*k) for x,y in mano],fill=255)
+        mascara=mascara.resize((w,h),Image.Resampling.LANCZOS)
+        im=Image.new('RGBA',(w,h),COLOR_MANO);im.putalpha(mascara)
+        return ImageTk.PhotoImage(im),(l,t)
+
+    def preparar_cielo(self):
+        """Fondo nocturno propio, sin capturas ni fotogramas del video de referencia."""
+        from PIL import Image,ImageTk,ImageDraw,ImageFilter,ImageOps
+        from pathlib import Path
+        ruta=next((r for r in (Path(__file__).parent/'assets/capri-cielo-despedida-v2.png',Path(__file__).parents[1]/'assets/capri-cielo-despedida-v2.png') if r.exists()),None)
+        if ruta:
+            with Image.open(ruta) as fondo:im=ImageOps.fit(fondo.convert('RGB'),(self.ancho,self.alto),Image.Resampling.LANCZOS)
+            return ImageTk.PhotoImage(im)
+        import random
+        rng=random.Random(2410);w,h=640,360
+        im=Image.new('RGB',(w,h));d=ImageDraw.Draw(im)
+        for y in range(h):
+            q=y/h;d.line((0,y,w,y),fill=(round(7+6*q),round(14+10*q),round(25+15*q)))
+        nubes=Image.new('RGBA',(w,h));d=ImageDraw.Draw(nubes)
+        for _ in range(48):
+            x=rng.randrange(-150,w);y=rng.randrange(60,h+40);rx=rng.randrange(55,150);ry=rng.randrange(10,35)
+            d.ellipse((x-rx,y-ry,x+rx,y+ry),fill=(25,40,58,rng.randrange(45,125)))
+        im=Image.alpha_composite(im.convert('RGBA'),nubes.filter(ImageFilter.GaussianBlur(12)))
+        im=im.resize((self.ancho,self.alto),Image.Resampling.BILINEAR)
+        return ImageTk.PhotoImage(im)
 
     def preparar_formacion(self):
         # Cada tesela de la transmisión tiene un destino dentro de la mano.
@@ -90,9 +158,9 @@ class Despedida:
             try:original=ImageTk.getimage(self.imagen).convert('RGB')
             except (tk.TclError,AttributeError,ValueError):pass
         iw,ih=original.size if original is not None else (360,210)
-        mano=silueta_mano(self.ancho*.495,self.alto*.43,self.alto*.57)
+        mx,my,largo=self.posicion_mano();mano=silueta_mano(mx,my,largo)
         xmin=min(x for x,y in mano);xmax=max(x for x,y in mano)
-        ymin=self.alto*.43;ymax=self.alto*1.12;destinos=[]
+        ymin=my;ymax=max(y for x,y in mano);destinos=[]
         for fila in range(14):
             for col in range(5):
                 izquierda=xmin+(xmax-xmin)*col/5;derecha=xmin+(xmax-xmin)*(col+1)/5
@@ -124,22 +192,20 @@ class Despedida:
 
     def dibujar(self,c,progreso):
         p=max(0,min(1,progreso));c.delete('all');sx,sy=self.destino
+        c.create_image(0,0,image=self.cielo,anchor='nw',tags='cielo_despedida')
         apagar=1-suave((p-.91)/.09)
         brillo=(.78+.035*math.sin(p*23)+.65*math.exp(-((p-.89)/.025)**2))*apagar
-        estrella(c,sx,sy,brillo)
+        estrella(c,sx,sy,brillo*.28)
         centro=(self.ancho*.495,self.alto*.58)
         if p<.32:
             if p<.012 and self.imagen is not None:c.create_image(*self.origen,image=self.imagen,tags='capri_al_centro')
             self.formar_mano(c,p)
-        mx=sx-self.ancho*.005
-        y=self.alto*.43
-        largo=self.alto*.57
+        mx,y,largo=self.posicion_mano()
         if .32<=p<.70:
             mano=silueta_mano(mx,y,largo)
             romper=max(0,(p-.58)/.12)
             if romper==0 and len(mano)>=3:
-                c.create_polygon(*[v for par in mano for v in par],fill=COLOR_MANO,outline='',
-                                 tags='mano_despedida')
+                c.create_image(*self.mano_esquina,image=self.mano_foto,anchor='nw',tags='mano_despedida')
             else:
                 # El volumen de la mano se deshilacha en cortes hacia la descarga.
                 for i in range(80):
@@ -174,3 +240,8 @@ class Despedida:
                 c.create_line(sx+math.cos(a)*r,sy+math.sin(a)*r,
                               sx+math.cos(a)*(r+longitud),sy+math.sin(a)*(r+longitud),
                               fill='#a9edff',width=max(1,2*apagar),tags='destello')
+
+    def cerrar_telon(self,c,progreso):
+        # El escenario se recoge; la transparencia descubre el escritorio gradualmente.
+        c.delete('all');q=suave(max(0,min(1,progreso)))
+        c.create_image(0,-round(self.alto*q),image=self.cielo,anchor='nw',tags='telon_despedida')

@@ -6,7 +6,7 @@ import test_companera_control as fixtures
 from core import interpretar,Orden
 from travesuras import Travesuras
 from llamadas import LlamadaCapri
-from apagado import SecuenciaApagado,DURACION
+from apagado import SecuenciaApagado,DURACION,INICIO_APAGADO
 
 
 class LlamadasYFluidez(PruebasTk):
@@ -48,7 +48,7 @@ class LlamadasYFluidez(PruebasTk):
             def textos(w):return [getattr(w,'texto','')]+[s for h in w.winfo_children() for s in textos(h)]
             self.assertNotIn('Probar asomo',textos(c.ajustes));self.assertTrue(c.cfg['asomos_curiosos'])
 
-    def test_apagado_deja_atender_eventos_y_final_solo_tras_animacion(self):
+    def test_apagado_deja_atender_eventos_y_envia_en_tramo_final(self):
         root=tk.Tk();root.withdraw();original=tk.Toplevel
         class Fuera(original):
             def geometry(self,v=None):return super().geometry(v.split('+')[0]+'+30000+30000' if v else None)
@@ -62,6 +62,8 @@ class LlamadasYFluidez(PruebasTk):
                 root.after(10,latido);root.after(180,root.quit);inicio=time.perf_counter();root.mainloop()
                 self.assertGreaterEqual(len(pulsos),5);self.assertLess(time.perf_counter()-inicio,2)
                 self.assertTrue(s.c.find_withtag('escena'));terminar.assert_not_called()
+                s.inicio=time.monotonic()-INICIO_APAGADO-.01;s.tick();terminar.assert_called_once()
+                self.assertFalse(s.cerrada)
                 s.inicio=time.monotonic()-DURACION-1;s.tick();terminar.assert_called_once()
                 self.assertFalse(s.c.find_withtag('escena'));s.cerrar()
         finally:root.destroy()

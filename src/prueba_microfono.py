@@ -5,8 +5,8 @@ import math
 import queue
 import threading
 import time
-import tkinter as tk
-from idiomas import Lienzo as CanvasUI
+from tema_ui import tk
+from tema_ui import LienzoUI as CanvasUI
 
 from reconocimiento import energia
 

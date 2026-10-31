@@ -6,6 +6,34 @@ import test_companera_control as fixtures
 class Autonomia(PruebasTk):
     capri=fixtures.ModoPersonaje.capri
 
+    def test_modelos_envian_solo_datos_y_no_pisan_la_ventana_nueva(self):
+        import threading,tkinter
+        from tema_ui import tk
+        original=tk.Toplevel
+        class Oculta(original):
+            def __init__(self,*a,**kw):super().__init__(*a,**kw);self.withdraw()
+            def deiconify(self):self.withdraw()
+        iniciado=threading.Event();liberar=threading.Event();terminado=threading.Event();consultas=[]
+        def modelos():
+            consultas.append(1)
+            if len(consultas)==1:
+                iniciado.set();liberar.wait(3);terminado.set();return ['anterior']
+            return ['actual']
+        with self.capri() as (c,_),patch.object(tk,'Toplevel',Oculta),patch.object(c,'cargar_microfonos'),patch.object(c.ia,'modelos',side_effect=modelos):
+            try:
+                c.configurar();self.assertTrue(iniciado.wait(1))
+                c.ajustes.destroy();c.configurar();c.root.update_idletasks()
+                liberar.set();self.assertTrue(terminado.wait(1))
+                resultados=[];otros=[]
+                while len(resultados)<2:
+                    tipo,valor=c.eventos.get(timeout=1)
+                    if tipo=='modelos_ia':
+                        self.assertNotIsInstance(valor[0],tkinter.Misc);resultados.append((tipo,valor))
+                    else:otros.append((tipo,valor))
+                for evento in otros+resultados:c.eventos.put(evento)
+                c.poll();self.assertEqual(tuple(c.modelo_combo.cget('values')),('actual',))
+            finally:liberar.set()
+
     def test_arrastrar_no_impide_reanudar_viajes_y_destino_puede_estar_arriba(self):
         with self.capri() as (c,_),patch('companera.area_trabajo',return_value=(0,0,1920,1080)),patch('companera.visibles',return_value=[]):
             p=c.companera;p.redimensionar(1);p.posar(700,350)
@@ -44,7 +72,7 @@ class Autonomia(PruebasTk):
             self.assertEqual(p.y,100);self.assertIsNone(p.salto)
 
     def test_ajustes_por_canales_y_galeria_con_previsualizaciones(self):
-        with self.capri() as (c,carpeta):
+        with self.capri() as (c,carpeta),patch.object(c,'cargar_microfonos'),patch.object(c.ia,'modelos',return_value=[]):
             antes=c.cfg['voz_perfil']
             c.configurar();c.ajustes.withdraw()
             ui=c.panel_ajustes
@@ -52,7 +80,28 @@ class Autonomia(PruebasTk):
             ui.mostrar('Micrófono');self.assertEqual(ui.actual,'Micrófono')
             self.assertIs(c.micro_combo.master.master,ui.secciones['Micrófono'])
             c.abrir_aspectos();g=c.galeria_aspectos;g.ventana.withdraw()
-            self.assertEqual(len(g.fotos),5)
+            self.assertEqual(g.modo,'pantalla');self.assertEqual(len(g.fotos),6)
             self.assertTrue(all(b.find_withtag('vista_aspecto') for b in g.botones.values()))
+            halo=c.cfg.get('halo_personaje')
+            g.aplicar('retro');self.assertEqual(c.cfg['aspecto_pantalla'],'retro')
+            self.assertEqual(c.avatar.aspecto,'retro');self.assertEqual(c.cfg.get('halo_personaje'),halo)
+            import json
+            self.assertEqual(json.loads((carpeta/'ajustes.json').read_text(encoding='utf8'))['aspecto_pantalla'],'retro')
+            c.cfg['modo_visual']='personaje';c.abrir_aspectos();g=c.galeria_aspectos;g.ventana.withdraw()
+            self.assertEqual(g.modo,'personaje');self.assertEqual(len(g.fotos),5)
             g.aplicar('hielo');self.assertEqual(c.cfg['halo_personaje'],'hielo')
+            self.assertEqual(c.avatar.aspecto,'retro')
             self.assertEqual(c.cfg['voz_perfil'],antes)
+
+    def test_aspectos_pantalla_cambian_marco_chat_sin_alterar_la_imagen(self):
+        from avatar import ASPECTOS_PANTALLA,vista_pantalla
+        from PIL import Image
+        from pathlib import Path
+        with Image.open(Path(__file__).resolve().parents[1]/'assets/capri-base-v2.png') as im:
+            original=im.convert('RGBA')
+        vistas=[vista_pantalla(original,aspecto=clave) for clave in ASPECTOS_PANTALLA]
+        self.assertTrue(all(v.size==(320,210) for v in vistas))
+        self.assertEqual(vistas[0].tobytes(),vista_pantalla(original).tobytes())
+        self.assertEqual(len({v.tobytes() for v in vistas}),1)
+        from avatar import miniatura_pantalla
+        self.assertEqual(len({miniatura_pantalla(original,k).tobytes() for k in ASPECTOS_PANTALLA}),6)

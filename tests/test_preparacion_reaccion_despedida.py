@@ -62,7 +62,7 @@ class ReaccionYDespedida(PruebasTk):
         from despedida_camara import TRASLADO
         with self.capri() as (c,_),patch.object(c.voz,'hablar') as hablar,patch.object(c.voz,'preparar',return_value=Mock(archivo=Path('fixture.mp3'))) as preparar:
             preparar.return_value.listo.is_set.return_value=True
-            c.cfg['voz']=True;c.iniciar_despedida();hablar.assert_not_called()
+            c.cfg.update(voz=True,nombre_despedida='');c.iniciar_despedida();hablar.assert_not_called()
             self.assertEqual(float(c.root.attributes('-alpha')),1.)
             self.assertFalse(hasattr(c,'intro_alpha'))
             self.assertTrue(c.canvas.find_withtag('fragmento_viaje'))

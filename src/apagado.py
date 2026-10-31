@@ -8,6 +8,12 @@ from PIL import Image,ImageDraw,ImageFont,ImageOps,ImageTk,ImageFilter,ImageChop
 from idiomas import ui
 
 DURACION=6.6
+INICIO_APAGADO=DURACION-1.2
+
+
+def opacidad_apagado(t):
+    progreso=max(0.,min(1.,t/2.6))
+    return progreso*progreso*(3-2*progreso)
 
 
 class RendererApagado:
@@ -130,7 +136,7 @@ class LienzoApagado:
             texto('ENLACE NEURONAL INESTABLE',.36,36);texto('SECUENCIA DE DESCONEXIÓN',.53,42);texto('MAXTAC // SIGNAL LOST',.72,25)
         else:
             texto('CIERRE DEL CONSTRUCTO',.33,30);texto('FLATLINE',.5,110,'#ff315a');texto('HASTA LA PRÓXIMA, CHOOM',.7,26)
-        texto('Esc · cancelar apagado',.94,18)
+        if t<INICIO_APAGADO:texto('Esc · cancelar apagado',.94,18)
 
 
 class SecuenciaApagado:
@@ -140,6 +146,7 @@ class SecuenciaApagado:
         w,h=sw,sh
         self.al_error=al_error or (lambda e:cancelar())
         self.v=tk.Toplevel(root);self.v.withdraw();self.v.overrideredirect(True);self.v.attributes('-topmost',True)
+        self.v.attributes('-alpha',0.)
         if previa:
             self.v.transient(padre or root)
             self.v.geometry(f'{w}x{h}+{max(0,(sw-w)//2)}+{max(0,(sh-h)//2)}')
@@ -165,12 +172,16 @@ class SecuenciaApagado:
     def _fotograma(self):
         inicio_frame=time.perf_counter()
         t=time.monotonic()-self.inicio
+        self.v.attributes('-alpha',opacidad_apagado(t))
         self.renderer.dibujar(t)
         self.c.tag_raise('previa');self.c.tag_raise('cerrar_previa')
+        # Dar tiempo a Windows mientras termina de colapsar la señal CRT.
+        if not self.previa and not self.enviada and t>=INICIO_APAGADO:
+            self.enviada=True;self.terminar()
         if t>=DURACION:
             if self.previa:self.cerrar()
             else:
-                self.enviada=True;self.pendiente=None;self.c.update_idletasks();self.terminar()
+                self.pendiente=None;self.c.update_idletasks()
             return
         # Deja siempre tiempo para Escape, el bucle de Windows y los otros widgets.
         self.pendiente=self.root.after(max(16,round(1000/24-(time.perf_counter()-inicio_frame)*1000)),self.tick)

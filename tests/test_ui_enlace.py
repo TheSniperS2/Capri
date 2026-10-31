@@ -28,27 +28,26 @@ class Enlace(PruebasTk):
             self.assertLessEqual(len(texto.splitlines()),6)
             self.assertTrue(texto.endswith('fin'));self.assertEqual(c.dialogo.usuario,pregunta)
 
-    def test_intro_centrada_luego_rayo_y_restaura_tamano_y_entrada(self):
+    def test_intro_primer_plano_saluda_aterriza_y_restaura_entrada(self):
         with self.capri() as (c,_):
             c.iniciar_intro();c.root.update_idletasks()
-            self.assertGreater(c.escala_avatar,c.cfg['escala_avatar'])
-            self.assertGreater(__import__('intro').DURACION,6)
-            self.assertGreater(int(c.canvas.cget('height')),c.root.winfo_screenheight()*.75)
+            self.assertEqual(c.escala_avatar,c.cfg['escala_avatar'])
+            self.assertEqual(int(c.canvas.cget('height')),c.root.winfo_screenheight())
             if os.name=='nt':
                 original=c.intro_estilo;c.pasar_clics_intro(True)
                 self.assertEqual(c.intro_estilo,original)
             self.assertFalse(c.entrada_compacta.winfo_manager())
-            c.inicio_intro=time.monotonic()-1;c.animar()
+            c.inicio_intro=time.monotonic()-.4;c.animar()
+            self.assertTrue(c.canvas.find_withtag('intro_retrato'))
+            self.assertFalse(c.canvas.find_withtag('intro_tarjeta'))
+            self.assertTrue(all(c.canvas.type(i)=='polygon' for i in c.canvas.find_withtag('intro_retrato')))
+            c.inicio_intro=time.monotonic()-2.3;c.animar()
             textos=[c.canvas.itemcget(i,'text') for i in c.canvas.find_all() if c.canvas.type(i)=='text']
-            self.assertIn('CONECTANDO',textos)
-            c.inicio_intro=time.monotonic()-__import__('intro').DURACION*.8;c.animar()
-            self.assertTrue(c.intro_en_viaje)
-            self.assertTrue(c.canvas.find_withtag('descarga'))
-            self.assertTrue(c.canvas.find_withtag('fragmento_capri'))
-            self.assertTrue(all(c.canvas.type(i) in ('line','polygon','image') for i in c.canvas.find_all()))
-            c.parar();self.assertEqual(c.escala_avatar,c.cfg['escala_avatar'])
-            self.assertEqual(c.entrada_compacta.winfo_manager(),'pack')
-            self.assertIsNone(c.fragmentos_intro)
+            self.assertIn(c.frase_intro,textos);self.assertTrue(c.canvas.find_withtag('intro_retrato'))
+            c.inicio_intro=time.monotonic()-6.7;c.animar()
+            self.assertTrue(c.intro_en_viaje);self.assertTrue(c.canvas.find_withtag('intro_llegada'))
+            c.parar();self.assertEqual(c.entrada_compacta.winfo_manager(),'pack')
+            self.assertIsNone(c.fragmentos_intro);self.assertIsNone(c.bienvenida)
             c.animar();self.assertEqual(float(c.root.attributes('-alpha')),1.0)
 
     @contextmanager

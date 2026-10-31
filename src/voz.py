@@ -21,6 +21,8 @@ PERFILES_VOZ={
     'chilena':('Chilena · Catalina','es-CL-CatalinaNeural','+0Hz'),
     'capri_latina':('Capri latina · experimental','es-MX-DaliaNeural','+10Hz'),
     'multilingue':('Emma multilingüe · español','en-US-EmmaMultilingualNeural','+8Hz'),
+    'ingles_vivaz':('Inglés vivaz · Ana','en-US-AnaNeural','+0Hz'),
+    'ingles_calida':('Inglés cálido · Jenny','en-US-JennyNeural','+12Hz'),
 }
 
 ACENTOS_VOZ={
@@ -36,6 +38,9 @@ ACENTOS_VOZ={
 def elegir_voz(perfil,idioma='es',acento='auto'):
     from idiomas import IDIOMAS,codigo
     idioma=codigo(idioma)
+    if perfil in ('ingles_vivaz','ingles_calida'):
+        if idioma=='en' and acento in ('auto','en-US'):return PERFILES_VOZ[perfil][1:]
+        perfil='capri'
     if acento in ACENTOS_VOZ and acento!='auto':return ACENTOS_VOZ[acento][1:]
     if idioma!='es':return IDIOMAS[idioma][3],'+8Hz'
     return PERFILES_VOZ.get(perfil,PERFILES_VOZ['capri'])[1:]

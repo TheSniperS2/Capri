@@ -11,7 +11,7 @@ import threading
 import time
 import urllib.error
 import re
-import tkinter as tk
+from tema_ui import tk, LienzoUI
 from idiomas import Lienzo as CanvasUI
 from tkinter import ttk, messagebox, simpledialog
 from PIL import Image, ImageTk, ImageOps
@@ -83,9 +83,12 @@ class Capri:
             iniciar()
         self.cfg = {'voz': True, 'voz_natural': True, 'modelo': '', 'ia': False, 'microfono': None,
                     'reconocimiento':'mixto','modelo_whisper':'base','voz_perfil':'capri','velocidad_voz':1.0,'volumen_voz':100,'activacion_voz':True,'dialogos_escritorio':True,'animaciones':True,'efecto_glitch':True,'escala_avatar':1.0,'intro_inicio':True}
+        self.cfg.update(despedida_cierre=True)
         try:
             self.cfg.update(json.loads((BASE/'ajustes.json').read_text(encoding='utf-8-sig')))
         except (OSError, ValueError): pass
+        from tema_ui import activar as activar_color
+        activar_color(self.cfg.get('color_interfaz','#ff4267'))
         self.cfg.setdefault('modo_visual','pantalla');self.cfg.setdefault('pasear_personaje',True);self.cfg.setdefault('control_ampliado',False)
         from control_pc import ControlPC
         self.control_pc=ControlPC(lambda:bool(self.cfg.get('control_ampliado')))
@@ -135,6 +138,7 @@ class Capri:
         ruta_base=BASE/'assets/capri-base-v2.png'
         if not ruta_base.exists() and BASE.name=='src':ruta_base=BASE.parent/'assets/capri-base-v2.png'
         self.avatar=Avatar(ruta_base)
+        self.avatar.aplicar_aspecto(self.cfg.get('aspecto_pantalla','original'))
         from companera import Companera
         self.companera=Companera(ruta_base.with_name('capri-personaje-v1.png'))
         self.canvas = CanvasUI(self.root, bg=TRANS, width=360, height=292, highlightthickness=0)
@@ -146,7 +150,7 @@ class Capri:
         self.canvas.bind('<Button-3>', self.menu)
         self.canvas.bind('<Control-MouseWheel>',self.rueda_tamano)
         from entrada import Entrada
-        self.entrada_compacta=Entrada(self.root,self.enviar,self.menu)
+        self.entrada_compacta=Entrada(self.root,self.enviar,self.menu,aspecto=self.avatar.aspecto)
         self.entrada_compacta.antes_foco=self.mostrar_entrada_personaje
         self.entrada_compacta.pack(fill='x')
         self.entrada_compacta.foco_cambio=self.foco_entrada_compacta
@@ -283,18 +287,33 @@ class Capri:
         lol.insert(0,('Desactivar aceptación automática' if self.cfg.get('lol_aceptar_automatico',False) else 'Activar aceptación automática',
                       lambda:self.enviar('no aceptes mas partidas' if self.cfg.get('lol_aceptar_automatico',False) else 'activa la aceptacion automatica del lol')))
         mas=[('Simular llamada',self.llamar_capri),('Simular asomo',self.simular_asomo),('YouTube',self.conectar_opera),('League of Legends',lol),('Cerrar Capri',self.cerrar)]
-        opciones=[('Ajustes',self.configurar),('Chat',self.abrir_chat),('Juegos' if self.es_personaje() else 'Escribir',juegos if self.es_personaje() else self.alternar_escritura),('Aspecto',self.abrir_aspectos),
+        opciones=[('Ajustes',self.configurar),('Chat',self.abrir_chat),('Juegos' if self.es_personaje() else 'Color',juegos if self.es_personaje() else self.abrir_colores),('Aspecto',self.abrir_aspectos),
                   ('Modo pantalla' if self.es_personaje() else 'Modo personaje',lambda:self.guardar('modo_visual','pantalla' if self.es_personaje() else 'personaje')),('Tamaño',tamanos),('Voz',voz),('Más',mas)]
         self.radial=MenuRadial(self.root,e.x_root,e.y_root,opciones,terminar=lambda:setattr(self,'radial',None),
                                personaje=(self.root.winfo_x(),self.root.winfo_y(),self.companera.ancho if self.es_personaje() else self.root.winfo_width(),self.companera.alto if self.es_personaje() else self.root.winfo_height()))
 
     def abrir_aspectos(self):
         from ajustes_ui import GaleriaAspectos
+        modo='personaje' if self.es_personaje() else 'pantalla'
         galeria=getattr(self,'galeria_aspectos',None)
-        if galeria and galeria.ventana.winfo_exists():galeria.ventana.lift();return
+        if galeria and galeria.ventana.winfo_exists():
+            if galeria.modo==modo:galeria.ventana.lift();return
+            galeria.ventana.destroy()
+        if modo=='pantalla':
+            originales=self.avatar.estados_hd or self.avatar.estados
+            if not originales:return
+            self.galeria_aspectos=GaleriaAspectos(self.root,originales[0],self.avatar.aspecto,
+                                                lambda valor:self.guardar('aspecto_pantalla',valor),modo=modo)
+            return
         if not getattr(self.companera,'lienzos',None):self.companera.redimensionar(self.escala_avatar)
         self.galeria_aspectos=GaleriaAspectos(self.root,self.companera.lienzos[0],self.cfg.get('halo_personaje','violeta'),
                                             lambda valor:self.guardar('halo_personaje',valor))
+
+    def abrir_colores(self):
+        from ajustes_ui import PanelColores
+        panel=getattr(self,'panel_colores',None)
+        if panel and panel.ventana.winfo_exists():panel.ventana.lift();return
+        self.panel_colores=PanelColores(self.root,lambda valor:self.guardar('color_interfaz',valor))
 
     def rueda_tamano(self,e):
         self.guardar('escala_avatar',round(self.escala_avatar+(.1 if e.delta>0 else -.1),2))
@@ -396,12 +415,12 @@ class Capri:
         asomo=self.asomo and not (ignorar_asomo and self.asomo.get('curioso'))
         return bool(getattr(self,'radial',None) or self.transito or self.intro_activa or asomo or self.ocupada or self.escuchando or self.hablando or self.voz_ticket is not None or self.drag or self.escribiendo() or self.control_pc.pendiente or (self.ajustes and self.ajustes.winfo_exists()) or (self.llamada_ui and not self.llamada_ui.cerrada) or (self.apagado_ui and not self.apagado_ui.cerrada))
 
-    def decir_juego(self,texto,autor='Capri'):
+    def decir_juego(self,texto,autor='Capri',fin_voz=3):
         invitado=bool(self.llamada_ui and not self.llamada_ui.cerrada and getattr(self.llamada_ui,'invitado',None))
         self.dialogo.usuario='';self.dialogo.autor=autor.upper();self.poner_chat(autor,texto,mostrar=not self.puede_narrar() and not invitado)
         if invitado and not self.puede_narrar():
             self.dialogo.ocultar();self.llamada_ui.preparar_voz(texto);self.llamada_ui.revelar(texto,len(texto))
-        if self.puede_narrar():self.narrar_respuesta(self.peticion,texto,final=True)
+        if self.puede_narrar():self.narrar_respuesta(self.peticion,texto,final=True,duracion_final=fin_voz)
 
     def descartar_reaccion(self):
         self.reaccion_pendiente=None
@@ -487,7 +506,7 @@ class Capri:
             if not proteger_foco():
                 _,comentario=self.reaccion_pendiente;self.reaccion_pendiente=None
                 self.peticion+=1;self.respuesta_stop=threading.Event();self.narracion_activa=False
-                self.ia.historia.append({'role':'assistant','content':comentario});self.decir_juego(comentario)
+                self.ia.historia.append({'role':'assistant','content':comentario});self.decir_juego(comentario,fin_voz=1)
         globo=bool(self.dialogo.ventana and self.dialogo.ventana.winfo_exists() and self.dialogo.ventana.state()!='withdrawn')
         if self.cfg.get('asomos_curiosos') and time.monotonic()>=self.proximo_asomo and time.monotonic()-self.ultima_interaccion>=120 and not self.juego_ocupada() and not globo:
             from escritorio import proteger_foco
@@ -549,7 +568,7 @@ class Capri:
             vista=Image.new('RGBA',(320,210));copia=p.originales[0].copy();copia.thumbnail((145,210),Image.Resampling.LANCZOS)
             vista.alpha_composite(copia,((320-copia.width)//2,(210-copia.height)//2))
         else:
-            inicio=(self.root.winfo_x()+180*s,self.root.winfo_y()+146*s);vista=self.avatar.vistas[0]
+            inicio=(self.root.winfo_x()+180*s,self.root.winfo_y()+146*s+23);vista=self.avatar.vistas[0]
         sw=self.root.winfo_screenwidth();sh=self.root.winfo_screenheight()
         presentacion=tipo!='salto' and self.es_personaje()
         if tipo=='salto':
@@ -565,7 +584,7 @@ class Capri:
             from ventanas import area_trabajo
             l,t,r,b=area_trabajo();fin=(r-p.ancho/2-25,b-p.alto/2);imagen=(p.espejos if p.direccion<0 else p.fotos)[0]
         else:
-            fin=(sw-180*s-24,sh-146*s-116);imagen=self.avatar.fotos[0]
+            fin=(sw-180*s-24,sh-146*s-93);imagen=self.avatar.fotos[0]
         x=max(0,math.floor(min(inicio[0],fin[0])-310*s));y=max(0,math.floor(min(inicio[1],fin[1])-170*s))
         w=min(sw-x,math.ceil(max(inicio[0],fin[0])+300*s-x));h=min(sh-y,math.ceil(max(inicio[1],fin[1])+170*s-y))
         x=y=0;w=sw;h=sh
@@ -590,13 +609,17 @@ class Capri:
             if p.direccion<0:cuerpo=ImageOps.mirror(cuerpo)
             from companera import con_sombra
             cuerpo=con_sombra(cuerpo,self.cfg.get('halo_personaje','violeta'))
-            clave_cache=(sw,sh,s,p.direccion<0,not presentacion,self.cfg.get('halo_personaje','violeta'))
+            from tema_ui import actual as color_actual
+            from avatar import panel_pantalla
+            clave_cache=(sw,sh,s,p.direccion<0,not presentacion,self.cfg.get('halo_personaje','violeta'),self.entrada_compacta.entrada.get(),self.entrada_compacta.placeholder,self.avatar.aspecto,color_actual())
             if not hasattr(self,'caches_morfosis'):self.caches_morfosis={}
             fotos_cache=self.caches_morfosis.get(clave_cache)
             cantidad=85 if presentacion else 31
             if fotos_cache is not None and (len(fotos_cache)!=cantidad or not all(fotos_cache)):fotos_cache=None
             morfosis=Transformacion(getattr(self.avatar,'vista_maestra',self.avatar.vistas[0]),saludo.original if saludo.original is not None else self.avatar.vistas[0],cuerpo,
-                                   inicio if presentacion else fin,fin if presentacion else inicio,sw,sh,s,inversa=not presentacion,fotos=fotos_cache,directa=not presentacion)
+                                   inicio if presentacion else fin,fin if presentacion else inicio,sw,sh,s,inversa=not presentacion,fotos=fotos_cache,directa=not presentacion,
+                                   panel=panel_pantalla(self.avatar.vista_maestra,self.avatar.aspecto,con_entrada=True,escala_avatar=s,
+                                                        texto_entrada=self.entrada_compacta.entrada.get(),placeholder=self.entrada_compacta.placeholder))
             self.cache_morfosis=(clave_cache,morfosis.fotos)
             self.caches_morfosis[clave_cache]=morfosis.fotos
             while len(self.caches_morfosis)>2:self.caches_morfosis.pop(next(iter(self.caches_morfosis)))
@@ -655,27 +678,59 @@ class Capri:
         return self.saludo
 
     def iniciar_intro(self):
+        from bienvenida import Bienvenida,SALUDO
+        from avatar import panel_pantalla
         if self.transito:self.finalizar_transito()
-        self.pasar_clics_intro(False)
-        self.ocultar_reubicacion_intro()
-        self.intro_activa=True;self.inicio_intro=time.monotonic();self.dialogo.ocultar()
-        self.entrada_compacta.pack_forget();self.intro_en_viaje=False
-        self.escala_avatar=min(self.root.winfo_screenwidth()*.82/360,self.root.winfo_screenheight()*.82/292)
-        self.avatar.redimensionar(self.escala_avatar)
-        self.preparar_fragmentos_intro()
-        w=round(360*self.escala_avatar);h=round(292*self.escala_avatar)
-        self.intro_centro=((self.root.winfo_screenwidth()-w)//2,(self.root.winfo_screenheight()-h)//2)
-        self.canvas.configure(width=w,height=h)
-        self.root.geometry(f'{w}x{h}+{self.intro_centro[0]}+{self.intro_centro[1]}')
+        if self.intro_activa and getattr(self,'bienvenida',None):self.finalizar_intro()
+        self.pasar_clics_intro(False);self.ocultar_reubicacion_intro()
+        self.intro_activa=True;self.dialogo.ocultar();self.entrada_compacta.pack_forget()
+        self.intro_en_viaje=False;self.fragmentos_intro=None
+        self.escala_avatar=limitar_escala(self.cfg.get('escala_avatar',1));s=self.escala_avatar
+        sw=self.root.winfo_screenwidth();sh=self.root.winfo_screenheight()
+        self.frase_intro=ui(SALUDO);self.intro_audio=None;self.intro_generacion=None
+        self.intro_hablando=False;self.intro_boca=False;self.intro_esperando_fin=False
+        if self.es_personaje():
+            self.companera.redimensionar(s);self.companera.iniciar()
+            destino=self.companera.lienzos[0]
+            from companera import con_sombra
+            destino=con_sombra(destino,self.cfg.get('halo_personaje','violeta'))
+            fin=(self.companera.x+self.companera.ancho/2,self.companera.y+self.companera.alto/2)
+        else:
+            self.entrada_compacta.activacion=bool(self.cfg.get('activacion_voz'));self.entrada_compacta.señal(0,False,False)
+            destino=panel_pantalla(self.avatar.vista_maestra,self.avatar.aspecto,con_entrada=True,escala_avatar=s,
+                                   texto_entrada=self.entrada_compacta.entrada.get())
+            destino=destino.resize((round(360*s),round(292*s)+46),Image.Resampling.LANCZOS)
+            fin=(sw-180*s-24,sh-146*s-93)
+        self.bienvenida=Bienvenida(self.avatar.estados_hd or self.avatar.estados,destino,fin,sw,sh,self.frase_intro,
+                                   pantalla=not self.es_personaje())
+        self.canvas.configure(width=sw,height=sh);self.root.geometry(f'{sw}x{sh}+0+0')
         self.root.update_idletasks();self.pasar_clics_intro(True);self.inicio_intro=time.monotonic()
+
+    def animar_intro(self):
+        from bienvenida import DURACION,SALIDA
+        cuadro=time.perf_counter()
+        t=time.monotonic()-self.inicio_intro
+        visual=self.bienvenida.tiempo(t)
+        if visual>=DURACION:
+            self.finalizar_intro();self.root.after(1,self.animar);return
+        self.intro_en_viaje=visual>SALIDA+.12
+        self.bienvenida.dibujar(self.canvas,visual,self.intro_hablando,self.intro_boca,self.voz.bandas_salida)
+        self.restaurar_reubicacion()
+        demora=max(1,round(1000/60-(time.perf_counter()-cuadro)*1000))
+        self.root.after(demora,self.animar)
 
     def finalizar_intro(self):
         if not self.intro_activa:return
+        if getattr(self,'intro_esperando_fin',False):self.voz.parar();self.hablando=False
+        audio=getattr(self,'intro_audio',None)
+        if audio is not None:audio.descartar()
+        self.intro_audio=None;self.intro_generacion=None;self.intro_esperando_fin=False
         self.ocultar_reubicacion_intro()
-        self.intro_activa=False
+        if self.bienvenida is not None:self.bienvenida.detener()
+        self.bienvenida=None;self.intro_activa=False
+        self.intro_hablando=False;self.intro_boca=False
         self.pasar_clics_intro(False)
-        self.entrada_compacta.pack(fill='x');self.aplicar_escala(inicial=True)
-        self.fragmentos_intro=None
+        self.entrada_compacta.pack(fill='x');self.aplicar_escala(inicial=True);self.fragmentos_intro=None
 
     def ocultar_reubicacion_intro(self):
         # Evitar que Windows traslade durante un instante el último panel pintado.
@@ -738,7 +793,7 @@ class Capri:
             ventana=self.indicador_voz=tk.Toplevel(self.root,bg=TRANS)
             ventana.overrideredirect(True);ventana.attributes('-topmost',True)
             if os.name=='nt':ventana.attributes('-transparentcolor',TRANS)
-            self.indicador_canvas=CanvasUI(ventana,width=172,height=30,bg=TRANS,highlightthickness=0)
+            self.indicador_canvas=LienzoUI(ventana,width=172,height=30,bg=TRANS,highlightthickness=0)
             self.indicador_canvas.pack()
         x=max(0,min(self.root.winfo_screenwidth()-172,self.root.winfo_x()+(self.root.winfo_width()-172)//2))
         y=max(0,self.root.winfo_y()-34)
@@ -760,15 +815,11 @@ class Capri:
             from escritorio import proteger_foco
             if proteger_foco() or not self.asomo['curioso'].dibujar():self.terminar_asomo()
             self.root.after(33,self.animar);return
+        if self.intro_activa:self.animar_intro();return
         self.entrada_compacta.activacion=bool(self.cfg.get('activacion_voz'))
         inicio_frame=time.perf_counter();self.actualizar_indicador_voz()
         if self.transito and self.dibujar_transito():
             self.root.after(max(1,round(16.667-(time.perf_counter()-inicio_frame)*1000)),self.animar);return
-        from intro import DURACION,VIAJE
-        progreso=(time.monotonic()-self.inicio_intro)/DURACION
-        if self.intro_activa:
-            if progreso>=1:self.finalizar_intro()
-            else:self.mover_intro(progreso)
         self.fase += .065
         c = self.canvas
         c.delete('all')
@@ -784,7 +835,7 @@ class Capri:
         color=GREEN if self.escuchando else ('#ffc2b5' if self.hablando or self.ocupada or self.voz_ticket is not None or (self.activacion_permitida and self.cfg.get('activacion_voz') and not self.activacion_lista) else '#ed6684')
         from avatar import dibujar_marco
         fase='ESCUCHA' if self.escuchando else ('VOZ' if self.hablando else ('SINTONIZANDO' if self.voz_ticket is not None else ('RECIBIENDO' if self.ocupada else ('CONECTANDO' if self.activacion_permitida and self.cfg.get('activacion_voz') and not self.activacion_lista else ('DI CAPRI' if self.cfg.get('activacion_voz') else self.cfg.get('tecla_hablar','F8'))))))
-        dibujar_marco(c,self.fase if animaciones else 0,color,fase,self.nivel,self.avatar.glitch_activo if animaciones else False,self.escala_avatar)
+        dibujar_marco(c,self.fase if animaciones else 0,color,fase,self.nivel,self.avatar.glitch_activo if animaciones else False,self.escala_avatar,aspecto=self.avatar.aspecto)
         if self.avatar.fotos:
             self.imagen_ref=self.avatar.imagen(self.hablando and self.boca_activa,glitch=self.cfg.get('efecto_glitch',True)) if animaciones else self.avatar.fotos[0]
             c.create_image(180,160,image=self.imagen_ref)
@@ -794,18 +845,11 @@ class Capri:
         else:
             c.create_text(180,160,text='Preparando imagen de Capri',fill=MUTED,font=('Chakra Petch',11))
         self.entrada_compacta.señal(self.nivel,self.escuchando,self.hablando and self.boca_activa)
-        if self.intro_activa:
-            from intro import dibujar
-            imagen_intro=self.imagen_ref
-            if self.avatar.glitches and .36<progreso<.76:imagen_intro=self.avatar.glitches[0][int(progreso*24)%2]
-            if self.es_personaje() and progreso>=VIAJE and self.companera.fotos:
-                imagen_intro=(self.companera.espejos if self.companera.direccion<0 else self.companera.fotos)[0]
-            dibujar(c,progreso,imagen_intro,self.escala_avatar,getattr(self,'intro_ruta',None),self.fragmentos_intro)
         if self.escala_avatar!=1:c.scale('all',0,0,self.escala_avatar,self.escala_avatar)
         if hasattr(self,'intro_alpha'):
             self.root.update_idletasks()
             self.root.attributes('-alpha',self.intro_alpha);del self.intro_alpha
-        self.root.after(25 if self.intro_activa else 66, self.animar)
+        self.root.after(66, self.animar)
 
     def abrir_chat(self):
         if self.panel and self.panel.winfo_exists():
@@ -840,7 +884,7 @@ class Capri:
         self.marco_entrada=MarcoTransmision(contenido,'NUEVA TRANSMISIÓN // ESCRIBE AQUÍ',height=94)
         self.marco_entrada.pack(fill='x',padx=12,pady=(0,8))
         caja=self.marco_entrada.cuerpo
-        self.campo_entrada=CanvasUI(caja,bg='#180d13',highlightthickness=0,width=160,height=40)
+        self.campo_entrada=LienzoUI(caja,bg='#180d13',highlightthickness=0,width=160,height=40)
         self.campo_entrada.pack(side='left',fill='both',expand=True,padx=(2,10))
         self.entrada = tk.Entry(self.campo_entrada,bg='#180d13',fg=FG,insertbackground=GREEN,relief='flat',borderwidth=0,highlightthickness=0,font=(fuente(self.cfg.get('idioma')),11),selectbackground='#6a2038',selectforeground=FG)
         item_entrada=self.campo_entrada.create_window(10,23,window=self.entrada,anchor='w')
@@ -1135,6 +1179,16 @@ class Capri:
                         if len(dato[1])>2:self.salida_boca_activa=dato[1][2]
                     elif isinstance(dato,str):self.salida_voz_terminada=True
                 continue
+            if self.intro_activa and tipo=='voz' and isinstance(valor,tuple) and valor[0]==getattr(self,'intro_generacion',None):
+                dato=valor[1]
+                if isinstance(dato,bool):
+                    self.intro_hablando=dato;self.intro_boca=dato;self.hablando=dato
+                    if not dato:self.intro_esperando_fin=False
+                elif isinstance(dato,tuple) and dato[0]=='avance_voz':
+                    if len(dato[1])>2:self.intro_boca=dato[1][2]
+                elif isinstance(dato,str):
+                    self.intro_esperando_fin=False;self.hablando=False;self.intro_hablando=False;self.intro_boca=False
+                continue
             if tipo=='activacion_lista':
                 if valor!=self.activacion_ticket:continue
                 self.activacion_lista=True
@@ -1174,8 +1228,10 @@ class Capri:
             elif tipo=='animacion_apagar':
                 if valor==self.peticion and not self.respuesta_stop.is_set():self.iniciar_apagado_animado()
             elif tipo=='fin_apagado':
-                if self.apagado_ui:self.apagado_ui.cerrar()
-                if valor:self.poner_chat('Capri',ui(valor))
+                # Mantener el negro hasta que Windows tome el relevo.
+                if valor:
+                    if self.apagado_ui:self.apagado_ui.cerrar()
+                    self.poner_chat('Capri',ui(valor))
             elif tipo=='micro':self.hablar()
             elif tipo=='lol_aviso':
                 # Ready-check no interrumpe una respuesta o dictado en curso.
@@ -1256,8 +1312,8 @@ class Capri:
                 if ticket==self.micro_lista_ticket and self.ajustes and self.ajustes.winfo_exists():
                     self.mostrar_microfonos(lista,error)
             elif tipo=='modelos_ia':
-                ventana,modelos,error=valor
-                if self.ajustes is ventana and ventana.winfo_exists():
+                ticket,modelos,error=valor
+                if ticket is getattr(self,'modelos_ticket',None) and self.ajustes and self.ajustes.winfo_exists():
                     actual=self.cfg.get('modelo','')
                     self.modelo_combo.configure(values=modelos,state='readonly' if modelos else 'disabled')
                     if actual:self.modelo_combo.set(actual)
@@ -1279,7 +1335,7 @@ class Capri:
             self.subtitulo.set('No estoy segura de la frase. Revísala y pulsa Enviar.')
         else:self.enviar(texto,origen='voz')
 
-    def narrar_respuesta(self,ticket,texto,final=False):
+    def narrar_respuesta(self,ticket,texto,final=False,duracion_final=3):
         if not final or not self.puede_narrar() or self.escuchando or ticket!=self.peticion:return
         from voz import texto_para_voz
         if not texto_para_voz(texto):
@@ -1288,7 +1344,7 @@ class Capri:
         llamada=self.llamada_ui
         if llamada and not llamada.cerrada and llamada.conectada and getattr(llamada,'invitado',None):
             self.dialogo.ocultar();llamada.preparar_voz(texto)
-        else:self.dialogo.preparar_voz(texto)
+        else:self.dialogo.preparar_voz(texto,duracion_final=duracion_final)
         self.estado='Preparando voz…'
         canal={}
         llamada=self.llamada_ui
@@ -1305,6 +1361,7 @@ class Capri:
     def puede_narrar(self):return bool(self.cfg.get('voz')) and normalizar_volumen(self.cfg.get('volumen_voz',100))>0
 
     def configurar(self):
+        from fuentes import FAMILIA
         self.ultima_interaccion=time.monotonic()
         if self.asomo and self.asomo.get('curioso'):self.terminar_asomo()
         self.finalizar_intro()
@@ -1349,6 +1406,7 @@ class Capri:
         self.boton(f,'Simular llamada',self.llamar_capri).pack(anchor='w',pady=(6,6))
         self.boton(f,'Simular asomo',self.simular_asomo).pack(anchor='w',pady=(0,6))
         self.boton(f,'Ver aspectos de Capri',self.abrir_aspectos).pack(anchor='w',pady=(8,12))
+        self.boton(f,'Color',self.abrir_colores).pack(anchor='w',pady=(0,12))
         f=permisos
         control=tk.BooleanVar(value=self.cfg.get('control_ampliado',False))
         InterruptorCyber(f,text='Activar control ampliado del computador',variable=control,command=lambda:self.guardar('control_ampliado',control.get()),
@@ -1407,7 +1465,7 @@ class Capri:
         if not disponible(BASE/'modelos',elegido):
             tk.Label(f,text='Preciso necesita descargar un modelo local de 148 MB.',wraplength=460,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',9)).pack(anchor='w')
             self.boton(f,'Preparar reconocimiento preciso',self.preparar_reconocimiento).pack(anchor='w',pady=(5,12))
-        for key,texto in [('activacion_voz','Activar al decir «Capri» (escucha local)'),('voz','Responder en voz alta'),('voz_natural','Voz natural por internet'),('dialogos_escritorio','Mostrar diálogos progresivos junto a Capri'),('animaciones','Estados de boca y expresiones del avatar'),('efecto_glitch','Interferencias breves de imagen y texto'),('intro_inicio','Intro visual al abrir Capri')]:
+        for key,texto in [('activacion_voz','Activar al decir «Capri» (escucha local)'),('voz','Responder en voz alta'),('voz_natural','Voz natural por internet'),('dialogos_escritorio','Mostrar diálogos progresivos junto a Capri'),('animaciones','Estados de boca y expresiones del avatar'),('efecto_glitch','Interferencias breves de imagen y texto'),('intro_inicio','Intro visual al abrir Capri'),('despedida_cierre','Reproducir despedida al cerrar Capri')]:
             var=tk.BooleanVar(value=bool(self.cfg.get(key)))
             destino=micro if key=='activacion_voz' else (voz if key in ('voz','voz_natural') else escritorio)
             InterruptorCyber(destino,text=texto,variable=var,command=lambda k=key,v=var:self.guardar(k,v.get()),bg=BG,fg=FG,selectcolor=CARD,activebackground=BG,activeforeground=FG,font=('Chakra Petch',11)).pack(anchor='w',pady=5)
@@ -1461,9 +1519,11 @@ class Capri:
         self.modelo_combo.pack(fill='x',pady=(7,4))
         self.modelo_estado=tk.StringVar(value='Buscando modelos instalados en Ollama…')
         tk.Label(f,textvariable=self.modelo_estado,wraplength=460,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',9)).pack(anchor='w')
+        eventos=self.eventos;consultar_catalogo=self.ia.modelos;ticket_modelos=object();self.modelos_ticket=ticket_modelos
         def consultar_modelos():
-            try:self.eventos.put(('modelos_ia',(p,self.ia.modelos(),None)))
-            except Exception:self.eventos.put(('modelos_ia',(p,[],'Abre Ollama para ver los modelos instalados.')))
+            # El hilo solo conserva datos; nunca la ventana ni la instancia con objetos Tk.
+            try:eventos.put(('modelos_ia',(ticket_modelos,consultar_catalogo(),None)))
+            except Exception:eventos.put(('modelos_ia',(ticket_modelos,[],'Abre Ollama para ver los modelos instalados.')))
         threading.Thread(target=consultar_modelos,daemon=True).start()
         tk.Label(f,text='Ollama ejecuta la IA en tu equipo, sin clave ni pago por uso. La activación descarga un modelo de aproximadamente 2 GB.',wraplength=420,justify='left',bg=BG,fg=MUTED,font=('Chakra Petch',10)).pack(anchor='w',pady=(7,10))
         self.boton(f,'Activar IA local',self.activar_ia,RED).pack(anchor='w')
@@ -1488,9 +1548,10 @@ class Capri:
         self.micro_combo.configure(state='disabled')
         self.micro_refrescar.configure(state='disabled')
         self.micro_estado.set('Buscando micrófonos…')
+        eventos=self.eventos
         def consultar():
-            try:self.eventos.put(('microfonos',(ticket,listar_microfonos(),None)))
-            except Exception:self.eventos.put(('microfonos',(ticket,[],'No pude obtener la lista. Conecta el micrófono y pulsa Actualizar.')))
+            try:eventos.put(('microfonos',(ticket,listar_microfonos(),None)))
+            except Exception:eventos.put(('microfonos',(ticket,[],'No pude obtener la lista. Conecta el micrófono y pulsa Actualizar.')))
         threading.Thread(target=consultar,daemon=True).start()
 
     def mostrar_microfonos(self,lista,error=None):
@@ -1546,6 +1607,16 @@ class Capri:
         self.cerrar()
 
     def guardar(self,k,v):
+        if k=='color_interfaz':
+            from tema_ui import normalizar,activar
+            v=normalizar(v);activar(v)
+            if hasattr(self,'caches_morfosis'):self.caches_morfosis.clear()
+        if k=='aspecto_pantalla':
+            from disenos_pantalla import normalizar
+            v=normalizar(v)
+            self.avatar.aplicar_aspecto(v)
+            self.entrada_compacta.aplicar_aspecto(v)
+            if hasattr(self,'caches_morfosis'):self.caches_morfosis.clear()
         if k=='modo_visual' and self.asomo and self.asomo.get('curioso'):self.terminar_asomo()
         if k=='intervalo_interacciones':v=max(3,min(60,int(float(v))))
         if k=='voz_acento':
@@ -1646,33 +1717,109 @@ class Capri:
         puente=iniciar()
         carpeta=BASE/'integraciones/opera-capri'
         if not carpeta.exists():carpeta=BASE.parent/'integraciones/opera-capri'
-        ventana=tk.Toplevel(self.root);ventana.title('Conectar YouTube con Opera');ventana.configure(bg=BG)
-        ventana.geometry('570x345');ventana.attributes('-topmost',True)
-        texto=('1. Abre el gestor de extensiones de Opera GX.\n'
-               '2. Activa Modo desarrollador y elige Cargar extensión descomprimida.\n'
-               '3. Selecciona la carpeta que abre el botón de abajo.\n'
-               '4. Recarga YouTube e inicia un vídeo. Después puedes usar otra pestaña.\n\n'
-               'La extensión solo accede a YouTube y a la conexión local con Capri.\n'
-               'No lee otras páginas, contraseñas ni archivos.')
-        tk.Label(ventana,text=texto,bg=BG,fg=FG,font=('Chakra Petch',11),justify='left',wraplength=535).pack(padx=18,pady=16)
-        fila=tk.Frame(ventana,bg=BG);fila.pack()
+        from ajustes_ui import VentanaCyber,BotonCyber,FONDO,TARJETA,TEXTO,SUAVE,ACENTO,VERDE
+        from fuentes import FAMILIA
+        ventana=tk.Toplevel(self.root);ventana.withdraw();ventana.title('Conectar YouTube con Opera')
+        from ajustes_ui import BarraCyber
+        from ventanas import area_trabajo
+        l,t,r,b=area_trabajo();w=min(740,max(480,r-l-64));h=min(620,max(380,b-t-64))
+        ventana.geometry(f'{w}x{h}');ventana.minsize(min(640,w),min(430,h))
+        marco=VentanaCyber(ventana,'YOUTUBE / OPERA');contenido=marco.cuerpo
+        contenido.columnconfigure(0,weight=1);contenido.rowconfigure(1,weight=1)
+        titulo=tk.Label(contenido,text='Conectar YouTube con Opera',bg=FONDO,fg=TEXTO,
+                        font=(FAMILIA,18,'bold'),anchor='w',justify='left',wraplength=w-64)
+        titulo.grid(row=0,column=0,sticky='ew',padx=16,pady=(8,12))
+        zona=tk.Frame(contenido,bg=FONDO);zona.grid(row=1,column=0,sticky='nsew',padx=16)
+        lienzo=LienzoUI(zona,bg=FONDO,highlightthickness=0,name='instrucciones')
+        barra=BarraCyber(zona,lienzo.yview);barra.pack(side='right',fill='y',padx=(8,0))
+        lienzo.configure(yscrollcommand=barra.set);lienzo.pack(side='left',fill='both',expand=True)
+        interior=tk.Frame(lienzo,bg=FONDO);item=lienzo.create_window(0,0,window=interior,anchor='nw')
+        pasos=(
+            'Abre el gestor de extensiones de Opera GX.',
+            'Activa Modo desarrollador y elige Cargar extensión descomprimida.',
+            'Selecciona la carpeta que abre el botón de abajo.',
+            'Recarga YouTube e inicia un vídeo. Después puedes usar otra pestaña.')
+        privacidad=('La extensión solo accede a YouTube y a la conexión local con Capri.\n'
+                    'No lee otras páginas, contraseñas ni archivos.')
+        # Conservar las traducciones existentes de las instrucciones completas.
+        instrucciones='\n'.join(f'{i}. {paso}' for i,paso in enumerate(pasos,1))+'\n\n'+privacidad
+        traducidas=ui(instrucciones).split('\n\n',1)
+        pasos=tuple(linea.partition('. ')[2] or linea for linea in traducidas[0].splitlines())
+        privacidad=traducidas[1] if len(traducidas)>1 else privacidad
+        tarjeta=tk.Frame(interior,bg=TARJETA,padx=16,pady=10);tarjeta.pack(fill='x')
+        tarjeta.columnconfigure(1,weight=1);etiquetas=[]
+        for numero,paso in enumerate(pasos,1):
+            tk.Label(tarjeta,text=f'{numero:02}',bg=TARJETA,fg=ACENTO,
+                     font=(FAMILIA,12,'bold')).grid(row=numero,column=0,sticky='n',padx=(0,14),pady=8)
+            etiqueta=tk.Label(tarjeta,text=paso,bg=TARJETA,fg=TEXTO,font=(FAMILIA,11),
+                              justify='left',wraplength=540,anchor='w')
+            etiqueta.grid(row=numero,column=1,sticky='ew',pady=8);etiquetas.append(etiqueta)
+        aviso=tk.Label(interior,text=privacidad,bg=FONDO,fg=SUAVE,font=(FAMILIA,10),
+                       justify='left',anchor='w',wraplength=610)
+        aviso.pack(fill='x',padx=2,pady=(14,8))
+        def region(e=None):
+            lienzo.configure(scrollregion=lienzo.bbox('all'))
+        def ajustar(e):
+            lienzo.itemconfigure(item,width=max(1,e.width))
+            for etiqueta in etiquetas:etiqueta.configure(wraplength=max(120,e.width-76))
+            aviso.configure(wraplength=max(120,e.width-8));region()
+        interior.bind('<Configure>',region);lienzo.bind('<Configure>',ajustar)
+        def rueda(e):
+            if e.delta:lienzo.yview_scroll(-int(e.delta/120) or (-1 if e.delta>0 else 1),'units')
+            return 'break'
+        ventana.bind('<MouseWheel>',rueda)
+        fila=tk.Frame(contenido,bg=FONDO);fila.grid(row=2,column=0,sticky='ew',padx=16,pady=(14,0))
+        fila.columnconfigure((0,1),weight=1,uniform='acciones')
         def gestor():
             from core import abrir_opera
             try:abrir_opera(pagina='opera://extensions')
             except OSError as e:messagebox.showerror('Opera GX',ui(str(e)),parent=ventana)
-        tk.Button(fila,text='Abrir gestor de Opera',command=gestor).pack(side='left',padx=6)
-        tk.Button(fila,text='Abrir carpeta de extensión',command=lambda:os.startfile(str(carpeta))).pack(side='left',padx=6)
+        acciones=(BotonCyber(fila,text='Abrir gestor de Opera',command=gestor),
+                  BotonCyber(fila,text='Abrir carpeta de extensión',command=lambda:os.startfile(str(carpeta)),bg='#29131e'))
+        from tkinter import font as tkfont
+        for boton in acciones:
+            boton.configure(height=max(36,tkfont.Font(root=boton,font=boton.fuente).metrics('linespace')+16))
+        orientacion=[None]
+        def distribuir(e):
+            vertical=e.width<sum(b.winfo_reqwidth() for b in acciones)+12
+            if vertical==orientacion[0]:return
+            orientacion[0]=vertical
+            for i,boton in enumerate(acciones):
+                boton.grid(row=i if vertical else 0,column=0 if vertical else i,columnspan=2 if vertical else 1,
+                           sticky='ew',padx=0 if vertical else ((0,6) if i==0 else (6,0)),pady=(0,8) if vertical and i==0 else 0)
+        fila.bind('<Configure>',distribuir)
+        # Reservar altura antes del primer reparto de espacio, incluso con DPI alto.
+        for i,boton in enumerate(acciones):boton.grid(row=0,column=i,sticky='ew',padx=(0,6) if i==0 else (6,0))
+        pie=tk.Frame(contenido,bg=FONDO);pie.grid(row=3,column=0,sticky='ew',padx=16,pady=(14,8))
+        pie.columnconfigure(0,weight=1)
+        tk.Frame(pie,bg='#542333',height=1).grid(row=0,column=0,columnspan=2,sticky='ew',pady=(0,12))
         estado=tk.StringVar()
-        tk.Label(ventana,textvariable=estado,bg=BG,fg=GREEN,font=('Chakra Petch',11),wraplength=530).pack(pady=16)
+        indicador=tk.Label(pie,textvariable=estado,bg=FONDO,fg=VERDE,font=(FAMILIA,10),justify='left',anchor='w',wraplength=440)
+        indicador.grid(row=1,column=0,sticky='ew',padx=(0,12))
+        cerrar=BotonCyber(pie,text='Cerrar',command=ventana.destroy,bg='#29131e')
+        cerrar.configure(height=max(36,tkfont.Font(root=cerrar,font=cerrar.fuente).metrics('linespace')+16))
+        cerrar.grid(row=1,column=1,sticky='e')
+        def minimo():
+            if not ventana.winfo_exists():return
+            fija=68+sum(widget.winfo_reqheight() for widget in (titulo,fila,pie))+56
+            ventana.minsize(min(640,w),min(max(380,b-t-64),max(430,fija+90)))
+        def adaptar(e):
+            titulo.configure(wraplength=max(120,e.width-32))
+            indicador.configure(wraplength=max(120,e.width-cerrar.winfo_reqwidth()-44))
+            self.root.after_idle(minimo)
+        contenido.bind('<Configure>',adaptar)
+        fila.bind('<Configure>',lambda e:(distribuir(e),self.root.after_idle(minimo)))
         def actualizar():
             if not ventana.winfo_exists():return
-            estado.set(puente.error or ('Conectada con YouTube; puedes usar otra pestaña.' if puente.conectado() else 'Esperando la extensión y una pestaña de YouTube…'))
-            ventana.after(700,actualizar)
+            estado.set(ui(puente.error or ('Conectada con YouTube; puedes usar otra pestaña.' if puente.conectado() else 'Esperando la extensión y una pestaña de YouTube…')))
+            self.root.after(700,actualizar)
         actualizar()
+        from types import SimpleNamespace
+        distribuir(SimpleNamespace(width=w-60));ventana.update_idletasks();minimo();ventana.deiconify()
 
     def cerrar(self):
         if self.asomo and self.asomo.get('curioso'):self.terminar_asomo()
-        if self.animacion_cierre and self.cfg.get('animaciones',True) and not self.saliendo:
+        if self.animacion_cierre and self.cfg.get('animaciones',True) and self.cfg.get('despedida_cierre',True) and not self.saliendo:
             self.iniciar_despedida();return
         self.cerrar_inmediato()
 
@@ -1693,7 +1840,8 @@ class Capri:
         sw=self.root.winfo_screenwidth();sh=self.root.winfo_screenheight()
         self.salida=Despedida(sw,sh,origen,imagen)
         self.salida_rostro=None;self.salida_camara=None;self.salida_traslado=None
-        ruta=next((b/'assets/capri-despedida-expresiones-v4.png' for b in (BASE,BASE.parent) if (b/'assets/capri-despedida-expresiones-v4.png').exists()),None)
+        ruta=next((b/'assets'/nombre for nombre in ('capri-despedida-expresiones-v6.png','capri-despedida-expresiones-v5.png','capri-despedida-expresiones-v4.png')
+                   for b in (BASE,BASE.parent) if (b/'assets'/nombre).exists()),None)
         if ruta:
             from despedida_camara import GrabacionDespedida
             from intro import TrasladoTeselas
@@ -1703,7 +1851,8 @@ class Capri:
             self.salida_traslado=TrasladoTeselas(fuente,self.salida_camara.imagen,origen,self.salida_camara.centro,tamanos_propios=True)
             self.salida=Despedida(sw,sh,self.salida_camara.centro,self.salida_rostro)
         self.salida_audio=None;self.salida_generacion=None;self.salida_voz_empezada=False;self.salida_voz_terminada=False;self.salida_reanudar=None
-        self.frase_despedida=ui('Cuídate mucho, choom.',self.cfg.get('idioma'))
+        from idiomas import frase_despedida
+        self.frase_despedida=frase_despedida(self.cfg.get('idioma'))
         self.salida_velocidad=self.cfg.get('velocidad_voz',1.)
         self.salida_perfil=self.cfg.get('voz_perfil','capri');self.salida_natural=self.cfg.get('voz_natural',True)
         self.salida_boca_activa=False;self.salida_sonrisa_hasta=0
@@ -1715,7 +1864,7 @@ class Capri:
         self.pintar_despedida()
 
     def pintar_despedida(self):
-        from despedida import DURACION
+        from despedida import DURACION,DURACION_TELON,estrella
         from fuentes import FAMILIA
         from despedida_camara import TRASLADO
         if self.cerrado:return
@@ -1724,12 +1873,14 @@ class Capri:
         if tiempo<traslado:
             from intro import dibujar_viaje,VIAJE
             progreso=tiempo/traslado;self.canvas.delete('all')
+            self.canvas.create_image(0,0,image=self.salida.cielo,anchor='nw',tags='cielo_despedida')
+            estrella(self.canvas,*self.salida.destino,.78*.28)
             dibujar_viaje(self.canvas,VIAJE+(1-VIAJE)*progreso,inicio=self.salida_traslado.inicio,fin=self.salida_traslado.fin)
             self.salida_traslado.dibujar(self.canvas,progreso)
             self.restaurar_reubicacion();self.root.after(16,self.pintar_despedida);return
         tiempo-=traslado
         if self.salida_audio is not None:
-            if self.salida_generacion is None and tiempo>=.25:
+            if self.salida_generacion is None and tiempo>=.75:
                 if self.salida_audio.listo.is_set() and self.salida_audio.archivo:
                     self.voz.hablar(self.frase_despedida,self.salida_natural,perfil=self.salida_perfil,velocidad=self.salida_velocidad,volumen=self.cfg.get('volumen_voz',100),preparado=self.salida_audio)
                     self.salida_generacion=self.voz.generacion
@@ -1739,9 +1890,11 @@ class Capri:
         esperando=tiempo<1.8 or ahora<self.salida_sonrisa_hasta or (self.salida_audio is not None and not self.salida_voz_terminada)
         if esperando:
             if self.salida_camara:
-                self.salida_camara.dibujar(self.canvas,tiempo,self.frase_despedida,hablando=self.salida_voz_empezada and not self.salida_voz_terminada,boca=self.salida_boca_activa,finalizada=self.salida_voz_terminada)
+                self.salida_camara.dibujar(self.canvas,tiempo,self.frase_despedida,hablando=self.salida_voz_empezada and not self.salida_voz_terminada,boca=self.salida_boca_activa,finalizada=self.salida_voz_terminada,fondo=self.salida.cielo)
             else:
-                self.canvas.delete('all');self.canvas.create_text(self.salida.ancho/2,self.salida.alto/2,text=self.frase_despedida,fill='#eef3f5',font=(FAMILIA,19,'bold'),tags='frase_despedida')
+                self.canvas.delete('all');self.canvas.create_image(0,0,image=self.salida.cielo,anchor='nw',tags='cielo_despedida')
+                estrella(self.canvas,*self.salida.destino,.78*.28)
+                self.canvas.create_text(self.salida.ancho/2,self.salida.alto/2,text=self.frase_despedida,fill='#eef3f5',font=(FAMILIA,19,'bold'),tags='frase_despedida')
             self.restaurar_reubicacion()
             self.root.after(16,self.pintar_despedida);return
         if self.salida_reanudar is None:
@@ -1751,7 +1904,11 @@ class Capri:
             # Silencio: reloj determinista. Con voz: la mano empieza al terminar la frase.
             self.salida_reanudar=ahora if self.salida_audio is not None else self.inicio_salida+traslado+1.8
         p=(ahora-self.salida_reanudar)/DURACION
-        if p>=1:self.cerrar_inmediato();return
+        if p>=1:
+            telon=(ahora-self.salida_reanudar-DURACION)/DURACION_TELON
+            if telon>=1:self.cerrar_inmediato();return
+            self.salida.cerrar_telon(self.canvas,telon);self.restaurar_reubicacion()
+            self.root.after(16,self.pintar_despedida);return
         self.salida.dibujar(self.canvas,p);self.restaurar_reubicacion()
         self.root.after(16,self.pintar_despedida)
 

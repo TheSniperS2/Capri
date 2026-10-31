@@ -1,8 +1,8 @@
 """Aviso telefónico y enlace conectado de Capri, sin activar el micrófono."""
 import time
 import math
-import tkinter as tk
-from idiomas import Lienzo
+from tema_ui import tk
+from tema_ui import LienzoUI as Lienzo
 from fuentes import FAMILIA
 
 

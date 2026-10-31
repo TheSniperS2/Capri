@@ -46,7 +46,7 @@ def area_trabajo():
 
 
 def apoyo_propio_permitido(titulo):
-    return titulo.startswith(('Capri · Ajustes','Capri · Aspectos','Capri // Aspectos','Capri · Conversación','Capri · Playlists','Capri · YouTube','Conectar YouTube con Opera'))
+    return titulo.startswith(('Capri · Ajustes','Capri · Aspectos','Capri // Aspectos','Capri · Color','Capri · Conversación','Capri · Playlists','Capri · YouTube','Conectar YouTube con Opera'))
 
 
 def visibles(incluir_propias=False):

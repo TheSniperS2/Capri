@@ -9,7 +9,7 @@ from PIL import Image,ImageTk,ImageChops,ImageDraw,ImageFont
 from pathlib import Path
 from fuentes import FAMILIA
 
-DURACION=6.8
+DURACION=8.2
 VIAJE=.72
 
 def suave(t):
@@ -56,25 +56,26 @@ def geometria_morfosis(q,inicio,centro,fin,normal,grande,pequena):
     return mezclar(centro,fin,suave((q-.78)/.22)),mezclar(grande,pequena,suave((q-.62)/.38))
 
 class Transformacion:
-    def __init__(self,vista,saludo,personaje,inicio,fin,ancho,alto,escala=1,inversa=False,fotos=None,directa=False):
+    def __init__(self,vista,saludo,personaje,inicio,fin,ancho,alto,escala=1,inversa=False,fotos=None,directa=False,panel=None):
         from PIL import ImageOps
         self.fotos=[];self.inicio=inicio;self.fin=fin;self.centro=(ancho/2,alto/2);self.inversa=inversa
         self.directa=directa;self.cantidad=31 if directa else 85
         self.cancelar=threading.Event();self.cola=queue.Queue(maxsize=8)
-        panel=Image.new('RGBA',(1080,876));d=ImageDraw.Draw(panel)
-        d.polygon([(24,60),(60,24),(1020,24),(1056,60),(1056,840),(1020,870),(24,870)],fill='#10090d',outline='#ed6684',width=6)
-        panel.alpha_composite(vista.resize((960,630),Image.Resampling.LANCZOS),(60,165))
-        fuente=Path(__file__).resolve().parent/'assets/fonts/ChakraPetch-Bold.ttf'
-        if not fuente.exists():fuente=Path(__file__).resolve().parents[1]/'assets/fonts/ChakraPetch-Bold.ttf'
-        from idiomas import ui,idioma_actual
-        if idioma_actual()=='ja':fuente='YuGothB.ttc'
-        try:fuente=ImageFont.truetype(str(fuente),38)
-        except OSError:fuente=ImageFont.load_default()
-        d.text((54,60),ui('CAPRI // ENLACE PERSONAL'),fill='#ffb0c3',font=fuente)
-        self.normal=(360*escala,292*escala)
+        if panel is None:
+            panel=Image.new('RGBA',(1080,876));d=ImageDraw.Draw(panel)
+            d.polygon([(24,60),(60,24),(1020,24),(1056,60),(1056,840),(1020,870),(24,870)],fill='#10090d',outline='#ed6684',width=6)
+            panel.alpha_composite(vista.resize((960,630),Image.Resampling.LANCZOS),(60,165))
+            fuente=Path(__file__).resolve().parent/'assets/fonts/ChakraPetch-Bold.ttf'
+            if not fuente.exists():fuente=Path(__file__).resolve().parents[1]/'assets/fonts/ChakraPetch-Bold.ttf'
+            from idiomas import ui,idioma_actual
+            if idioma_actual()=='ja':fuente='YuGothB.ttc'
+            try:fuente=ImageFont.truetype(str(fuente),38)
+            except OSError:fuente=ImageFont.load_default()
+            d.text((54,60),ui('CAPRI // ENLACE PERSONAL'),fill='#ffb0c3',font=fuente)
+        self.normal=(360*escala,360*escala*panel.height/panel.width)
         self.grande=(min(ancho*.78,alto*.8*saludo.width/saludo.height),alto*.8)
         self.pequena=personaje.size
-        self.preview=ImageTk.PhotoImage(personaje if inversa else panel.resize((round(360*escala),round(292*escala)),Image.Resampling.LANCZOS))
+        self.preview=ImageTk.PhotoImage(personaje if inversa else panel.resize(tuple(round(v) for v in self.normal),Image.Resampling.LANCZOS))
         if fotos is not None:self.fotos=fotos;return
         # Pillow trabaja fuera de Tk; PhotoImage se crea en pequeños lotes en el hilo UI.
         self.worker=threading.Thread(target=Transformacion.preparar,args=(self.cola,self.cancelar,panel,saludo,personaje,self.cantidad,directa,inversa,

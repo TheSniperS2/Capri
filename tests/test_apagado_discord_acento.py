@@ -12,7 +12,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'src'))
 from core import interpretar,Orden,ejecutar
 from intenciones import Interprete
 from control_pc import ControlPC
-from apagado import RendererApagado,SecuenciaApagado,DURACION
+from apagado import RendererApagado,SecuenciaApagado,DURACION,INICIO_APAGADO,opacidad_apagado
 from discord_control import interpretar_discord,ejecutar_discord,DISCORD_UI
 from voz import Voz,elegir_voz
 from test_capri import PruebasTk
@@ -55,10 +55,25 @@ class Apagado(unittest.TestCase):
         s=SecuenciaApagado.__new__(SecuenciaApagado)
         s.cerrada=False;s.enviada=False;s.inicio=0;s.renderer=Mock();s.renderer.fotograma.return_value=Mock(size=(2,2));s.w=s.h=2
         s.c=Mock();s.item=1;s.cerrar=Mock();s.terminar=Mock();s.previa=True
+        s.v=Mock()
         with patch('apagado.time.monotonic',return_value=DURACION+1),patch('apagado.ImageTk.PhotoImage'):
             s.tick()
         s.cerrar.assert_called_once();s.terminar.assert_not_called()
         s.cancelar=Mock();s.abortar();s.cancelar.assert_called_once();s.terminar.assert_not_called()
+
+
+    def test_entrada_gradual_y_orden_anticipada_sin_volver_al_escritorio(self):
+        niveles=[opacidad_apagado(t) for t in (0,.4,1,1.8,2.6,DURACION)]
+        self.assertEqual(niveles[0],0);self.assertEqual(niveles[-1],1)
+        self.assertEqual(niveles,sorted(niveles));self.assertTrue(0<niveles[2]<1)
+        s=SecuenciaApagado.__new__(SecuenciaApagado)
+        s.cerrada=False;s.enviada=False;s.inicio=0;s.previa=False
+        s.root=Mock();s.v=Mock();s.c=Mock();s.renderer=Mock();s.terminar=Mock();s.cancelar=Mock();s.pendiente=None
+        for t in (INICIO_APAGADO-.01,INICIO_APAGADO,DURACION,DURACION+1):
+            with patch('apagado.time.monotonic',return_value=t):s._fotograma()
+            self.assertEqual(s.terminar.call_count,int(t>=INICIO_APAGADO))
+        self.assertFalse(s.cerrada);s.v.destroy.assert_not_called()
+        s.abortar();s.cancelar.assert_not_called()
 
 
 class Discord(unittest.TestCase):
@@ -97,6 +112,14 @@ class Discord(unittest.TestCase):
 
 class Acento(PruebasTk):
     capri=fixtures.ModoPersonaje.capri
+
+    def test_apagado_aceptado_mantiene_negro_y_error_recupera_escritorio(self):
+        with self.capri() as (c,_):
+            c.apagado_ui=Mock(cerrada=False)
+            c.eventos.put(('fin_apagado',None));c.poll()
+            c.apagado_ui.cerrar.assert_not_called()
+            c.eventos.put(('fin_apagado','Windows no aceptó el apagado.'));c.poll()
+            c.apagado_ui.cerrar.assert_called_once()
 
     def test_apagado_de_dos_turnos_arranca_efecto_solo_tras_confirmar(self):
         with self.capri() as (c,_),patch('apagado.SecuenciaApagado') as secuencia,patch('control_pc.subprocess.run') as sistema:
